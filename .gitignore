@@ -11,3 +11,8 @@ playwright-report/
 test-results/
 .playwright-mcp/
 tsconfig.tsbuildinfo
+data/
+*.pgn
+*.zip
+modern-*.png
+move-selection-*.png
