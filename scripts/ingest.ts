@@ -11,7 +11,7 @@
  *   npm run ingest -- --twic --from 920 --to 1614 [--concurrency 6]
  *
  *   # Common flags
- *   --depth N         per-game ply depth (default 16)
+ *   --depth N         per-game ply depth (default 24 → 12 full moves of theory)
  *   --no-stats        skip rebuild-stats after ingest
  *
  * Pipeline
@@ -92,7 +92,7 @@ function parseArgs(): Args {
     from: isTwic ? Number(get('--from')) : undefined,
     to: isTwic ? Number(get('--to')) : undefined,
     concurrency: Number(get('--concurrency', '6')),
-    depth: Number(get('--depth', '16')),
+    depth: Number(get('--depth', '24')),
     rebuildStats: !has('--no-stats'),
   };
 }
