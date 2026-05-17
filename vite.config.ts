@@ -6,15 +6,15 @@ export default defineConfig({
   plugins: [react()],
   server: {
     proxy: {
-      '/api/chessdb': {
-        target: 'https://www.chessdb.cn',
-        changeOrigin: true,
-        rewrite: (path) => path.replace(/^\/api\/chessdb/, '/cdb.php'),
-      },
       '/api/openings': {
         target: 'https://raw.githubusercontent.com',
         changeOrigin: true,
         rewrite: (path) => path.replace(/^\/api\/openings/, '/lichess-org/chess-openings/master'),
+      },
+      // Everything else under /api goes to the local Fastify backend.
+      '/api': {
+        target: 'http://127.0.0.1:5174',
+        changeOrigin: false,
       },
     },
   },

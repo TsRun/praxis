@@ -7,12 +7,24 @@ const okResponse = (body: object) =>
     headers: { 'content-type': 'application/json' },
   });
 
-const validChessdbReply = {
-  status: 'ok',
+const validReply = {
+  fen: 'startpos',
+  epd: 'startpos',
+  games: 100,
+  white: 40,
+  draws: 25,
+  black: 35,
   moves: [
-    { uci: 'e2e4', san: 'e4', score: 5, rank: 2, winrate: '52.00' },
-    { uci: 'd2d4', san: 'd4', score: 3, rank: 1, winrate: '51.00' },
-    { uci: 'g1f3', san: 'Nf3', score: 0, rank: 0, winrate: '50.00' },
+    {
+      uci: 'e2e4',
+      san: 'e4',
+      child_fen: 'after-e4',
+      games: 50,
+      white: 22,
+      draws: 12,
+      black: 16,
+      avg_elo: 2200,
+    },
   ],
 };
 
@@ -22,49 +34,33 @@ describe('fetchExplorer', () => {
     clearExplorerCache();
   });
 
-  it('hits /api/chessdb with FEN', async () => {
-    const spy = vi
-      .spyOn(globalThis, 'fetch')
-      .mockResolvedValue(okResponse(validChessdbReply));
-    await fetchExplorer({ source: 'chessdb', fen: 'startpos' });
+  it('hits /api/explorer with FEN', async () => {
+    const spy = vi.spyOn(globalThis, 'fetch').mockResolvedValue(okResponse(validReply));
+    await fetchExplorer({ source: 'otb', fen: 'startpos' });
     expect(spy).toHaveBeenCalledTimes(1);
     const url = String(spy.mock.calls[0][0]);
-    expect(url).toMatch(/\/api\/chessdb/);
-    expect(url).toMatch(/board=startpos/);
+    expect(url).toMatch(/\/api\/explorer/);
+    expect(url).toMatch(/fen=startpos/);
   });
 
   it('caches by FEN so a second call does not refetch', async () => {
-    const spy = vi
-      .spyOn(globalThis, 'fetch')
-      .mockImplementation(async () => okResponse(validChessdbReply));
-    await fetchExplorer({ source: 'chessdb', fen: 'X' });
-    await fetchExplorer({ source: 'chessdb', fen: 'X' });
+    const spy = vi.spyOn(globalThis, 'fetch').mockImplementation(async () => okResponse(validReply));
+    await fetchExplorer({ source: 'otb', fen: 'X' });
+    await fetchExplorer({ source: 'otb', fen: 'X' });
     expect(spy).toHaveBeenCalledTimes(1);
   });
 
-  it('returns empty result on non-ok chessdb status', async () => {
-    vi.spyOn(globalThis, 'fetch').mockResolvedValue(
-      okResponse({ status: 'unknown' }),
-    );
-    const r = await fetchExplorer({ source: 'chessdb', fen: 'Y' });
-    expect(r.moves).toEqual([]);
-  });
-
   it('throws on HTTP error', async () => {
-    vi.spyOn(globalThis, 'fetch').mockResolvedValue(
-      new Response('boom', { status: 500 }),
-    );
-    await expect(fetchExplorer({ source: 'chessdb', fen: 'Z' })).rejects.toThrow(/500/);
+    vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response('boom', { status: 500 }));
+    await expect(fetchExplorer({ source: 'otb', fen: 'Z' })).rejects.toThrow(/500/);
   });
 
-  it('derives white/draws/black counts so the tree has differentiation', async () => {
-    vi.spyOn(globalThis, 'fetch').mockResolvedValue(okResponse(validChessdbReply));
-    const r = await fetchExplorer({ source: 'chessdb', fen: 'W' });
-    expect(r.moves.length).toBe(3);
-    // Top-ranked move should have the most plays
-    expect(r.moves[0].white + r.moves[0].draws + r.moves[0].black)
-      .toBeGreaterThan(r.moves[2].white + r.moves[2].draws + r.moves[2].black);
-    // Higher winrate → more white wins relative to black
-    expect(r.moves[0].white).toBeGreaterThan(r.moves[0].black);
+  it('returns parsed moves with avg_elo and per-side counts', async () => {
+    vi.spyOn(globalThis, 'fetch').mockResolvedValue(okResponse(validReply));
+    const r = await fetchExplorer({ source: 'otb', fen: 'W' });
+    expect(r.moves).toHaveLength(1);
+    expect(r.moves[0].san).toBe('e4');
+    expect(r.moves[0].avg_elo).toBe(2200);
+    expect(r.games).toBe(100);
   });
 });

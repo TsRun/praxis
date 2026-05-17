@@ -39,8 +39,8 @@ describe('gameStore', () => {
     expect(after.fen.split(' ')[1]).toBe('b');
   });
 
-  it('source defaults to chessdb', () => {
-    expect(useGameStore.getState().source).toBe('chessdb');
+  it('source defaults to otb', () => {
+    expect(useGameStore.getState().source).toBe('otb');
   });
 
   it('setHistoryFromPgn loads valid PGN', () => {

@@ -29,7 +29,7 @@ function fenFromHistory(history: string[]): string {
 export const useGameStore = create<GameState>((set, get) => ({
   fen: START_FEN,
   history: [],
-  source: 'chessdb',
+  source: 'otb',
   minShare: 0.005,
   maxDepth: 12,
 
@@ -83,7 +83,7 @@ export const useGameStore = create<GameState>((set, get) => ({
     set({
       fen: START_FEN,
       history: [],
-      source: 'chessdb',
+      source: 'otb',
       minShare: 0.005,
       maxDepth: 12,
     });

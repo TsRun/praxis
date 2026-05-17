@@ -1,88 +1,131 @@
 # OpeningTree
 
-A chess opening explorer with a focus on a visual, intuitive opening **tree**
-rather than the usual stack of stats tables. Make a move on the board, watch
-the tree zoom in; click a node, see the mini-board; let the shape of the
-opening tell you which lines are mainstream, which are sidelines, and which
-are dubious — at a glance.
+A chess opening explorer with a focused, visual **move selection** for the current position: real over-the-board (OTB) games count, average Elo, W/D/B distribution, and the engine of choice for adding more sources later.
 
-![Screenshot of OpeningTree showing root → e4 → c6 (Caro-Kann)](./page-carokann.png)
+![Screenshot — Caro-Kann move selection](./page-carokann.png)
+
+## Architecture
+
+```
+┌──────────────┐   /api/explorer   ┌──────────────┐   pg COPY/UPSERT   ┌────────────┐
+│ React + Vite │ ────────────────▶ │ Fastify + pg │ ────────────────── │ Postgres   │
+│  frontend    │ ◀──── JSON ────── │   backend    │                    │ openings db│
+└──────────────┘                   └──────────────┘                    └────────────┘
+                                          ▲
+                                          │ scripts/ingest.ts (streamed PGN parsing,
+                                          │ stable-fingerprint dedup, depth-bounded
+                                          │ per-edge aggregation)
+                                          │
+                                  ┌───────┴────────┐
+                                  │ PGN data       │
+                                  │ (TWIC, Lumbra, │
+                                  │  custom dumps) │
+                                  └────────────────┘
+```
+
+- **Frontend** (this repo's `src/`): React 18 + Vite + TS + Tailwind. Renders a dense, visual `MoveSelection` panel beside an interactive board.
+- **Backend** (`server/`): tiny Fastify + node-postgres app exposing `GET /api/explorer?fen=…`. Returns total games, white/draw/black aggregates, and per-move stats (san, games, w/d/b, `avg_elo`, child FEN).
+- **Ingestion** (`scripts/ingest.ts`): streams a PGN file, dedupes games via stable fingerprint (`white|black|date|result|event|first-20-plies`), walks the first 16 plies, and UPSERTs `(parent_fen, san)` edges in batched transactions.
 
 ## Run
 
 ```bash
+# 1. Postgres (already installed? skip this)
+brew install postgresql@16
+brew services start postgresql@16
+createdb openings
+
+# 2. Install deps
 npm install
-npm run dev                 # http://localhost:5173
+
+# 3. Boot the backend
+npm run dev:server     # http://127.0.0.1:5174
+
+# 4. Boot the frontend
+npm run dev            # http://localhost:5173
 ```
 
-## What's in it
+## Ingest games
 
-- **Interactive chess board** (chessground).
-- **Move list** (click any ply to rewind).
-- **Explorer stats table** for the current position.
-- **Visual opening tree** — D3 hierarchy, node size by popularity, color by
-  white/black advantage, edge thickness by share of plays, active path
-  highlighted in gold. Hover for a mini-board. Click to expand. Shift-click to
-  jump to that position. Drag to pan, scroll to zoom.
-- **ECO names** for any position the openings database knows about (lichess
-  chess-openings dataset).
-- **FEN/PGN search** — paste either format into the search bar.
-- **Shareable URLs** — current FEN lives in the query string.
-- **View settings** — prune low-popularity branches, cap render depth.
+```bash
+# Single PGN file
+npm run ingest -- data/some-tournament.pgn --source twic1614
 
-## Data sources
+# Or with custom depth
+npm run ingest -- data/some.pgn --depth 20 --source kingbase
+```
 
-| Source | Used for | CORS |
-| --- | --- | --- |
-| [chessdb.cn](https://www.chessdb.cn/cloudbookc_api_en.html) | Move stats / next-move candidates | None — proxied in dev |
-| [lichess-org/chess-openings](https://github.com/lichess-org/chess-openings) | ECO codes and opening names | Yes (via raw.githubusercontent.com) |
+The script logs ingestion progress (read / kept / dedupe / no-result / invalid) and is safe to re-run — the dedupe ledger in the `game` table prevents double-counting.
 
-> **Production note**: chessdb.cn does not send CORS headers. The Vite dev
-> server proxies `/api/chessdb` → `https://www.chessdb.cn/cdb.php`. For a
-> production deployment, host the same path behind your own reverse proxy
-> (nginx / Cloudflare Worker) and the app will work unchanged.
+### Where to get OTB PGN
 
-> **Why not Lichess explorer?** As of May 2026 the public `explorer.lichess.ovh`
-> endpoint returns 401. If you have a Lichess OAuth token you can swap the
-> data source back in `src/lib/lichess.ts` — the architecture supports it.
+| Source | Size | License | Notes |
+| --- | --- | --- | --- |
+| [TWIC](https://theweekinchess.com/twic) | ~6–8K games/week | Personal use only | Easiest weekly fetch — `https://theweekinchess.com/zips/twic{N}g.zip` |
+| [Lumbra's Gigabase](https://lumbrasgigabase.com/en/) | 10.3M OTB games | CC BY-NC-SA 4.0 | Best canonical source for a public, non-commercial deployment |
+| [Caissabase](https://chess-db.com/) | ~3.9M | varies | Recent status unclear; check before relying on it |
+| [Lichess Masters Explorer](https://lichess.org/api) | ~2.5M masters games | OAuth-gated 2026 | Smaller than Lumbra, but well-curated |
 
-## Stack
+### Schema
 
-Vite · React 18 · TypeScript · Tailwind · Zustand · React Router · chess.js ·
-chessground · D3 (`d3-hierarchy`, `d3-zoom`, `d3-interpolate`) · Vitest ·
-Playwright.
+```sql
+CREATE TABLE game (
+  fingerprint TEXT PRIMARY KEY,    -- sha1 of normalized (white|black|date|result|event|first-20-plies)
+  white TEXT, black TEXT,
+  white_elo INTEGER, black_elo INTEGER,
+  event_date TEXT, result TEXT, source TEXT,
+  ingested_at BIGINT NOT NULL
+);
 
-## Layout
+CREATE TABLE move (
+  parent_fen TEXT NOT NULL,   -- EPD (4 fields)
+  san TEXT NOT NULL,
+  uci TEXT NOT NULL,
+  child_fen TEXT NOT NULL,
+  games BIGINT NOT NULL,
+  white_wins BIGINT NOT NULL,
+  draws BIGINT NOT NULL,
+  black_wins BIGINT NOT NULL,
+  rating_sum BIGINT NOT NULL,
+  rating_n BIGINT NOT NULL,
+  PRIMARY KEY (parent_fen, san)
+);
+```
+
+## Frontend layout
 
 ```
 src/
 ├── components/
 │   ├── board/        ChessBoard, MoveList
-│   ├── explorer/     ExplorerTable, OpeningHeader
-│   ├── tree/         OpeningTree (React mount) + treeRender (pure D3)
-│   └── ui/           SearchBar, ViewSettings
-├── hooks/            useExplorer, useTree, useFenUrlSync
-├── lib/              cache (LRU), lichess (chessdb client), tree (prune), eco
+│   ├── explorer/     MoveSelection (the headline), OpeningHeader
+│   ├── tree/         NodePreview (mini-board hover, reused)
+│   └── ui/           Icon, SearchBar
+├── hooks/            useExplorer, useFenUrlSync, useKeyboardNav
+├── lib/              cache, lichess (API client), eco
 └── store/            gameStore (zustand)
 ```
+
+The opening-name lookup uses the public [lichess-org/chess-openings](https://github.com/lichess-org/chess-openings) TSVs fetched through a Vite dev proxy (`/api/openings/{a..e}.tsv`).
 
 ## Scripts
 
 ```bash
-npm run dev          # dev server
+npm run dev          # vite dev server
+npm run dev:server   # fastify backend (auto-restart)
+npm run ingest       # PGN ingestion (see above)
 npm run build        # production build
 npm run typecheck    # tsc -b --noEmit
-npm test             # vitest unit
-npm run e2e          # playwright (will boot dev server)
+npm test             # vitest
+npm run e2e          # playwright
 ```
 
 ## Tests
 
-- 25 unit tests (Vitest) — cache, chessdb client, game store, tree pruning.
-- 4 E2E tests (Playwright) — load, play a move, search by FEN, share by URL.
+- 16 Vitest unit tests — cache, API client, game store
+- 4 Playwright E2E tests — load / play move / FEN search / shareable URL
 
-## Design / plan
+## Design + plan
 
-See `docs/superpowers/specs/2026-05-17-chess-opening-tree-design.md` for the
-design spec and `docs/superpowers/plans/2026-05-17-opening-tree.md` for the
-implementation plan.
+`docs/superpowers/specs/2026-05-17-chess-opening-tree-design.md`,
+`docs/superpowers/plans/2026-05-17-opening-tree.md`.
