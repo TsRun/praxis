@@ -46,9 +46,11 @@ body {
   box-shadow: 0 24px 60px -24px rgba(0, 0, 0, 0.8), 0 0 0 1px rgba(255, 255, 255, 0.04);
 }
 .cg-wrap cg-board {
-  background-color: #475569 !important; /* dark squares = slate-600 */
+  /* a1 must be dark, h1 light. The conic gradient is anchored at the
+     top-left of each tile, so we put the dark color first. */
+  background-color: #d2dbe7 !important;
   background-image:
-    repeating-conic-gradient(#d2dbe7 0% 25%, #475569 0% 50%) !important;
+    repeating-conic-gradient(#475569 0% 25%, #d2dbe7 0% 50%) !important;
   background-size: 25% 25% !important;
   background-position: 0 0 !important;
 }
