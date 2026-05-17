@@ -1,0 +1,42 @@
+- generic [ref=e3]:
+  - banner [ref=e4]:
+    - heading "OpeningTree" [level=1] [ref=e5]
+    - textbox "Paste FEN or PGN…" [ref=e7]
+    - generic [ref=e8]: no opening match
+    - generic [ref=e10]:
+      - generic [ref=e11]:
+        - generic [ref=e12]: Prune < 0.5%
+        - slider "Prune < 0.5%" [ref=e13]: "0.005"
+      - generic [ref=e14]:
+        - generic [ref=e15]: "Depth: 12"
+        - 'slider "Depth: 12" [ref=e16]': "12"
+  - main [ref=e17]:
+    - generic [ref=e18]:
+      - generic [ref=e20]:
+        - img
+        - img
+        - generic:
+          - generic: "1"
+          - generic: "2"
+          - generic: "3"
+          - generic: "4"
+          - generic: "5"
+          - generic: "6"
+          - generic: "7"
+          - generic: "8"
+        - generic:
+          - generic: a
+          - generic: b
+          - generic: c
+          - generic: d
+          - generic: e
+          - generic: f
+          - generic: g
+          - generic: h
+      - generic [ref=e22]:
+        - generic [ref=e23]: Moves
+        - generic [ref=e24]: No moves played
+      - generic [ref=e26]: Loading…
+    - generic [ref=e27]:
+      - generic [ref=e28]: Loading tree…
+      - generic: click → expand · shift-click → jump · drag → pan · wheel → zoom
