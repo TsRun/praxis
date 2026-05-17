@@ -29,12 +29,13 @@ export function PlayerFilter() {
   const [focused, setFocused] = useState(false);
   const [suggestions, setSuggestions] = useState<PlayerSuggestion[]>([]);
   const [loading, setLoading] = useState(false);
-  const debounced = useDebounced(q, 150);
+  const debounced = useDebounced(q, 120);
   const inputRef = useRef<HTMLInputElement | null>(null);
 
   useEffect(() => {
     if (debounced.length < 2) {
       setSuggestions([]);
+      setLoading(false);
       return;
     }
     const ctrl = new AbortController();
@@ -46,6 +47,9 @@ export function PlayerFilter() {
     return () => ctrl.abort();
   }, [debounced]);
 
+  // True between "user typed something" and "fetch settled" — avoids briefly
+  // showing "No players match" while the debounce is still pending.
+  const stale = q.length >= 2 && q !== debounced;
   const showDropdown = focused && q.length >= 2;
 
   function pick(s: PlayerSuggestion) {
@@ -137,7 +141,7 @@ export function PlayerFilter() {
       </div>
       {showDropdown && (
         <div className="absolute z-30 top-full mt-1.5 left-0 w-[26rem] max-h-80 overflow-auto scroll-thin rounded-xl panel p-1">
-          {loading && suggestions.length === 0 ? (
+          {(loading || stale) && suggestions.length === 0 ? (
             <div className="px-3 py-2 text-xs text-zinc-500">Searching FIDE…</div>
           ) : suggestions.length === 0 ? (
             <div className="px-3 py-2 text-xs text-zinc-500">
