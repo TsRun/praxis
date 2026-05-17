@@ -17,6 +17,7 @@ interface GameState {
   setSource: (s: Source) => void;
   setFen: (fen: string) => void;
   setHistoryFromPgn: (pgn: string) => boolean;
+  loadLine: (sanMoves: string[], ply?: number) => boolean;
   setMinShare: (n: number) => void;
   setMaxDepth: (n: number) => void;
   reset: () => void;
@@ -104,6 +105,27 @@ export const useGameStore = create<GameState>((set, get) => ({
     if (h.length === 0) return false;
     set({ history: h, currentPly: h.length, fen: c.fen() });
     return true;
+  },
+
+  loadLine(sanMoves, ply) {
+    // Replay each SAN against a fresh board, stopping at the first invalid
+    // move (graceful degradation on corrupt URLs).
+    const c = new Chess();
+    const valid: string[] = [];
+    for (const san of sanMoves) {
+      try {
+        const mv = c.move(san);
+        if (!mv) break;
+        valid.push(mv.san);
+      } catch {
+        break;
+      }
+    }
+    const clampedPly = ply == null ? valid.length : Math.max(0, Math.min(ply, valid.length));
+    const view = new Chess();
+    for (let i = 0; i < clampedPly; i++) view.move(valid[i]);
+    set({ history: valid, currentPly: clampedPly, fen: view.fen() });
+    return valid.length > 0;
   },
 
   setMinShare(n) {
