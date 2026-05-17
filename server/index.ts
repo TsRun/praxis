@@ -121,7 +121,7 @@ app.get<{ Querystring: ExplorerQuery }>('/api/explorer', async (req, reply) => {
       JOIN game g ON g.id = gm.game_id
      WHERE ${where.join(' AND ')}
      GROUP BY gm.san, gm.uci, gm.child_fen
-     ORDER BY games::bigint DESC`;
+     ORDER BY COUNT(*) DESC`;
 
   const { rows } = await pool.query<{
     san: string;

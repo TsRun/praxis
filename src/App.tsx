@@ -2,7 +2,7 @@ import { ChessBoard } from './components/board/ChessBoard';
 import { MoveList } from './components/board/MoveList';
 import { MoveSelection } from './components/explorer/MoveSelection';
 import { OpeningHeader } from './components/explorer/OpeningHeader';
-import { SearchBar } from './components/ui/SearchBar';
+import { PlayerFilter } from './components/ui/PlayerFilter';
 import { Icon } from './components/ui/Icon';
 import { useFenUrlSync } from './hooks/useFenUrlSync';
 import { useKeyboardNav } from './hooks/useKeyboardNav';
@@ -21,7 +21,7 @@ export default function App() {
 
   return (
     <div className="h-full flex flex-col">
-      <header className="px-6 py-3 flex items-center gap-6 border-b border-zinc-800/70 bg-zinc-950/70 backdrop-blur-xl">
+      <header className="px-6 py-3 flex items-center gap-5 border-b border-zinc-800/70 bg-zinc-950/70 backdrop-blur-xl">
         <div className="flex items-center gap-2">
           <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-amber-400 to-amber-600 grid place-items-center text-zinc-950 shadow-lg shadow-amber-500/20">
             <Icon name="tree" className="w-4 h-4" />
@@ -30,7 +30,7 @@ export default function App() {
             Opening<span className="text-amber-400">Tree</span>
           </h1>
         </div>
-        <SearchBar />
+        <PlayerFilter />
         <OpeningHeader />
         <div className="ml-auto flex items-center gap-3 text-[11px] text-zinc-500">
           <span className="flex items-center gap-1.5">
