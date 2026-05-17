@@ -1,0 +1,136 @@
+- generic [ref=e3]:
+  - banner [ref=e4]:
+    - heading "OpeningTree" [level=1] [ref=e5]
+    - textbox "Paste FEN or PGN…" [ref=e7]
+    - generic [ref=e8]: no opening match
+    - generic [ref=e10]:
+      - generic [ref=e11]:
+        - generic [ref=e12]: Prune < 0.5%
+        - slider "Prune < 0.5%" [ref=e13]: "0.005"
+      - generic [ref=e14]:
+        - generic [ref=e15]: "Depth: 12"
+        - 'slider "Depth: 12" [ref=e16]': "12"
+  - main [ref=e17]:
+    - generic [ref=e18]:
+      - generic [ref=e20]:
+        - img
+        - img
+        - generic:
+          - generic: "1"
+          - generic: "2"
+          - generic: "3"
+          - generic: "4"
+          - generic: "5"
+          - generic: "6"
+          - generic: "7"
+          - generic: "8"
+        - generic:
+          - generic: a
+          - generic: b
+          - generic: c
+          - generic: d
+          - generic: e
+          - generic: f
+          - generic: g
+          - generic: h
+      - generic [ref=e22]:
+        - generic [ref=e23]: Moves
+        - generic [ref=e24]: No moves played
+      - table [ref=e29]:
+        - rowgroup [ref=e30]:
+          - row "Move Games W / D / B" [ref=e31]:
+            - columnheader "Move" [ref=e32]
+            - columnheader "Games" [ref=e33]
+            - columnheader "W / D / B" [ref=e34]
+            - columnheader [ref=e35]
+        - rowgroup [ref=e36]:
+          - row "e4 50 000 38% / 25% / 37%" [ref=e37] [cursor=pointer]:
+            - cell "e4" [ref=e38]
+            - cell "50 000" [ref=e39]
+            - cell "38% / 25% / 37%" [ref=e40]
+            - cell [ref=e41]
+          - row "d4 5 000 38% / 25% / 38%" [ref=e46] [cursor=pointer]:
+            - cell "d4" [ref=e47]
+            - cell "5 000" [ref=e48]
+            - cell "38% / 25% / 38%" [ref=e49]
+            - cell [ref=e50]
+          - row "Nf3 5 000 38% / 25% / 38%" [ref=e55] [cursor=pointer]:
+            - cell "Nf3" [ref=e56]
+            - cell "5 000" [ref=e57]
+            - cell "38% / 25% / 38%" [ref=e58]
+            - cell [ref=e59]
+          - row "Nc3 5 000 38% / 25% / 38%" [ref=e64] [cursor=pointer]:
+            - cell "Nc3" [ref=e65]
+            - cell "5 000" [ref=e66]
+            - cell "38% / 25% / 38%" [ref=e67]
+            - cell [ref=e68]
+          - row "c4 5 000 38% / 25% / 38%" [ref=e73] [cursor=pointer]:
+            - cell "c4" [ref=e74]
+            - cell "5 000" [ref=e75]
+            - cell "38% / 25% / 38%" [ref=e76]
+            - cell [ref=e77]
+          - row "a3 5 000 38% / 25% / 38%" [ref=e82] [cursor=pointer]:
+            - cell "a3" [ref=e83]
+            - cell "5 000" [ref=e84]
+            - cell "38% / 25% / 38%" [ref=e85]
+            - cell [ref=e86]
+          - row "g3 5 000 38% / 25% / 38%" [ref=e91] [cursor=pointer]:
+            - cell "g3" [ref=e92]
+            - cell "5 000" [ref=e93]
+            - cell "38% / 25% / 38%" [ref=e94]
+            - cell [ref=e95]
+          - row "c3 5 000 38% / 25% / 38%" [ref=e100] [cursor=pointer]:
+            - cell "c3" [ref=e101]
+            - cell "5 000" [ref=e102]
+            - cell "38% / 25% / 38%" [ref=e103]
+            - cell [ref=e104]
+          - row "e3 5 000 38% / 25% / 38%" [ref=e109] [cursor=pointer]:
+            - cell "e3" [ref=e110]
+            - cell "5 000" [ref=e111]
+            - cell "38% / 25% / 38%" [ref=e112]
+            - cell [ref=e113]
+          - row "b3 5 000 38% / 25% / 38%" [ref=e118] [cursor=pointer]:
+            - cell "b3" [ref=e119]
+            - cell "5 000" [ref=e120]
+            - cell "38% / 25% / 38%" [ref=e121]
+            - cell [ref=e122]
+          - row "h3 5 000 38% / 25% / 38%" [ref=e127] [cursor=pointer]:
+            - cell "h3" [ref=e128]
+            - cell "5 000" [ref=e129]
+            - cell "38% / 25% / 38%" [ref=e130]
+            - cell [ref=e131]
+          - row "d3 5 000 38% / 25% / 38%" [ref=e136] [cursor=pointer]:
+            - cell "d3" [ref=e137]
+            - cell "5 000" [ref=e138]
+            - cell "38% / 25% / 38%" [ref=e139]
+            - cell [ref=e140]
+    - generic [ref=e27]:
+      - img [ref=e146]:
+        - generic [ref=e147]:
+          - generic [ref=e161]:
+            - generic [ref=e162]: e4
+            - generic [ref=e163]: d4
+            - generic [ref=e164]: Nf3
+            - generic [ref=e165]: Nc3
+            - generic [ref=e166]: c4
+            - generic [ref=e167]: a3
+            - generic [ref=e168]: g3
+            - generic [ref=e169]: c3
+            - generic [ref=e170]: e3
+            - generic [ref=e171]: b3
+            - generic [ref=e172]: h3
+            - generic [ref=e173]: d3
+          - generic [ref=e174]:
+            - generic [ref=e179] [cursor=pointer]: +
+            - generic [ref=e182] [cursor=pointer]: +
+            - generic [ref=e185] [cursor=pointer]: +
+            - generic [ref=e188] [cursor=pointer]: +
+            - generic [ref=e191] [cursor=pointer]: +
+            - generic [ref=e194] [cursor=pointer]: +
+            - generic [ref=e197] [cursor=pointer]: +
+            - generic [ref=e200] [cursor=pointer]: +
+            - generic [ref=e203] [cursor=pointer]: +
+            - generic [ref=e206] [cursor=pointer]: +
+            - generic [ref=e209] [cursor=pointer]: +
+            - generic [ref=e212] [cursor=pointer]: +
+      - generic: click → expand · shift-click → jump · drag → pan · wheel → zoom

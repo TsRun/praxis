@@ -2,12 +2,16 @@ import { useCallback } from 'react';
 import { ChessBoard } from './components/board/ChessBoard';
 import { MoveList } from './components/board/MoveList';
 import { ExplorerTable } from './components/explorer/ExplorerTable';
+import { OpeningHeader } from './components/explorer/OpeningHeader';
 import { OpeningTree } from './components/tree/OpeningTree';
 import { ViewSettings } from './components/ui/ViewSettings';
+import { SearchBar } from './components/ui/SearchBar';
 import { useTree } from './hooks/useTree';
+import { useFenUrlSync } from './hooks/useFenUrlSync';
 import { useGameStore } from './store/gameStore';
 
 export default function App() {
+  useFenUrlSync();
   const { root, activePath, expand, error } = useTree();
   const setFen = useGameStore((s) => s.setFen);
 
@@ -22,11 +26,12 @@ export default function App() {
   return (
     <div className="h-full flex flex-col">
       <header className="px-6 py-3 border-b bg-white flex items-center gap-6 shadow-sm">
-        <h1 className="text-xl font-semibold tracking-tight">
+        <h1 className="text-xl font-semibold tracking-tight whitespace-nowrap">
           <span className="text-amber-700">Opening</span>
           <span>Tree</span>
         </h1>
-        <span className="text-xs text-neutral-400">chess opening explorer</span>
+        <SearchBar />
+        <OpeningHeader />
         <div className="ml-auto">
           <ViewSettings />
         </div>
