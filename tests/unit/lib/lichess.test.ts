@@ -2,7 +2,19 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { fetchExplorer, clearExplorerCache } from '../../../src/lib/lichess';
 
 const okResponse = (body: object) =>
-  new Response(JSON.stringify(body), { status: 200, headers: { 'content-type': 'application/json' } });
+  new Response(JSON.stringify(body), {
+    status: 200,
+    headers: { 'content-type': 'application/json' },
+  });
+
+const validChessdbReply = {
+  status: 'ok',
+  moves: [
+    { uci: 'e2e4', san: 'e4', score: 5, rank: 2, winrate: '52.00' },
+    { uci: 'd2d4', san: 'd4', score: 3, rank: 1, winrate: '51.00' },
+    { uci: 'g1f3', san: 'Nf3', score: 0, rank: 0, winrate: '50.00' },
+  ],
+};
 
 describe('fetchExplorer', () => {
   beforeEach(() => {
@@ -10,46 +22,49 @@ describe('fetchExplorer', () => {
     clearExplorerCache();
   });
 
-  it('hits /masters when source=masters with the FEN', async () => {
-    const spy = vi.spyOn(globalThis, 'fetch').mockResolvedValue(
-      okResponse({ white: 1, draws: 1, black: 1, moves: [] }),
-    );
-    await fetchExplorer({ source: 'masters', fen: 'startpos' });
+  it('hits /api/chessdb with FEN', async () => {
+    const spy = vi
+      .spyOn(globalThis, 'fetch')
+      .mockResolvedValue(okResponse(validChessdbReply));
+    await fetchExplorer({ source: 'chessdb', fen: 'startpos' });
     expect(spy).toHaveBeenCalledTimes(1);
     const url = String(spy.mock.calls[0][0]);
-    expect(url).toMatch(/explorer\.lichess\.ovh\/masters/);
-    expect(url).toMatch(/fen=startpos/);
+    expect(url).toMatch(/\/api\/chessdb/);
+    expect(url).toMatch(/board=startpos/);
   });
 
-  it('hits /lichess when source=lichess', async () => {
-    const spy = vi.spyOn(globalThis, 'fetch').mockResolvedValue(
-      okResponse({ white: 0, draws: 0, black: 0, moves: [] }),
-    );
-    await fetchExplorer({ source: 'lichess', fen: 'startpos' });
-    const url = String(spy.mock.calls[0][0]);
-    expect(url).toMatch(/explorer\.lichess\.ovh\/lichess/);
-  });
-
-  it('caches by (source,fen) so a second call does not refetch', async () => {
-    const spy = vi.spyOn(globalThis, 'fetch').mockResolvedValue(
-      okResponse({ white: 0, draws: 0, black: 0, moves: [] }),
-    );
-    await fetchExplorer({ source: 'masters', fen: 'X' });
-    await fetchExplorer({ source: 'masters', fen: 'X' });
+  it('caches by FEN so a second call does not refetch', async () => {
+    const spy = vi
+      .spyOn(globalThis, 'fetch')
+      .mockImplementation(async () => okResponse(validChessdbReply));
+    await fetchExplorer({ source: 'chessdb', fen: 'X' });
+    await fetchExplorer({ source: 'chessdb', fen: 'X' });
     expect(spy).toHaveBeenCalledTimes(1);
   });
 
-  it('differentiates cache by source', async () => {
-    const spy = vi.spyOn(globalThis, 'fetch').mockImplementation(
-      async () => okResponse({ white: 0, draws: 0, black: 0, moves: [] }),
+  it('returns empty result on non-ok chessdb status', async () => {
+    vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+      okResponse({ status: 'unknown' }),
     );
-    await fetchExplorer({ source: 'masters', fen: 'Y' });
-    await fetchExplorer({ source: 'lichess', fen: 'Y' });
-    expect(spy).toHaveBeenCalledTimes(2);
+    const r = await fetchExplorer({ source: 'chessdb', fen: 'Y' });
+    expect(r.moves).toEqual([]);
   });
 
-  it('throws on non-OK response', async () => {
-    vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response('rate limited', { status: 429 }));
-    await expect(fetchExplorer({ source: 'masters', fen: 'Z' })).rejects.toThrow(/429/);
+  it('throws on HTTP error', async () => {
+    vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+      new Response('boom', { status: 500 }),
+    );
+    await expect(fetchExplorer({ source: 'chessdb', fen: 'Z' })).rejects.toThrow(/500/);
+  });
+
+  it('derives white/draws/black counts so the tree has differentiation', async () => {
+    vi.spyOn(globalThis, 'fetch').mockResolvedValue(okResponse(validChessdbReply));
+    const r = await fetchExplorer({ source: 'chessdb', fen: 'W' });
+    expect(r.moves.length).toBe(3);
+    // Top-ranked move should have the most plays
+    expect(r.moves[0].white + r.moves[0].draws + r.moves[0].black)
+      .toBeGreaterThan(r.moves[2].white + r.moves[2].draws + r.moves[2].black);
+    // Higher winrate → more white wins relative to black
+    expect(r.moves[0].white).toBeGreaterThan(r.moves[0].black);
   });
 });

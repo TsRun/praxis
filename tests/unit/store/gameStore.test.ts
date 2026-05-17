@@ -39,9 +39,8 @@ describe('gameStore', () => {
     expect(after.fen.split(' ')[1]).toBe('b');
   });
 
-  it('source toggles between masters and lichess', () => {
-    useGameStore.getState().setSource('lichess');
-    expect(useGameStore.getState().source).toBe('lichess');
+  it('source defaults to chessdb', () => {
+    expect(useGameStore.getState().source).toBe('chessdb');
   });
 
   it('setHistoryFromPgn loads valid PGN', () => {

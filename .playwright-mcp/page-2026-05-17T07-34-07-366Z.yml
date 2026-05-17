@@ -1,0 +1,41 @@
+- generic [ref=e3]:
+  - banner [ref=e4]:
+    - heading "OpeningTree" [level=1] [ref=e5]
+    - generic [ref=e6]: chess opening explorer
+    - generic [ref=e8]:
+      - generic [ref=e9]:
+        - generic [ref=e10]: Prune < 0.5%
+        - slider "Prune < 0.5%" [ref=e11]: "0.005"
+      - generic [ref=e12]:
+        - generic [ref=e13]: "Depth: 12"
+        - 'slider "Depth: 12" [ref=e14]': "12"
+  - main [ref=e15]:
+    - generic [ref=e16]:
+      - generic [ref=e18]:
+        - img
+        - img
+        - generic:
+          - generic: "1"
+          - generic: "2"
+          - generic: "3"
+          - generic: "4"
+          - generic: "5"
+          - generic: "6"
+          - generic: "7"
+          - generic: "8"
+        - generic:
+          - generic: a
+          - generic: b
+          - generic: c
+          - generic: d
+          - generic: e
+          - generic: f
+          - generic: g
+          - generic: h
+      - generic [ref=e20]:
+        - generic [ref=e21]: Moves
+        - generic [ref=e22]: No moves played
+      - generic [ref=e24]: Loading…
+    - generic [ref=e25]:
+      - generic [ref=e26]: Loading tree…
+      - generic: click → expand · shift-click → jump · drag → pan · wheel → zoom

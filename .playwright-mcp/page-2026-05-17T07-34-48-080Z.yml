@@ -1,0 +1,158 @@
+- generic [ref=e3]:
+  - banner [ref=e4]:
+    - heading "OpeningTree" [level=1] [ref=e5]
+    - generic [ref=e6]: chess opening explorer
+    - generic [ref=e8]:
+      - generic [ref=e9]:
+        - generic [ref=e10]: Prune < 0.5%
+        - slider "Prune < 0.5%" [ref=e11]: "0.005"
+      - generic [ref=e12]:
+        - generic [ref=e13]: "Depth: 12"
+        - 'slider "Depth: 12" [ref=e14]': "12"
+  - main [ref=e15]:
+    - generic [ref=e16]:
+      - generic [ref=e18]:
+        - img
+        - img
+        - generic:
+          - generic: "1"
+          - generic: "2"
+          - generic: "3"
+          - generic: "4"
+          - generic: "5"
+          - generic: "6"
+          - generic: "7"
+          - generic: "8"
+        - generic:
+          - generic: a
+          - generic: b
+          - generic: c
+          - generic: d
+          - generic: e
+          - generic: f
+          - generic: g
+          - generic: h
+      - generic [ref=e20]:
+        - generic [ref=e21]: Moves
+        - button "1.e4" [ref=e211] [cursor=pointer]
+      - table [ref=e27]:
+        - rowgroup [ref=e28]:
+          - row "Move Games W / D / B" [ref=e29]:
+            - columnheader "Move" [ref=e30]
+            - columnheader "Games" [ref=e31]
+            - columnheader "W / D / B" [ref=e32]
+            - columnheader [ref=e33]
+        - rowgroup [ref=e34]:
+          - row "e5 50 000 37% / 25% / 38%" [ref=e212] [cursor=pointer]:
+            - cell "e5" [ref=e213]
+            - cell "50 000" [ref=e214]
+            - cell "37% / 25% / 38%" [ref=e215]
+            - cell [ref=e216]
+          - row "e6 50 000 37% / 25% / 38%" [ref=e221] [cursor=pointer]:
+            - cell "e6" [ref=e222]
+            - cell "50 000" [ref=e223]
+            - cell "37% / 25% / 38%" [ref=e224]
+            - cell [ref=e225]
+          - row "c5 50 000 37% / 25% / 38%" [ref=e230] [cursor=pointer]:
+            - cell "c5" [ref=e231]
+            - cell "50 000" [ref=e232]
+            - cell "37% / 25% / 38%" [ref=e233]
+            - cell [ref=e234]
+          - row "Nc6 50 000 37% / 25% / 38%" [ref=e239] [cursor=pointer]:
+            - cell "Nc6" [ref=e240]
+            - cell "50 000" [ref=e241]
+            - cell "37% / 25% / 38%" [ref=e242]
+            - cell [ref=e243]
+          - row "c6 500 37% / 25% / 38%" [ref=e248] [cursor=pointer]:
+            - cell "c6" [ref=e249]
+            - cell "500" [ref=e250]
+            - cell "37% / 25% / 38%" [ref=e251]
+            - cell [ref=e252]
+          - row "d6 500 36% / 25% / 39%" [ref=e257] [cursor=pointer]:
+            - cell "d6" [ref=e258]
+            - cell "500" [ref=e259]
+            - cell "36% / 25% / 39%" [ref=e260]
+            - cell [ref=e261]
+          - row "d5 500 36% / 25% / 39%" [ref=e266] [cursor=pointer]:
+            - cell "d5" [ref=e267]
+            - cell "500" [ref=e268]
+            - cell "36% / 25% / 39%" [ref=e269]
+            - cell [ref=e270]
+          - row "Nf6 500 36% / 25% / 39%" [ref=e275] [cursor=pointer]:
+            - cell "Nf6" [ref=e276]
+            - cell "500" [ref=e277]
+            - cell "36% / 25% / 39%" [ref=e278]
+            - cell [ref=e279]
+          - row "a6 500 36% / 25% / 39%" [ref=e284] [cursor=pointer]:
+            - cell "a6" [ref=e285]
+            - cell "500" [ref=e286]
+            - cell "36% / 25% / 39%" [ref=e287]
+            - cell [ref=e288]
+          - row "g6 500 36% / 25% / 39%" [ref=e293] [cursor=pointer]:
+            - cell "g6" [ref=e294]
+            - cell "500" [ref=e295]
+            - cell "36% / 25% / 39%" [ref=e296]
+            - cell [ref=e297]
+          - row "h6 500 35% / 25% / 40%" [ref=e302] [cursor=pointer]:
+            - cell "h6" [ref=e303]
+            - cell "500" [ref=e304]
+            - cell "35% / 25% / 40%" [ref=e305]
+            - cell [ref=e306]
+          - row "b6 500 32% / 25% / 43%" [ref=e311] [cursor=pointer]:
+            - cell "b6" [ref=e312]
+            - cell "500" [ref=e313]
+            - cell "32% / 25% / 43%" [ref=e314]
+            - cell [ref=e315]
+    - generic [ref=e25]:
+      - img [ref=e144]:
+        - generic [ref=e320]:
+          - generic [ref=e346]:
+            - generic [ref=e347]: e4
+            - generic [ref=e348]: d4
+            - generic [ref=e349]: Nf3
+            - generic [ref=e350]: Nc3
+            - generic [ref=e351]: c4
+            - generic [ref=e352]: a3
+            - generic [ref=e353]: g3
+            - generic [ref=e354]: c3
+            - generic [ref=e355]: e3
+            - generic [ref=e356]: b3
+            - generic [ref=e357]: h3
+            - generic [ref=e358]: d3
+            - generic [ref=e359]: e5
+            - generic [ref=e360]: e6
+            - generic [ref=e361]: c5
+            - generic [ref=e362]: Nc6
+            - generic [ref=e363]: c6
+            - generic [ref=e364]: d6
+            - generic [ref=e365]: d5
+            - generic [ref=e366]: Nf6
+            - generic [ref=e367]: a6
+            - generic [ref=e368]: g6
+            - generic [ref=e369]: h6
+            - generic [ref=e370]: b6
+          - generic [ref=e371]:
+            - generic [ref=e378] [cursor=pointer]: +
+            - generic [ref=e381] [cursor=pointer]: +
+            - generic [ref=e384] [cursor=pointer]: +
+            - generic [ref=e387] [cursor=pointer]: +
+            - generic [ref=e390] [cursor=pointer]: +
+            - generic [ref=e393] [cursor=pointer]: +
+            - generic [ref=e396] [cursor=pointer]: +
+            - generic [ref=e399] [cursor=pointer]: +
+            - generic [ref=e402] [cursor=pointer]: +
+            - generic [ref=e405] [cursor=pointer]: +
+            - generic [ref=e408] [cursor=pointer]: +
+            - generic [ref=e411] [cursor=pointer]: +
+            - generic [ref=e414] [cursor=pointer]: +
+            - generic [ref=e417] [cursor=pointer]: +
+            - generic [ref=e420] [cursor=pointer]: +
+            - generic [ref=e423] [cursor=pointer]: +
+            - generic [ref=e426] [cursor=pointer]: +
+            - generic [ref=e429] [cursor=pointer]: +
+            - generic [ref=e432] [cursor=pointer]: +
+            - generic [ref=e435] [cursor=pointer]: +
+            - generic [ref=e438] [cursor=pointer]: +
+            - generic [ref=e441] [cursor=pointer]: +
+            - generic [ref=e444] [cursor=pointer]: +
+      - generic: click → expand · shift-click → jump · drag → pan · wheel → zoom

@@ -17,7 +17,8 @@ interface PointDatum extends HierarchyPointNode<TreeNode> {}
 
 function nodeRadius(n: TreeNode): number {
   const p = plays(n);
-  return Math.min(28, Math.max(6, 6 + 6 * Math.log10(p + 1)));
+  // sqrt scale gives strong visual contrast: ! moves dominate, ? moves shrink.
+  return Math.min(30, Math.max(5, Math.sqrt(p) / 8 + 5));
 }
 
 const whiteWarm = '#f4e4bc';
@@ -43,7 +44,7 @@ export function renderTree(svgEl: SVGSVGElement, data: TreeNode, opts: RenderOpt
 
   const root = hierarchy<TreeNode>(data, (n) => (n.expanded ? n.children : []));
 
-  const layout = d3tree<TreeNode>().nodeSize([34, 150]);
+  const layout = d3tree<TreeNode>().nodeSize([42, 180]);
   layout(root);
 
   const nodes = root.descendants() as PointDatum[];
@@ -76,7 +77,8 @@ export function renderTree(svgEl: SVGSVGElement, data: TreeNode, opts: RenderOpt
       return `M${s.y},${s.x} C${mx},${s.x} ${mx},${t.x} ${t.y},${t.x}`;
     });
 
-  // edge labels
+  // Edge labels: placed close to the target node along the edge so they
+  // travel with the branch rather than crowding the midpoint.
   g.append('g')
     .attr('class', 'edge-labels')
     .selectAll('text.edge')
@@ -87,9 +89,20 @@ export function renderTree(svgEl: SVGSVGElement, data: TreeNode, opts: RenderOpt
     .attr('font-size', 11)
     .attr('font-family', 'ui-monospace, SFMono-Regular, monospace')
     .attr('fill', '#475569')
-    .attr('x', (d) => ((d.source as PointDatum).y + (d.target as PointDatum).y) / 2)
-    .attr('y', (d) => ((d.source as PointDatum).x + (d.target as PointDatum).x) / 2 - 4)
+    .attr('x', (d) => {
+      const s = d.source as PointDatum;
+      const t = d.target as PointDatum;
+      return s.y * 0.25 + t.y * 0.75;
+    })
+    .attr('y', (d) => {
+      const s = d.source as PointDatum;
+      const t = d.target as PointDatum;
+      return s.x * 0.25 + t.x * 0.75 - 6;
+    })
     .attr('text-anchor', 'middle')
+    .style('paint-order', 'stroke')
+    .style('stroke', 'white')
+    .style('stroke-width', 3)
     .text((d) => (d.target as PointDatum).data.san ?? '');
 
   // nodes
