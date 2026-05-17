@@ -1,12 +1,13 @@
 #!/usr/bin/env bash
 # Overnight data pipeline:
-#   1. Backfill denorm columns on game_move (id-range, no partial indexes)
-#   2. Re-create the partial indexes on game_move
-#   3. Ingest TWIC 920..1614 (any new issues since last run + finish the
-#      partial range from earlier)
+#   1. Backfill denorm columns on game_move (id-range, partial indexes dropped)
+#   2. Re-create the partial player-filter indexes
+#   3. Ingest Lumbra's Gigabase OTB (all year buckets, ~1.6 GB compressed)
+#      Lumbra includes TWIC, so this is our single OTB source.
 #   4. Rebuild move_stats
 #
-# Logs to data/overnight.log. Exit code 0 only if every step succeeded.
+# Logs append to data/overnight.log. Exit 0 only if every step succeeds.
+# Self-removes its one-shot cron entry on success.
 
 set -euo pipefail
 cd "$(dirname "$0")/.."
@@ -20,10 +21,10 @@ echo "================================================================"
 echo " overnight pipeline · start: $(date)"
 echo "================================================================"
 
-export PATH=/opt/homebrew/opt/postgresql@16/bin:$PATH
+export PATH=/opt/homebrew/opt/postgresql@16/bin:/opt/homebrew/bin:$PATH
 
 echo
-echo "[1/4] backfill denorm columns"
+echo "[1/4] backfill denorm columns on game_move"
 npx tsx scripts/backfill-denorm.ts
 
 echo
@@ -36,12 +37,12 @@ CREATE INDEX IF NOT EXISTS idx_gm_parent_black_fide
 SQL
 
 echo
-echo "[3/4] TWIC ingest 920..1614 (fingerprint dedupe makes this safe to re-run)"
-npm run ingest -- --twic --from 920 --to 1614 --concurrency 8 --no-stats
+echo "[3/4] Lumbra OTB ingest (all year buckets, skipping stats refresh until step 4)"
+npx tsx scripts/lumbra-ingest.ts --no-stats
 
 echo
 echo "[4/4] rebuild move_stats"
-npm run rebuild-stats
+npx tsx scripts/rebuild-stats.ts
 
 echo
 echo "================================================================"

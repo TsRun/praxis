@@ -14,7 +14,8 @@
     "typecheck": "tsc -b --noEmit",
     "ingest": "tsx scripts/ingest.ts",
     "load-fide": "tsx scripts/load-fide.ts",
-    "rebuild-stats": "tsx scripts/rebuild-stats.ts"
+    "rebuild-stats": "tsx scripts/rebuild-stats.ts",
+    "ingest:lumbra": "tsx scripts/lumbra-ingest.ts"
   },
   "dependencies": {
     "@fastify/cors": "^11.2.0",
@@ -29,6 +30,7 @@
     "d3-selection": "^3.0.0",
     "d3-zoom": "^3.0.0",
     "fastify": "^5.8.5",
+    "megajs": "^1.3.10",
     "pg": "^8.20.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
