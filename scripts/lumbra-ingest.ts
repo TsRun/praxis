@@ -65,7 +65,7 @@ async function unzip(zipPath: string): Promise<string[]> {
   const extractDir = zipPath.replace(/\.zip$/, '');
   await mkdir(extractDir, { recursive: true });
   await new Promise<void>((res, rej) => {
-    const p = spawn('7z', ['x', '-y', `-o${extractDir}`, zipPath], { stdio: ['ignore', 'ignore', 'pipe'] });
+    const p = spawn('7z', ['x', '-y', `-o${extractDir}`, zipPath], { stdio: ['ignore', 'ignore', 'pipe'], shell: process.platform === 'win32' });
     p.on('exit', (c) => (c === 0 ? res() : rej(new Error(`7z exit ${c}`))));
   });
   const entries = await readdir(extractDir);
@@ -89,14 +89,14 @@ async function runIngest(pgn: string, source: string, noStats = true) {
   const args = ['tsx', 'scripts/ingest.ts', '--file', pgn, '--source', source];
   if (noStats) args.push('--no-stats');
   await new Promise<void>((res, rej) => {
-    const p = spawn('npx', args, { cwd: ROOT, stdio: 'inherit' });
+    const p = spawn('npx', args, { cwd: ROOT, stdio: 'inherit', shell: process.platform === 'win32' });
     p.on('exit', (c) => (c === 0 ? res() : rej(new Error(`ingest exit ${c}`))));
   });
 }
 
 async function runRebuildStats() {
   await new Promise<void>((res, rej) => {
-    const p = spawn('npx', ['tsx', 'scripts/rebuild-stats.ts'], { cwd: ROOT, stdio: 'inherit' });
+    const p = spawn('npx', ['tsx', 'scripts/rebuild-stats.ts'], { cwd: ROOT, stdio: 'inherit', shell: process.platform === 'win32' });
     p.on('exit', (c) => (c === 0 ? res() : rej(new Error(`rebuild-stats exit ${c}`))));
   });
 }
