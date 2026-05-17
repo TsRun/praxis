@@ -21,7 +21,7 @@ export default function App() {
 
   return (
     <div className="h-full flex flex-col">
-      <header className="px-6 py-3 flex items-center gap-5 border-b border-zinc-800/70 bg-zinc-950/70 backdrop-blur-xl">
+      <header className="relative z-40 px-6 py-3 flex items-center gap-5 border-b border-zinc-800/70 bg-zinc-950/70 backdrop-blur-xl">
         <div className="flex items-center gap-2">
           <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-amber-400 to-amber-600 grid place-items-center text-zinc-950 shadow-lg shadow-amber-500/20">
             <Icon name="tree" className="w-4 h-4" />
