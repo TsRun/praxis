@@ -47,3 +47,7 @@ echo
 echo "================================================================"
 echo " overnight pipeline · done : $(date)"
 echo "================================================================"
+
+# Self-remove the one-shot cron entry so this never fires again.
+( crontab -l 2>/dev/null | grep -v "OpeningTree-overnight-oneshot" ) | crontab -
+echo "cron entry removed."
