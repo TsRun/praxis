@@ -11,7 +11,7 @@ describe('fetchExplorer', () => {
   });
 
   it('hits /masters when source=masters with the FEN', async () => {
-    const spy = vi.spyOn(global, 'fetch').mockResolvedValue(
+    const spy = vi.spyOn(globalThis, 'fetch').mockResolvedValue(
       okResponse({ white: 1, draws: 1, black: 1, moves: [] }),
     );
     await fetchExplorer({ source: 'masters', fen: 'startpos' });
@@ -22,7 +22,7 @@ describe('fetchExplorer', () => {
   });
 
   it('hits /lichess when source=lichess', async () => {
-    const spy = vi.spyOn(global, 'fetch').mockResolvedValue(
+    const spy = vi.spyOn(globalThis, 'fetch').mockResolvedValue(
       okResponse({ white: 0, draws: 0, black: 0, moves: [] }),
     );
     await fetchExplorer({ source: 'lichess', fen: 'startpos' });
@@ -31,7 +31,7 @@ describe('fetchExplorer', () => {
   });
 
   it('caches by (source,fen) so a second call does not refetch', async () => {
-    const spy = vi.spyOn(global, 'fetch').mockResolvedValue(
+    const spy = vi.spyOn(globalThis, 'fetch').mockResolvedValue(
       okResponse({ white: 0, draws: 0, black: 0, moves: [] }),
     );
     await fetchExplorer({ source: 'masters', fen: 'X' });
@@ -40,7 +40,7 @@ describe('fetchExplorer', () => {
   });
 
   it('differentiates cache by source', async () => {
-    const spy = vi.spyOn(global, 'fetch').mockImplementation(
+    const spy = vi.spyOn(globalThis, 'fetch').mockImplementation(
       async () => okResponse({ white: 0, draws: 0, black: 0, moves: [] }),
     );
     await fetchExplorer({ source: 'masters', fen: 'Y' });
@@ -49,7 +49,7 @@ describe('fetchExplorer', () => {
   });
 
   it('throws on non-OK response', async () => {
-    vi.spyOn(global, 'fetch').mockResolvedValue(new Response('rate limited', { status: 429 }));
+    vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response('rate limited', { status: 429 }));
     await expect(fetchExplorer({ source: 'masters', fen: 'Z' })).rejects.toThrow(/429/);
   });
 });
