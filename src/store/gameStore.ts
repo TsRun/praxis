@@ -4,12 +4,16 @@ import type { Source } from '../lib/lichess';
 
 interface GameState {
   fen: string;
-  history: string[];
+  history: string[];   // every move ever played in this line (preserved across rewinds)
+  currentPly: number;  // 0..history.length — how many of those moves are "currently played"
   source: Source;
   minShare: number;
   maxDepth: number;
   applyMove: (san: string) => boolean;
   goToPly: (ply: number) => void;
+  stepForward: () => void;
+  stepBack: () => void;
+  jumpToEnd: () => void;
   setSource: (s: Source) => void;
   setFen: (fen: string) => void;
   setHistoryFromPgn: (pgn: string) => boolean;
@@ -20,21 +24,27 @@ interface GameState {
 
 const START_FEN = new Chess().fen();
 
-function fenFromHistory(history: string[]): string {
+function fenAtPly(history: string[], ply: number): string {
   const c = new Chess();
-  for (const m of history) c.move(m);
+  for (let i = 0; i < ply; i++) c.move(history[i]);
   return c.fen();
 }
 
 export const useGameStore = create<GameState>((set, get) => ({
   fen: START_FEN,
   history: [],
+  currentPly: 0,
   source: 'otb',
   minShare: 0.005,
   maxDepth: 12,
 
   applyMove(san) {
-    const c = new Chess(get().fen);
+    const state = get();
+    // Branching: if we're navigating in the middle of history and play a new
+    // move, the "future" part of history is replaced (standard editor redo
+    // behavior).
+    const base = state.history.slice(0, state.currentPly);
+    const c = new Chess(state.fen);
     let m;
     try {
       m = c.move(san);
@@ -42,13 +52,36 @@ export const useGameStore = create<GameState>((set, get) => ({
       return false;
     }
     if (!m) return false;
-    set({ fen: c.fen(), history: [...get().history, m.san] });
+    const newHistory = [...base, m.san];
+    set({ fen: c.fen(), history: newHistory, currentPly: newHistory.length });
     return true;
   },
 
   goToPly(ply) {
-    const trimmed = get().history.slice(0, ply);
-    set({ history: trimmed, fen: fenFromHistory(trimmed) });
+    const state = get();
+    const clamped = Math.max(0, Math.min(ply, state.history.length));
+    if (clamped === state.currentPly) return;
+    set({ currentPly: clamped, fen: fenAtPly(state.history, clamped) });
+  },
+
+  stepForward() {
+    const state = get();
+    if (state.currentPly >= state.history.length) return;
+    const next = state.currentPly + 1;
+    set({ currentPly: next, fen: fenAtPly(state.history, next) });
+  },
+
+  stepBack() {
+    const state = get();
+    if (state.currentPly <= 0) return;
+    const next = state.currentPly - 1;
+    set({ currentPly: next, fen: fenAtPly(state.history, next) });
+  },
+
+  jumpToEnd() {
+    const state = get();
+    if (state.currentPly === state.history.length) return;
+    set({ currentPly: state.history.length, fen: fenAtPly(state.history, state.history.length) });
   },
 
   setSource(s) {
@@ -56,7 +89,8 @@ export const useGameStore = create<GameState>((set, get) => ({
   },
 
   setFen(fen) {
-    set({ fen, history: [] });
+    // Jumping to an arbitrary FEN abandons any known move sequence.
+    set({ fen, history: [], currentPly: 0 });
   },
 
   setHistoryFromPgn(pgn) {
@@ -66,8 +100,9 @@ export const useGameStore = create<GameState>((set, get) => ({
     } catch {
       return false;
     }
-    if (c.history().length === 0) return false;
-    set({ history: c.history(), fen: c.fen() });
+    const h = c.history();
+    if (h.length === 0) return false;
+    set({ history: h, currentPly: h.length, fen: c.fen() });
     return true;
   },
 
@@ -83,6 +118,7 @@ export const useGameStore = create<GameState>((set, get) => ({
     set({
       fen: START_FEN,
       history: [],
+      currentPly: 0,
       source: 'otb',
       minShare: 0.005,
       maxDepth: 12,

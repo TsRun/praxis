@@ -32,28 +32,30 @@ export default function App() {
         </div>
         <SearchBar />
         <OpeningHeader />
-        <div className="ml-auto flex items-center gap-4 text-[11px] text-zinc-500">
+        <div className="ml-auto flex items-center gap-3 text-[11px] text-zinc-500">
           <span className="flex items-center gap-1.5">
-            <Kbd>←</Kbd> back
+            <Kbd>←</Kbd>
+            <Kbd>→</Kbd>
+            step
           </span>
           <span className="flex items-center gap-1.5">
             <Kbd>Home</Kbd> reset
           </span>
+          <span className="flex items-center gap-1.5">
+            <Kbd>End</Kbd> last
+          </span>
         </div>
       </header>
 
-      <main className="flex-1 grid grid-cols-[auto_1fr] gap-5 p-5 overflow-hidden">
-        <section className="flex flex-col gap-4">
+      <main className="flex-1 grid grid-cols-[auto_240px_1fr] gap-5 p-5 overflow-hidden">
+        <section className="flex flex-col">
           <div className="rounded-xl p-1 panel">
             <ChessBoard />
           </div>
-          <div className="panel p-3">
-            <div className="text-[10px] uppercase tracking-wider text-zinc-500 mb-2 flex items-center gap-1.5">
-              <Icon name="rewind" className="w-3 h-3" />
-              moves
-            </div>
-            <MoveList />
-          </div>
+        </section>
+
+        <section className="panel p-3 flex flex-col min-h-0">
+          <MoveList />
         </section>
 
         <section className="panel overflow-hidden min-h-[400px]">
