@@ -1,7 +1,9 @@
 {
   "permissions": {
     "allow": [
-      "Skill(superpowers:brainstorming)"
+      "Skill(superpowers:brainstorming)",
+      "Bash(command -v brew)",
+      "Bash(command -v railway)"
     ]
   }
 }
