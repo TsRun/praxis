@@ -81,7 +81,69 @@ app.get<{ Querystring: ExplorerQuery }>('/api/explorer', async (req, reply) => {
   const blackId = req.query.black_id ? parseInt(req.query.black_id, 10) : null;
   const color = req.query.color ?? 'any';
 
-  // Build the WHERE clause incrementally.
+  const noFilter = playerId == null && whiteId == null && blackId == null;
+
+  // Fast path: precomputed (parent_fen, san) aggregates. A whole-DB explorer
+  // query becomes a single indexed lookup — ms-class even at 10M+ games.
+  if (noFilter) {
+    let rows: Array<{
+      san: string;
+      uci: string;
+      child_fen: string;
+      games: string;
+      white_wins: string;
+      draws: string;
+      black_wins: string;
+      rating_sum: string;
+      rating_n: string;
+    }> = [];
+    try {
+      const r = await pool.query(
+        `SELECT san, uci, child_fen, games, white_wins, draws, black_wins, rating_sum, rating_n
+           FROM move_stats
+          WHERE parent_fen = $1
+          ORDER BY games DESC`,
+        [epd],
+      );
+      rows = r.rows as typeof rows;
+    } catch {
+      // move_stats not built yet — fall through to live aggregation.
+      rows = [];
+    }
+
+    if (rows.length > 0) {
+      const totals = rows.reduce(
+        (acc, r) => ({
+          games: acc.games + Number(r.games),
+          white: acc.white + Number(r.white_wins),
+          draws: acc.draws + Number(r.draws),
+          black: acc.black + Number(r.black_wins),
+        }),
+        { games: 0, white: 0, draws: 0, black: 0 },
+      );
+      return {
+        fen,
+        epd,
+        ...totals,
+        moves: rows.map((r) => {
+          const ratingN = Number(r.rating_n);
+          const ratingSum = Number(r.rating_sum);
+          return {
+            san: r.san,
+            uci: r.uci,
+            child_fen: r.child_fen,
+            games: Number(r.games),
+            white: Number(r.white_wins),
+            draws: Number(r.draws),
+            black: Number(r.black_wins),
+            avg_elo: ratingN > 0 ? Math.round(ratingSum / ratingN) : null,
+          };
+        }),
+      };
+    }
+  }
+
+  // Filtered path (or no precomputed stats yet) — live aggregation.
   const where: string[] = ['gm.parent_fen = $1'];
   const params: unknown[] = [epd];
   let p = 2;

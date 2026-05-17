@@ -53,3 +53,22 @@ CREATE TABLE IF NOT EXISTS game_move (
 
 CREATE INDEX IF NOT EXISTS idx_game_move_parent ON game_move(parent_fen);
 CREATE INDEX IF NOT EXISTS idx_game_move_parent_san ON game_move(parent_fen, san);
+
+-- Precomputed (parent_fen, san) aggregates. Populated by scripts/rebuild-stats.ts
+-- and read directly by the explorer for the no-filter path. Avoids the GROUP BY
+-- across tens of millions of game_move rows on every page load.
+CREATE TABLE IF NOT EXISTS move_stats (
+  parent_fen  TEXT NOT NULL,
+  san         TEXT NOT NULL,
+  uci         TEXT NOT NULL,
+  child_fen   TEXT NOT NULL,
+  games       BIGINT NOT NULL,
+  white_wins  BIGINT NOT NULL,
+  draws       BIGINT NOT NULL,
+  black_wins  BIGINT NOT NULL,
+  rating_sum  BIGINT NOT NULL,
+  rating_n    BIGINT NOT NULL,
+  PRIMARY KEY (parent_fen, san)
+);
+
+CREATE INDEX IF NOT EXISTS idx_move_stats_parent_games ON move_stats(parent_fen, games DESC);
