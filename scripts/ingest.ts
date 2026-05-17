@@ -11,7 +11,7 @@
  *   npm run ingest -- --twic --from 920 --to 1614 [--concurrency 6]
  *
  *   # Common flags
- *   --depth N         per-game ply depth (default 24 → 12 full moves of theory)
+ *   --depth N         per-game ply depth (default 0 = full game, no cap)
  *   --no-stats        skip rebuild-stats after ingest
  *
  * Pipeline
@@ -92,7 +92,7 @@ function parseArgs(): Args {
     from: isTwic ? Number(get('--from')) : undefined,
     to: isTwic ? Number(get('--to')) : undefined,
     concurrency: Number(get('--concurrency', '6')),
-    depth: Number(get('--depth', '24')),
+    depth: Number(get('--depth', '0')),
     rebuildStats: !has('--no-stats'),
   };
 }
@@ -406,7 +406,8 @@ async function ingestFile(pool: ReturnType<typeof makePool>, pgnPath: string, de
     const chess = new Chess();
     let valid = true;
     const edges: AcceptedGame['edges'] = [];
-    const limit = Math.min(depth, sanMoves.length);
+    // depth=0 means "no cap" — index every ply of the game.
+    const limit = depth > 0 ? Math.min(depth, sanMoves.length) : sanMoves.length;
     for (let i = 0; i < limit; i++) {
       const parent = epdFromFen(chess.fen());
       let mv;

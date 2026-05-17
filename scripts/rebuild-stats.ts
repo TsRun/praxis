@@ -41,26 +41,30 @@ async function main() {
 
     // The (parent_fen, san) key uniquely identifies the move from a position,
     // so uci and child_fen are functionally determined — MIN/MAX/ANY all work.
+    //
+    // Cap at ply 30: move_stats is the precomputed *opening* summary. Deep
+    // middlegame positions are usually 1-game outliers (no aggregation value)
+    // and bloat the summary. Filtered/deep queries still work via the live
+    // game_move path.
+    //
+    // We can also skip the JOIN entirely — game_move already carries
+    // denormalized result and mover_elo.
     const insertSql = `
       INSERT INTO move_stats_new
         (parent_fen, san, uci, child_fen, games, white_wins, draws, black_wins, rating_sum, rating_n)
-      SELECT gm.parent_fen,
-             gm.san,
-             MIN(gm.uci),
-             MIN(gm.child_fen),
+      SELECT parent_fen,
+             san,
+             MIN(uci),
+             MIN(child_fen),
              COUNT(*),
-             SUM((g.result = 'W')::int),
-             SUM((g.result = 'D')::int),
-             SUM((g.result = 'B')::int),
-             COALESCE(SUM(
-               CASE WHEN gm.ply % 2 = 1 THEN g.white_elo ELSE g.black_elo END
-             ), 0),
-             COUNT(NULLIF(
-               CASE WHEN gm.ply % 2 = 1 THEN g.white_elo ELSE g.black_elo END, 0
-             ))
-        FROM game_move gm
-        JOIN game g ON g.id = gm.game_id
-       GROUP BY gm.parent_fen, gm.san`;
+             SUM((result = 'W')::int),
+             SUM((result = 'D')::int),
+             SUM((result = 'B')::int),
+             COALESCE(SUM(mover_elo), 0),
+             COUNT(NULLIF(mover_elo, 0))
+        FROM game_move
+       WHERE ply <= 30
+       GROUP BY parent_fen, san`;
     console.log('  populating move_stats_new (one large GROUP BY)…');
     const res = await client.query(insertSql);
     console.log(`  inserted ${res.rowCount?.toLocaleString()} (parent_fen, san) rows`);
