@@ -17,20 +17,27 @@ interface PointDatum extends HierarchyPointNode<TreeNode> {}
 
 function nodeRadius(n: TreeNode): number {
   const p = plays(n);
-  // sqrt scale gives strong visual contrast: ! moves dominate, ? moves shrink.
   return Math.min(30, Math.max(5, Math.sqrt(p) / 8 + 5));
 }
 
-const whiteWarm = '#f4e4bc';
-const neutralGray = '#cfcfcf';
-const blackDark = '#3a3a3a';
-const interpToWhite = interpolateHsl(neutralGray, whiteWarm);
-const interpToBlack = interpolateHsl(neutralGray, blackDark);
+// Dark-theme palette: keep white-favorable warm and easy to spot,
+// black-favorable as a deep slate, neutral as zinc-500.
+const whiteWarm = '#fde68a'; // amber-200
+const neutralZinc = '#52525b'; // zinc-600
+const blackDark = '#18181b'; // zinc-900
+const accent = '#fbbf24'; // amber-400
+const edgeIdle = 'rgba(113, 113, 122, 0.6)'; // zinc-500/60
+const edgeText = '#a1a1aa'; // zinc-400
+
+const interpToWhite = interpolateHsl(neutralZinc, whiteWarm);
+const interpToBlack = interpolateHsl(neutralZinc, blackDark);
 
 function nodeFill(n: TreeNode): string {
   const adv = whiteAdvantage(n);
-  if (adv === 0) return neutralGray;
-  return adv > 0 ? interpToWhite(Math.min(1, adv)) : interpToBlack(Math.min(1, -adv));
+  if (adv === 0) return neutralZinc;
+  return adv > 0
+    ? (interpToWhite(Math.min(1, adv)) as string)
+    : (interpToBlack(Math.min(1, -adv)) as string);
 }
 
 let zoomBehavior: ZoomBehavior<SVGSVGElement, unknown> | null = null;
@@ -39,12 +46,18 @@ export function renderTree(svgEl: SVGSVGElement, data: TreeNode, opts: RenderOpt
   const svg = select(svgEl);
   svg.selectAll('*').remove();
 
-  // root layer for pan/zoom
+  // soft glow filter for active nodes/edges
+  const defs = svg.append('defs');
+  const filter = defs.append('filter').attr('id', 'glow').attr('x', '-50%').attr('y', '-50%').attr('width', '200%').attr('height', '200%');
+  filter.append('feGaussianBlur').attr('stdDeviation', '3').attr('result', 'blur');
+  const merge = filter.append('feMerge');
+  merge.append('feMergeNode').attr('in', 'blur');
+  merge.append('feMergeNode').attr('in', 'SourceGraphic');
+
   const g = svg.append('g').attr('class', 'pan');
 
   const root = hierarchy<TreeNode>(data, (n) => (n.expanded ? n.children : []));
-
-  const layout = d3tree<TreeNode>().nodeSize([42, 180]);
+  const layout = d3tree<TreeNode>().nodeSize([46, 200]);
   layout(root);
 
   const nodes = root.descendants() as PointDatum[];
@@ -53,14 +66,18 @@ export function renderTree(svgEl: SVGSVGElement, data: TreeNode, opts: RenderOpt
   // edges
   g.append('g')
     .attr('class', 'links')
-    .selectAll<SVGPathElement, (typeof links)[number]>('path.link')
+    .selectAll<SVGPathElement, (typeof links)[number]>('path.tree-link')
     .data(links)
     .enter()
     .append('path')
-    .attr('class', 'link')
+    .attr('class', 'tree-link')
     .attr('fill', 'none')
-    .attr('stroke', (d) => (opts.activePath.has((d.target as PointDatum).data.id) ? '#d97706' : '#94a3b8'))
-    .attr('stroke-opacity', 0.85)
+    .attr('stroke', (d) =>
+      opts.activePath.has((d.target as PointDatum).data.id) ? accent : edgeIdle,
+    )
+    .attr('stroke-opacity', (d) =>
+      opts.activePath.has((d.target as PointDatum).data.id) ? 0.95 : 0.75,
+    )
     .attr('stroke-width', (d) => {
       const target = (d.target as PointDatum).data;
       const parent = (d.source as PointDatum).data;
@@ -68,7 +85,7 @@ export function renderTree(svgEl: SVGSVGElement, data: TreeNode, opts: RenderOpt
       const pp = plays(parent) || 1;
       const isActive = opts.activePath.has(target.id);
       const w = Math.max(1, Math.min(7, (tp / pp) * 7));
-      return isActive ? Math.max(w, 3) : w;
+      return isActive ? Math.max(w, 3.5) : w;
     })
     .attr('d', (d) => {
       const s = d.source as PointDatum;
@@ -77,18 +94,19 @@ export function renderTree(svgEl: SVGSVGElement, data: TreeNode, opts: RenderOpt
       return `M${s.y},${s.x} C${mx},${s.x} ${mx},${t.x} ${t.y},${t.x}`;
     });
 
-  // Edge labels: placed close to the target node along the edge so they
-  // travel with the branch rather than crowding the midpoint.
+  // edge labels with halo
   g.append('g')
     .attr('class', 'edge-labels')
-    .selectAll('text.edge')
+    .selectAll('text.tree-edge-label')
     .data(links)
     .enter()
     .append('text')
-    .attr('class', 'edge')
+    .attr('class', 'tree-edge-label')
     .attr('font-size', 11)
-    .attr('font-family', 'ui-monospace, SFMono-Regular, monospace')
-    .attr('fill', '#475569')
+    .attr('font-family', "'JetBrains Mono', ui-monospace, monospace")
+    .attr('fill', (d) =>
+      opts.activePath.has((d.target as PointDatum).data.id) ? accent : edgeText,
+    )
     .attr('x', (d) => {
       const s = d.source as PointDatum;
       const t = d.target as PointDatum;
@@ -101,7 +119,7 @@ export function renderTree(svgEl: SVGSVGElement, data: TreeNode, opts: RenderOpt
     })
     .attr('text-anchor', 'middle')
     .style('paint-order', 'stroke')
-    .style('stroke', 'white')
+    .style('stroke', '#0a0a0c')
     .style('stroke-width', 3)
     .text((d) => (d.target as PointDatum).data.san ?? '');
 
@@ -109,11 +127,11 @@ export function renderTree(svgEl: SVGSVGElement, data: TreeNode, opts: RenderOpt
   const nodeG = g
     .append('g')
     .attr('class', 'nodes')
-    .selectAll<SVGGElement, PointDatum>('g.node')
+    .selectAll<SVGGElement, PointDatum>('g.tree-node')
     .data(nodes)
     .enter()
     .append('g')
-    .attr('class', 'node')
+    .attr('class', (d) => 'tree-node' + (opts.activePath.has(d.data.id) ? ' active' : ''))
     .attr('transform', (d) => `translate(${d.y},${d.x})`)
     .style('cursor', 'pointer')
     .on('click', function (event: MouseEvent, d) {
@@ -134,38 +152,38 @@ export function renderTree(svgEl: SVGSVGElement, data: TreeNode, opts: RenderOpt
     .append('circle')
     .attr('r', (d) => nodeRadius(d.data))
     .attr('fill', (d) => nodeFill(d.data))
-    .attr('stroke', (d) => (opts.activePath.has(d.data.id) ? '#d97706' : '#64748b'))
-    .attr('stroke-width', (d) => (opts.activePath.has(d.data.id) ? 3 : 1));
+    .attr('stroke', (d) => (opts.activePath.has(d.data.id) ? accent : 'rgba(161,161,170,0.6)'))
+    .attr('stroke-width', (d) => (opts.activePath.has(d.data.id) ? 2.5 : 1));
 
-  // small "loading" pulse for nodes flagged loading
+  // animated pulse for loading nodes
   nodeG
     .filter((d) => !!d.data.loading)
     .append('circle')
-    .attr('r', (d) => nodeRadius(d.data) + 4)
+    .attr('class', 'pulse-ring')
+    .attr('r', (d) => nodeRadius(d.data))
     .attr('fill', 'none')
-    .attr('stroke', '#d97706')
-    .attr('stroke-width', 2)
-    .attr('opacity', 0.5);
+    .attr('stroke', accent)
+    .attr('stroke-width', 2);
 
-  // expand indicator (+) on collapsed nodes that have potential children
+  // expand marker on collapsed nodes with plays
   nodeG
     .filter((d) => !d.data.expanded && plays(d.data) > 0)
     .append('text')
     .attr('text-anchor', 'middle')
     .attr('dy', '0.35em')
     .attr('font-size', 10)
-    .attr('fill', '#1e293b')
+    .attr('font-weight', 600)
+    .attr('fill', (d) =>
+      whiteAdvantage(d.data) > 0.2 ? '#27272a' : '#e4e4e7',
+    )
     .text('+');
 
-  // pan/zoom
+  // pan / zoom
   zoomBehavior = zoom<SVGSVGElement, unknown>()
     .scaleExtent([0.3, 4])
-    .on('zoom', (ev) => {
-      g.attr('transform', ev.transform.toString());
-    });
+    .on('zoom', (ev) => g.attr('transform', ev.transform.toString()));
   (svg as Selection<SVGSVGElement, unknown, null, undefined>).call(zoomBehavior);
 
-  // center root on left, vertically centered
-  const initial = zoomIdentity.translate(60, opts.height / 2);
+  const initial = zoomIdentity.translate(80, opts.height / 2);
   (svg as Selection<SVGSVGElement, unknown, null, undefined>).call(zoomBehavior.transform, initial);
 }

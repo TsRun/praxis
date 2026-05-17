@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Chess } from 'chess.js';
 import { useGameStore } from '../../store/gameStore';
+import { Icon } from './Icon';
 
 export function SearchBar() {
   const [val, setVal] = useState('');
@@ -12,16 +13,14 @@ export function SearchBar() {
     setErr(null);
     const trimmed = val.trim();
     if (!trimmed) return;
-    // Try FEN first
     try {
-      // chess.js throws on invalid FEN; if it accepts, it's a FEN.
       const c = new Chess();
       c.load(trimmed);
       setFen(trimmed);
       setVal('');
       return;
     } catch {
-      // not a FEN, fall through to PGN
+      // fall through
     }
     if (setHistoryFromPgn(trimmed)) {
       setVal('');
@@ -32,17 +31,23 @@ export function SearchBar() {
 
   return (
     <div className="flex items-center gap-2">
-      <input
-        className="border rounded px-2 py-1 text-sm w-80 font-mono focus:outline-none focus:ring-2 focus:ring-amber-400"
-        placeholder="Paste FEN or PGN…"
-        value={val}
-        onChange={(e) => {
-          setVal(e.target.value);
-          if (err) setErr(null);
-        }}
-        onKeyDown={(e) => e.key === 'Enter' && submit()}
-      />
-      {err && <span className="text-xs text-red-600">{err}</span>}
+      <div className="relative">
+        <Icon
+          name="search"
+          className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-zinc-500"
+        />
+        <input
+          className="border border-zinc-700/80 bg-zinc-900/60 backdrop-blur rounded-lg pl-8 pr-3 py-1.5 text-sm w-80 font-mono text-zinc-100 placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-amber-400/60 focus:border-amber-400/40 transition"
+          placeholder="Paste FEN or PGN…"
+          value={val}
+          onChange={(e) => {
+            setVal(e.target.value);
+            if (err) setErr(null);
+          }}
+          onKeyDown={(e) => e.key === 'Enter' && submit()}
+        />
+      </div>
+      {err && <span className="text-xs text-red-400">{err}</span>}
     </div>
   );
 }

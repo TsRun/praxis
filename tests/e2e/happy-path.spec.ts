@@ -4,7 +4,7 @@ test('loads with board, table, and tree', async ({ page }) => {
   await page.goto('/');
   await expect(page.getByRole('heading', { name: /OpeningTree/i })).toBeVisible();
   // Tree root + some children should appear
-  await expect(page.locator('svg g.node').first()).toBeVisible({ timeout: 10_000 });
+  await expect(page.locator('svg g.tree-node').first()).toBeVisible({ timeout: 10_000 });
   // Explorer table should have rows for first moves
   await expect(page.locator('tbody tr', { hasText: 'e4' }).first()).toBeVisible({
     timeout: 10_000,
