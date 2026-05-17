@@ -143,46 +143,44 @@ app.get<{ Querystring: ExplorerQuery }>('/api/explorer', async (req, reply) => {
     }
   }
 
-  // Filtered path (or no precomputed stats yet) — live aggregation.
-  const where: string[] = ['gm.parent_fen = $1'];
+  // Filtered path (or no precomputed stats yet) — aggregate directly on
+  // game_move via its denormalized columns (no JOIN to `game`).
+  const where: string[] = ['parent_fen = $1'];
   const params: unknown[] = [epd];
   let p = 2;
 
   if (whiteId != null) {
-    where.push(`g.white_fide_id = $${p++}`);
+    where.push(`white_fide_id = $${p++}`);
     params.push(whiteId);
   }
   if (blackId != null) {
-    where.push(`g.black_fide_id = $${p++}`);
+    where.push(`black_fide_id = $${p++}`);
     params.push(blackId);
   }
   if (playerId != null) {
     if (color === 'white') {
-      where.push(`g.white_fide_id = $${p++}`);
+      where.push(`white_fide_id = $${p++}`);
       params.push(playerId);
     } else if (color === 'black') {
-      where.push(`g.black_fide_id = $${p++}`);
+      where.push(`black_fide_id = $${p++}`);
       params.push(playerId);
     } else {
-      where.push(`(g.white_fide_id = $${p} OR g.black_fide_id = $${p})`);
+      where.push(`(white_fide_id = $${p} OR black_fide_id = $${p})`);
       params.push(playerId);
       p++;
     }
   }
 
   const sql = `
-    SELECT gm.san, gm.uci, gm.child_fen,
-           COUNT(*)::text                                        AS games,
-           SUM((g.result = 'W')::int)::text                      AS white_wins,
-           SUM((g.result = 'D')::int)::text                      AS draws,
-           SUM((g.result = 'B')::int)::text                      AS black_wins,
-           AVG(NULLIF(
-             CASE WHEN gm.ply % 2 = 1 THEN g.white_elo ELSE g.black_elo END
-           , 0))::int                                            AS avg_elo
-      FROM game_move gm
-      JOIN game g ON g.id = gm.game_id
+    SELECT san, uci, child_fen,
+           COUNT(*)::text                       AS games,
+           SUM((result = 'W')::int)::text       AS white_wins,
+           SUM((result = 'D')::int)::text       AS draws,
+           SUM((result = 'B')::int)::text       AS black_wins,
+           AVG(NULLIF(mover_elo, 0))::int       AS avg_elo
+      FROM game_move
      WHERE ${where.join(' AND ')}
-     GROUP BY gm.san, gm.uci, gm.child_fen
+     GROUP BY san, uci, child_fen
      ORDER BY COUNT(*) DESC`;
 
   const { rows } = await pool.query<{

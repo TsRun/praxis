@@ -15,7 +15,7 @@ CREATE TABLE IF NOT EXISTS player (
   rapid_rating  INTEGER,
   blitz_rating  INTEGER,
   birth_year    INTEGER,
-  origin        TEXT NOT NULL DEFAULT 'fide'   -- 'fide' | 'pgn'
+  origin        TEXT NOT NULL DEFAULT 'fide'
 );
 
 CREATE INDEX IF NOT EXISTS idx_player_name_trgm ON player USING gin (name gin_trgm_ops);
@@ -32,7 +32,7 @@ CREATE TABLE IF NOT EXISTS game (
   black_elo       INTEGER,
   event           TEXT,
   event_date      TEXT,
-  result          CHAR(1) NOT NULL,             -- 'W' | 'B' | 'D'
+  result          CHAR(1) NOT NULL,
   source          TEXT,
   ingested_at     BIGINT NOT NULL
 );
@@ -40,23 +40,33 @@ CREATE TABLE IF NOT EXISTS game (
 CREATE INDEX IF NOT EXISTS idx_game_white_fide ON game(white_fide_id);
 CREATE INDEX IF NOT EXISTS idx_game_black_fide ON game(black_fide_id);
 
--- One row per ply per game, up to ingestion depth.
+-- Per-ply rows. Denormalized columns (result, mover_elo, white_fide_id,
+-- black_fide_id) duplicate data from `game` so the explorer never needs a
+-- JOIN — even for player filters. That's the dominant cost at 30M+ rows.
 CREATE TABLE IF NOT EXISTS game_move (
-  game_id     BIGINT NOT NULL REFERENCES game(id) ON DELETE CASCADE,
-  ply         SMALLINT NOT NULL,
-  parent_fen  TEXT NOT NULL,                    -- EPD (4 fields)
-  san         TEXT NOT NULL,
-  uci         TEXT NOT NULL,
-  child_fen   TEXT NOT NULL,
+  game_id        BIGINT NOT NULL REFERENCES game(id) ON DELETE CASCADE,
+  ply            SMALLINT NOT NULL,
+  parent_fen     TEXT NOT NULL,
+  san            TEXT NOT NULL,
+  uci            TEXT NOT NULL,
+  child_fen      TEXT NOT NULL,
+  result         CHAR(1),
+  mover_elo      INTEGER,
+  white_fide_id  INTEGER,
+  black_fide_id  INTEGER,
   PRIMARY KEY (game_id, ply)
 );
 
 CREATE INDEX IF NOT EXISTS idx_game_move_parent ON game_move(parent_fen);
 CREATE INDEX IF NOT EXISTS idx_game_move_parent_san ON game_move(parent_fen, san);
+-- Player-filter helpers (partial indexes — skip rows where the id is NULL).
+CREATE INDEX IF NOT EXISTS idx_gm_parent_white_fide
+  ON game_move(parent_fen, white_fide_id) WHERE white_fide_id IS NOT NULL;
+CREATE INDEX IF NOT EXISTS idx_gm_parent_black_fide
+  ON game_move(parent_fen, black_fide_id) WHERE black_fide_id IS NOT NULL;
 
--- Precomputed (parent_fen, san) aggregates. Populated by scripts/rebuild-stats.ts
--- and read directly by the explorer for the no-filter path. Avoids the GROUP BY
--- across tens of millions of game_move rows on every page load.
+-- Precomputed (parent_fen, san) aggregates. Populated by scripts/ingest.ts
+-- after each ingest batch (or manually via `npm run rebuild-stats`).
 CREATE TABLE IF NOT EXISTS move_stats (
   parent_fen  TEXT NOT NULL,
   san         TEXT NOT NULL,

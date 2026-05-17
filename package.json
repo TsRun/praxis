@@ -14,7 +14,6 @@
     "typecheck": "tsc -b --noEmit",
     "ingest": "tsx scripts/ingest.ts",
     "load-fide": "tsx scripts/load-fide.ts",
-    "twic-batch": "tsx scripts/twic-batch.ts",
     "rebuild-stats": "tsx scripts/rebuild-stats.ts"
   },
   "dependencies": {
