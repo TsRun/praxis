@@ -17,12 +17,16 @@ export function OpeningHeader() {
   }, [fen]);
 
   if (!entry) {
-    return <span className="text-xs text-neutral-400">no opening match</span>;
+    return (
+      <span className="text-xs text-zinc-500 italic">unnamed position</span>
+    );
   }
   return (
-    <span className="text-xs">
-      <span className="font-mono text-amber-700 mr-2">{entry.eco}</span>
-      <span className="text-neutral-700">{entry.name}</span>
+    <span className="inline-flex items-center gap-2 text-sm">
+      <span className="font-mono text-[11px] tracking-wider px-1.5 py-0.5 rounded bg-amber-400/15 text-amber-300 ring-1 ring-amber-400/30">
+        {entry.eco}
+      </span>
+      <span className="text-zinc-200">{entry.name}</span>
     </span>
   );
 }

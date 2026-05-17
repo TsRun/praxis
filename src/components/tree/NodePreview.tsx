@@ -7,7 +7,7 @@ interface Props {
   y: number;
 }
 
-const SIZE = 200;
+const SIZE = 220;
 
 export function NodePreview({ fen, x, y }: Props) {
   const ref = useRef<HTMLDivElement | null>(null);
@@ -23,13 +23,12 @@ export function NodePreview({ fen, x, y }: Props) {
     return () => api.destroy();
   }, [fen]);
 
-  // Place to the right + below cursor, but clamp to viewport
-  const clampX = Math.min(x + 16, window.innerWidth - SIZE - 8);
-  const clampY = Math.min(y + 16, window.innerHeight - SIZE - 8);
+  const clampX = Math.min(x + 18, window.innerWidth - SIZE - 12);
+  const clampY = Math.min(y + 18, window.innerHeight - SIZE - 12);
 
   return (
     <div
-      className="pointer-events-none fixed z-50 border bg-white shadow-lg rounded p-1"
+      className="pointer-events-none fixed z-50 rounded-xl p-1.5 panel"
       style={{ left: clampX, top: clampY, width: SIZE, height: SIZE }}
     >
       <div ref={ref} className="w-full h-full" />
