@@ -14,6 +14,7 @@ import { buildTree, pathToNode, findChildBySan, type TreeNode } from '../lib/ope
 import { ConfirmDialog } from '../components/ui/ConfirmDialog';
 import { TreeGraph } from '../components/opening/TreeGraph';
 import { ChaptersOutline } from '../components/opening/ChaptersOutline';
+import { useOpeningTreeNav } from '../hooks/useOpeningTreeNav';
 
 type ViewMode = 'tree' | 'chapters';
 
@@ -48,6 +49,13 @@ export function OpeningStudyEditor() {
     if (!study || !currentNode) return null;
     return study.chapters.find((c) => c.node_id === currentNode.id) ?? null;
   }, [study, currentNode]);
+
+  useOpeningTreeNav(
+    study?.nodes ?? [],
+    currentNodeId,
+    setCurrentNodeId,
+    mode === 'tree' && !!study,
+  );
 
   if (!study) return <p className="text-zinc-500">Loading…</p>;
 
