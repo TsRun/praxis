@@ -5,8 +5,10 @@ import { StudentDetailPage } from './StudentDetailPage';
 import { StudiesPage } from './StudiesPage';
 import { OpeningStudyEditor } from './OpeningStudyEditor';
 import { GameStudyEditor } from './GameStudyEditor';
+import { useKeyboardNav } from '../hooks/useKeyboardNav';
 
 export function TrainerLayout() {
+  useKeyboardNav();
   return (
     <div className="min-h-screen">
       <TrainerNav />
