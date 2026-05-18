@@ -1,4 +1,47 @@
-# OpeningTree
+# ChessCoach
+
+A chess-coaching SaaS. Trainers sign up, build opening studies and annotated
+game reviews, invite students by email, track their progress. Students log in
+to a personal dashboard with assigned studies — including a quiz mode for key
+positions in game reviews.
+
+Built on top of the OpeningTree opening explorer; the explorer becomes the
+"library" trainers browse when building studies.
+
+## Run locally
+
+```bash
+# Postgres 16
+brew install postgresql@16
+brew services start postgresql@16
+createdb openings
+
+# Project deps
+npm install
+
+# Backend (Fastify, http://127.0.0.1:5174)
+npm run dev:server
+
+# Frontend (Vite, http://localhost:5173)
+npm run dev
+```
+
+Email is sent via Resend when `RESEND_API_KEY` is set; otherwise invite emails
+are logged to stdout as `[email/dev]` lines so the flow still works offline.
+
+## Roles
+
+- **Trainer**: signs up at `/`, manages students at `/trainer/students`,
+  builds studies at `/trainer/studies`. Two study types — opening (book-style
+  with markdown notes anchored to FENs) and game (PGN + per-ply comments +
+  quiz markers).
+- **Student**: arrives via email invite link, lands at `/student/dashboard`,
+  works through assigned studies. Quiz positions ask for SAN input and reveal
+  the expected move plus the trainer's note after submission.
+
+---
+
+# OpeningTree (legacy / library)
 
 A chess opening explorer with a focused, visual **move selection** for the current position: real over-the-board (OTB) games count, average Elo, W/D/B distribution, and the engine of choice for adding more sources later.
 
