@@ -146,3 +146,48 @@ export const trainerGames = {
   saveAnnotations: (id: number, annotations: GameAnnotation[]) =>
     api.put<{ ok: true; count: number }>(`/api/trainer/studies/game/${id}/annotations`, { annotations }),
 };
+
+// ─── Student API ──────────────────────────────────────────────────────────────
+
+export interface AssignmentRow {
+  id: number;
+  study_kind: 'opening' | 'game';
+  study_id: number;
+  name: string;
+  assigned_at: string;
+  completed_at: string | null;
+  progress_pct: number;
+}
+
+export interface OpeningStudyForStudent {
+  id: number;
+  name: string;
+  root_fen: string;
+  eco: string | null;
+  side: 'w' | 'b';
+  annotations: { fen: string; comment_md: string }[];
+  visited: string[];
+}
+
+export interface GameStudyForStudent {
+  id: number;
+  name: string;
+  pgn: string;
+  headers_json: Record<string, string>;
+  annotations: { ply: number; comment_md: string | null; is_quiz: boolean }[];
+  attempts: { ply: number; attempted_san: string; correct: boolean }[];
+}
+
+export const student = {
+  assignments: () => api.get<AssignmentRow[]>('/api/student/assignments'),
+  opening: (id: number) => api.get<OpeningStudyForStudent>(`/api/student/studies/opening/${id}`),
+  game: (id: number) => api.get<GameStudyForStudent>(`/api/student/studies/game/${id}`),
+  markVisited: (id: number, fen: string) =>
+    api.post<{ ok: true }>(`/api/student/studies/opening/${id}/visited`, { fen }),
+  attempt: (id: number, ply: number, attempted_san: string) =>
+    api.post<{
+      correct: boolean;
+      expected_san: string | null;
+      comment_md: string | null;
+    }>(`/api/student/studies/game/${id}/attempt`, { ply, attempted_san }),
+};

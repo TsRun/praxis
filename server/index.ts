@@ -6,6 +6,7 @@ import { makeAuthHook } from './auth-guards.js';
 import { authRoutes } from './routes-auth.js';
 import { inviteRoutes } from './routes-invites.js';
 import { trainerRoutes } from './routes-trainer.js';
+import { studentRoutes } from './routes-student.js';
 
 const app = Fastify({ logger: false });
 await app.register(cors, { origin: true, credentials: true });
@@ -18,6 +19,7 @@ app.addHook('onRequest', makeAuthHook(pool));
 await app.register(authRoutes, { pool });
 await app.register(inviteRoutes, { pool });
 await app.register(trainerRoutes, { pool });
+await app.register(studentRoutes, { pool });
 
 interface ExplorerQuery {
   fen?: string;
