@@ -13,6 +13,7 @@ import { buildTree, pathToNode } from '../lib/opening-tree';
 import { Markdown } from '../lib/markdown';
 import { TreeGraph } from '../components/opening/TreeGraph';
 import { ChaptersOutline } from '../components/opening/ChaptersOutline';
+import { useOpeningTreeNav } from '../hooks/useOpeningTreeNav';
 
 type Mode = 'tree' | 'chapters' | 'quiz';
 
@@ -68,6 +69,8 @@ function TreeMode({ study }: { study: OpeningStudyForStudent }) {
   const [currentNodeId, setCurrentNodeId] = useState<number | null>(null);
   const boardRef = useRef<HTMLDivElement | null>(null);
   const cgRef = useRef<CGApi | null>(null);
+
+  useOpeningTreeNav(study.nodes, currentNodeId, setCurrentNodeId);
 
   const currentFen = useMemo(() => {
     if (currentNodeId == null) return study.root_fen;
