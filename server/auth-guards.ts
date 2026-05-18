@@ -18,18 +18,20 @@ export function makeAuthHook(pool: Pool) {
   };
 }
 
-export function requireTrainer(req: FastifyRequest, reply: FastifyReply) {
+export async function requireTrainer(req: FastifyRequest, reply: FastifyReply) {
   if (!req.session || req.session.user_kind !== 'trainer') {
-    reply.code(401).send({ error: 'trainer auth required' });
+    return reply.code(401).send({ error: 'trainer auth required' });
   }
 }
 
-export function requireStudent(req: FastifyRequest, reply: FastifyReply) {
+export async function requireStudent(req: FastifyRequest, reply: FastifyReply) {
   if (!req.session || req.session.user_kind !== 'student') {
-    reply.code(401).send({ error: 'student auth required' });
+    return reply.code(401).send({ error: 'student auth required' });
   }
 }
 
-export function requireAnyUser(req: FastifyRequest, reply: FastifyReply) {
-  if (!req.session) reply.code(401).send({ error: 'auth required' });
+export async function requireAnyUser(req: FastifyRequest, reply: FastifyReply) {
+  if (!req.session) {
+    return reply.code(401).send({ error: 'auth required' });
+  }
 }

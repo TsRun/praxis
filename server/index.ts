@@ -4,6 +4,8 @@ import cookie from '@fastify/cookie';
 import { makePool, ensureSchema, epdFromFen } from './db.js';
 import { makeAuthHook } from './auth-guards.js';
 import { authRoutes } from './routes-auth.js';
+import { inviteRoutes } from './routes-invites.js';
+import { trainerRoutes } from './routes-trainer.js';
 
 const app = Fastify({ logger: false });
 await app.register(cors, { origin: true, credentials: true });
@@ -14,6 +16,8 @@ await ensureSchema(pool);
 
 app.addHook('onRequest', makeAuthHook(pool));
 await app.register(authRoutes, { pool });
+await app.register(inviteRoutes, { pool });
+await app.register(trainerRoutes, { pool });
 
 interface ExplorerQuery {
   fen?: string;
