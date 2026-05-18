@@ -7,19 +7,20 @@ import { Chess } from 'chess.js';
 import {
   student,
   type OpeningStudyForStudent,
-  type OpeningNode,
   type QuizCard,
 } from '../lib/api';
-import { buildTree, pathToNode, type TreeNode } from '../lib/opening-tree';
+import { buildTree, pathToNode } from '../lib/opening-tree';
 import { Markdown } from '../lib/markdown';
+import { TreeGraph } from '../components/opening/TreeGraph';
+import { ChaptersOutline } from '../components/opening/ChaptersOutline';
 
-type Mode = 'browse' | 'quiz';
+type Mode = 'tree' | 'chapters' | 'quiz';
 
 export function OpeningStudyViewer() {
   const { id } = useParams();
   const numId = Number(id);
   const [study, setStudy] = useState<OpeningStudyForStudent | null>(null);
-  const [mode, setMode] = useState<Mode>('browse');
+  const [mode, setMode] = useState<Mode>('tree');
 
   useEffect(() => {
     student.opening(numId).then(setStudy);
@@ -32,44 +33,38 @@ export function OpeningStudyViewer() {
       <div className="flex items-center gap-3">
         <h1 className="text-2xl font-semibold tracking-tight">{study.name}</h1>
         <span className="text-xs text-zinc-500">
-          plays {study.side === 'w' ? 'white' : 'black'} · {study.nodes.length} positions
+          plays {study.side === 'w' ? 'white' : 'black'} · {study.nodes.length} positions ·{' '}
+          {study.chapters.length} chapters
         </span>
         <div className="ml-auto inline-flex bg-zinc-900/60 ring-1 ring-zinc-800 rounded-lg overflow-hidden text-xs">
-          <button
-            onClick={() => setMode('browse')}
-            className={`px-3 py-1 ${
-              mode === 'browse'
-                ? 'bg-amber-400/15 text-amber-200'
-                : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/60'
-            }`}
-          >
-            Browse
-          </button>
-          <button
-            onClick={() => setMode('quiz')}
-            className={`px-3 py-1 ${
-              mode === 'quiz'
-                ? 'bg-amber-400/15 text-amber-200'
-                : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/60'
-            }`}
-          >
-            Quiz
-          </button>
+          {(['tree', 'chapters', 'quiz'] as Mode[]).map((m) => (
+            <button
+              key={m}
+              onClick={() => setMode(m)}
+              className={`px-3 py-1 capitalize ${
+                mode === m
+                  ? 'bg-amber-400/15 text-amber-200'
+                  : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/60'
+              }`}
+            >
+              {m}
+            </button>
+          ))}
         </div>
       </div>
 
-      {mode === 'browse' ? (
-        <BrowseMode study={study} />
-      ) : (
+      {mode === 'tree' && <TreeMode study={study} />}
+      {mode === 'chapters' && <ChaptersMode study={study} />}
+      {mode === 'quiz' && (
         <QuizMode study={study} onAdvance={() => student.opening(numId).then(setStudy)} />
       )}
     </div>
   );
 }
 
-// ─── Browse mode ─────────────────────────────────────────────────────────────
+// ─── Tree mode (board + visual graph + chapter pane) ─────────────────────────
 
-function BrowseMode({ study }: { study: OpeningStudyForStudent }) {
+function TreeMode({ study }: { study: OpeningStudyForStudent }) {
   const [currentNodeId, setCurrentNodeId] = useState<number | null>(null);
   const boardRef = useRef<HTMLDivElement | null>(null);
   const cgRef = useRef<CGApi | null>(null);
@@ -117,63 +112,116 @@ function BrowseMode({ study }: { study: OpeningStudyForStudent }) {
 
   const tree = buildTree(study.nodes);
   const path = pathToNode(study.nodes, currentNodeId);
+  const chaptersSet = new Set(study.chapters.map((c) => c.node_id));
 
   return (
-    <div className="grid grid-cols-[260px_auto_1fr] gap-4">
-      <aside className="panel p-3 max-h-[80vh] overflow-auto flex flex-col gap-2">
-        <button
-          onClick={() => setCurrentNodeId(null)}
-          className={`text-left text-xs px-2 py-1 rounded ${
-            currentNodeId == null
-              ? 'bg-amber-400/15 text-amber-200'
-              : 'text-zinc-400 hover:bg-zinc-800/60'
-          }`}
-        >
-          ★ Root
-        </button>
-        <NavTree
+    <>
+      <div className="grid grid-cols-[auto_1fr] gap-4">
+        <div className="flex flex-col gap-3">
+          <div className="rounded-xl p-1 panel">
+            <div ref={boardRef} className="w-[440px] h-[440px]" />
+          </div>
+          <div className="panel p-3 text-xs text-zinc-400 font-mono leading-6 max-w-[440px]">
+            {path.length === 0 ? (
+              <button
+                onClick={() => setCurrentNodeId(null)}
+                className="text-zinc-600 hover:text-amber-300"
+              >
+                ★ at start position
+              </button>
+            ) : (
+              <>
+                <button
+                  onClick={() => setCurrentNodeId(null)}
+                  className="px-1 rounded text-zinc-500 hover:bg-amber-400/10"
+                >
+                  ★
+                </button>
+                {path.map((n) => (
+                  <button
+                    key={n.id}
+                    onClick={() => setCurrentNodeId(n.id)}
+                    className={`px-1 rounded ${
+                      n.id === currentNodeId
+                        ? 'bg-amber-400/15 text-amber-200'
+                        : 'text-zinc-300 hover:bg-amber-400/10'
+                    }`}
+                  >
+                    {n.ply % 2 === 1 ? `${Math.ceil(n.ply / 2)}.` : ''}
+                    {n.san}
+                  </button>
+                ))}
+              </>
+            )}
+          </div>
+        </div>
+
+        <aside className="panel p-3 overflow-auto">
+          <div className="text-xs uppercase tracking-wider text-zinc-500 mb-2">
+            {currentChapter ? currentChapter.title ?? "Trainer's note" : 'No chapter here'}
+          </div>
+          {currentChapter ? (
+            <Markdown>{currentChapter.body_md}</Markdown>
+          ) : (
+            <p className="text-zinc-500 text-sm">
+              Click a node in the tree below — chapters appear on annotated positions.
+            </p>
+          )}
+        </aside>
+      </div>
+
+      <section className="panel p-3">
+        <div className="flex items-center mb-2">
+          <h2 className="text-xs uppercase tracking-wider text-zinc-500">Opening tree</h2>
+          <div className="ml-auto flex items-center gap-3 text-[10px] text-zinc-500">
+            <span><span className="text-amber-400">★</span> main line</span>
+            <span><span className="text-emerald-400">●</span> has chapter</span>
+          </div>
+        </div>
+        <TreeGraph
           tree={tree}
           currentNodeId={currentNodeId}
-          chaptersSet={new Set(study.chapters.map((c) => c.node_id))}
+          chaptersSet={chaptersSet}
+          onSelect={setCurrentNodeId}
+        />
+      </section>
+    </>
+  );
+}
+
+// ─── Chapters mode (outline + body) ──────────────────────────────────────────
+
+function ChaptersMode({ study }: { study: OpeningStudyForStudent }) {
+  const [currentNodeId, setCurrentNodeId] = useState<number | null>(
+    study.chapters[0]?.node_id ?? null,
+  );
+  const currentChapter = useMemo(
+    () => study.chapters.find((c) => c.node_id === currentNodeId) ?? null,
+    [study, currentNodeId],
+  );
+
+  return (
+    <div className="grid grid-cols-[340px_1fr] gap-4">
+      <aside className="panel p-3 max-h-[80vh] overflow-auto">
+        <h2 className="text-xs uppercase tracking-wider text-zinc-500 mb-2">Chapters</h2>
+        <ChaptersOutline
+          nodes={study.nodes}
+          chapters={study.chapters}
+          currentNodeId={currentNodeId}
           onSelect={setCurrentNodeId}
         />
       </aside>
-
-      <div className="flex flex-col gap-3">
-        <div className="rounded-xl p-1 panel">
-          <div ref={boardRef} className="w-[440px] h-[440px]" />
-        </div>
-        <div className="panel p-3 text-xs text-zinc-400 font-mono leading-6 max-w-[440px]">
-          {path.length === 0 ? (
-            <span className="text-zinc-600">at start position</span>
-          ) : (
-            path.map((n) => (
-              <button
-                key={n.id}
-                onClick={() => setCurrentNodeId(n.id)}
-                className={`px-1 rounded ${
-                  n.id === currentNodeId
-                    ? 'bg-amber-400/15 text-amber-200'
-                    : 'text-zinc-300 hover:bg-amber-400/10'
-                }`}
-              >
-                {n.ply % 2 === 1 ? `${Math.ceil(n.ply / 2)}.` : ''}
-                {n.san}
-              </button>
-            ))
-          )}
-        </div>
-      </div>
-
-      <aside className="panel p-3 overflow-auto">
-        <div className="text-xs uppercase tracking-wider text-zinc-500 mb-2">
-          {currentChapter ? currentChapter.title ?? "Trainer's note" : 'No chapter here'}
-        </div>
+      <aside className="panel p-4 overflow-auto">
         {currentChapter ? (
-          <Markdown>{currentChapter.body_md}</Markdown>
+          <>
+            <div className="text-xs uppercase tracking-wider text-zinc-500 mb-2">
+              {currentChapter.title ?? "Trainer's note"}
+            </div>
+            <Markdown>{currentChapter.body_md}</Markdown>
+          </>
         ) : (
-          <p className="text-zinc-500 text-sm">
-            Keep navigating — chapters appear on annotated positions.
+          <p className="text-sm text-zinc-500">
+            No chapters in this study yet.
           </p>
         )}
       </aside>
@@ -181,45 +229,7 @@ function BrowseMode({ study }: { study: OpeningStudyForStudent }) {
   );
 }
 
-function NavTree({
-  tree,
-  currentNodeId,
-  chaptersSet,
-  onSelect,
-}: {
-  tree: TreeNode[];
-  currentNodeId: number | null;
-  chaptersSet: Set<number>;
-  onSelect: (id: number) => void;
-}) {
-  function render(nodes: TreeNode[], depth: number): JSX.Element[] {
-    return nodes.flatMap((n) => [
-      <div
-        key={n.id}
-        style={{ paddingLeft: depth * 12 }}
-        className="flex items-center"
-      >
-        <button
-          onClick={() => onSelect(n.id)}
-          className={`text-left text-xs px-1.5 py-0.5 rounded font-mono flex-1 ${
-            n.id === currentNodeId
-              ? 'bg-amber-400/15 text-amber-200'
-              : 'text-zinc-300 hover:bg-amber-400/10'
-          }`}
-        >
-          {n.ply % 2 === 1 ? `${Math.ceil(n.ply / 2)}.` : ''}
-          {n.san}
-          {n.is_main && <span className="ml-1 text-amber-400">★</span>}
-          {chaptersSet.has(n.id) && <span className="ml-1 text-emerald-400">●</span>}
-        </button>
-      </div>,
-      ...render(n.children, depth + 1),
-    ]);
-  }
-  return <div className="flex flex-col gap-0.5">{render(tree, 0)}</div>;
-}
-
-// ─── Quiz mode ───────────────────────────────────────────────────────────────
+// ─── Quiz mode (unchanged Chessable-style drilling) ──────────────────────────
 
 function QuizMode({
   study,
@@ -247,10 +257,9 @@ function QuizMode({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [study.id]);
 
-  // Set up board for current card
   useEffect(() => {
     if (!card || !boardRef.current) return;
-    const fen = `${card.parent_fen} 0 1`; // EPD → completed FEN
+    const fen = `${card.parent_fen} 0 1`;
     const c = new Chess(card.parent_fen.split(' ').slice(0, 4).join(' ') + ' 0 1');
     const turnColor = c.turn() === 'w' ? 'white' : 'black';
     const dests = new Map<Key, Key[]>();
@@ -268,7 +277,6 @@ function QuizMode({
         dests,
         events: {
           after: async (from, to) => {
-            // Convert from/to to SAN
             const cc = new Chess(card.parent_fen.split(' ').slice(0, 4).join(' ') + ' 0 1');
             let m;
             try {

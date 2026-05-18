@@ -12,6 +12,10 @@ import {
 } from '../lib/api';
 import { buildTree, pathToNode, findChildBySan, type TreeNode } from '../lib/opening-tree';
 import { ConfirmDialog } from '../components/ui/ConfirmDialog';
+import { TreeGraph } from '../components/opening/TreeGraph';
+import { ChaptersOutline } from '../components/opening/ChaptersOutline';
+
+type ViewMode = 'tree' | 'chapters';
 
 export function OpeningStudyEditor() {
   const { id } = useParams();
@@ -20,8 +24,8 @@ export function OpeningStudyEditor() {
   const [currentNodeId, setCurrentNodeId] = useState<number | null>(null);
   const [busy, setBusy] = useState(false);
   const [confirmDeleteNode, setConfirmDeleteNode] = useState<TreeNode | null>(null);
+  const [mode, setMode] = useState<ViewMode>('tree');
 
-  // Load study
   useEffect(() => {
     trainerStudies.get(numId).then((s) => {
       setStudy(s);
@@ -29,7 +33,6 @@ export function OpeningStudyEditor() {
     });
   }, [numId]);
 
-  // Position the board is showing (after current node, or root if none)
   const currentFen = useMemo(() => {
     if (!study) return 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1';
     if (currentNodeId == null) return study.root_fen;
@@ -46,177 +49,187 @@ export function OpeningStudyEditor() {
     return study.chapters.find((c) => c.node_id === currentNode.id) ?? null;
   }, [study, currentNode]);
 
-  // ── Board (chessground) ───────────────────────────────────────────────────
-  const boardRef = useRef<HTMLDivElement | null>(null);
-  const cgRef = useRef<CGApi | null>(null);
+  if (!study) return <p className="text-zinc-500">Loading…</p>;
 
-  function toDestsMap(c: Chess): Map<Key, Key[]> {
-    const dests = new Map<Key, Key[]>();
-    for (const m of c.moves({ verbose: true })) {
-      const from = m.from as Key;
-      if (!dests.has(from)) dests.set(from, []);
-      dests.get(from)!.push(m.to as Key);
-    }
-    return dests;
-  }
+  const path = pathToNode(study.nodes, currentNodeId);
+  const tree = buildTree(study.nodes);
+  const chaptersSet = new Set(study.chapters.map((c) => c.node_id));
 
-  // Resolve the parent FEN for upserting a new child node
-  async function onBoardMove(from: Key, to: Key) {
+  async function onAddChild(parentNode: OpeningNode | null, parentFen: string, mv: { from: Key; to: Key; san: string; promotion?: string }) {
     if (!study) return;
-    const chess = new Chess(currentFen);
-    let mv;
-    try {
-      mv = chess.move({ from, to, promotion: 'q' });
-    } catch {
-      mv = null;
-    }
-    if (!mv) return;
-
-    // Look for an existing child first (idempotent navigation)
-    const childParentId = currentNode?.id ?? null;
-    const existing = findChildBySan(study.nodes, childParentId, mv.san);
-    if (existing) {
-      setCurrentNodeId(existing.id);
-      return;
-    }
-
-    // Create a new node
     const { id: newId } = await trainerStudies.upsertNode(study.id, {
-      parent_id: childParentId,
-      parent_fen: currentFen.split(' ').slice(0, 4).join(' '),
+      parent_id: parentNode?.id ?? null,
+      parent_fen: parentFen.split(' ').slice(0, 4).join(' '),
       san: mv.san,
       uci: `${mv.from}${mv.to}${mv.promotion ?? ''}`,
-      fen: chess.fen().split(' ').slice(0, 4).join(' '),
-      ply: (currentNode?.ply ?? 0) + 1,
+      fen: (() => {
+        const c = new Chess(parentFen);
+        c.move({ from: mv.from, to: mv.to, promotion: 'q' });
+        return c.fen().split(' ').slice(0, 4).join(' ');
+      })(),
+      ply: (parentNode?.ply ?? 0) + 1,
     });
-    // Refresh study to pick up the new node
     const refreshed = await trainerStudies.get(study.id);
     setStudy(refreshed);
     setCurrentNodeId(newId);
   }
 
-  useEffect(() => {
-    if (!boardRef.current) return;
-    const c = new Chess(currentFen);
-    const turnColor = c.turn() === 'w' ? 'white' : 'black';
-    cgRef.current = Chessground(boardRef.current, {
-      fen: currentFen,
-      turnColor,
-      lastMove: currentNode ? ([currentNode.uci.slice(0, 2), currentNode.uci.slice(2, 4)] as [Key, Key]) : undefined,
-      movable: {
-        free: false,
-        color: turnColor,
-        dests: toDestsMap(c),
-        events: { after: onBoardMove },
-      },
-      draggable: { showGhost: true },
-      animation: { duration: 150 },
-    });
-    return () => {
-      cgRef.current?.destroy();
-      cgRef.current = null;
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [study?.id]);
-
-  useEffect(() => {
-    if (!cgRef.current) return;
-    const c = new Chess(currentFen);
-    const turnColor = c.turn() === 'w' ? 'white' : 'black';
-    cgRef.current.set({
-      fen: currentFen,
-      turnColor,
-      lastMove: currentNode
-        ? ([currentNode.uci.slice(0, 2), currentNode.uci.slice(2, 4)] as [Key, Key])
-        : undefined,
-      movable: {
-        color: turnColor,
-        dests: toDestsMap(c),
-        events: { after: onBoardMove },
-      },
-    });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentFen, currentNodeId]);
-
-  if (!study) return <p className="text-zinc-500">Loading…</p>;
-  const path = pathToNode(study.nodes, currentNodeId);
-  const tree = buildTree(study.nodes);
-
   return (
-    <div className="grid grid-cols-[280px_auto_1fr] gap-4">
-      <aside className="panel p-3 flex flex-col gap-3 overflow-auto max-h-[80vh]">
-        <h2 className="font-semibold">{study.name}</h2>
+    <div className="flex flex-col gap-4">
+      <header className="flex items-center gap-3">
+        <h1 className="text-2xl font-semibold tracking-tight">{study.name}</h1>
         <div className="text-xs text-zinc-500">
-          Plays {study.side === 'w' ? 'white' : 'black'} · {study.nodes.length} nodes
+          plays {study.side === 'w' ? 'white' : 'black'} · {study.nodes.length} positions ·{' '}
+          {study.chapters.length} chapters
         </div>
-        <button
-          onClick={() => setCurrentNodeId(null)}
-          className={`text-left text-xs px-2 py-1 rounded ${
-            currentNodeId == null
-              ? 'bg-amber-400/15 text-amber-200'
-              : 'text-zinc-400 hover:bg-zinc-800/60'
-          }`}
-        >
-          ★ Root position
-        </button>
-        <TreeView
-          tree={tree}
-          currentNodeId={currentNodeId}
-          chapters={study.chapters}
-          onSelect={setCurrentNodeId}
-          onDelete={(n) => setConfirmDeleteNode(n)}
-          onToggleMain={async (n) => {
-            await trainerStudies.setIsMain(study.id, n.id, !n.is_main);
-            const refreshed = await trainerStudies.get(study.id);
-            setStudy(refreshed);
-          }}
-        />
-      </aside>
+        <div className="ml-auto inline-flex bg-zinc-900/60 ring-1 ring-zinc-800 rounded-lg overflow-hidden text-xs">
+          <button
+            onClick={() => setMode('tree')}
+            className={`px-3 py-1 ${
+              mode === 'tree'
+                ? 'bg-amber-400/15 text-amber-200'
+                : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/60'
+            }`}
+          >
+            Tree
+          </button>
+          <button
+            onClick={() => setMode('chapters')}
+            className={`px-3 py-1 ${
+              mode === 'chapters'
+                ? 'bg-amber-400/15 text-amber-200'
+                : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/60'
+            }`}
+          >
+            Chapters
+          </button>
+        </div>
+      </header>
 
-      <div className="flex flex-col gap-3">
-        <div className="rounded-xl p-1 panel">
-          <div ref={boardRef} className="w-[440px] h-[440px]" />
-        </div>
-        <div className="panel p-3 text-xs text-zinc-400 font-mono leading-6 max-w-[440px]">
-          {path.length === 0 ? (
-            <span className="text-zinc-600">no moves played — drag a piece to build the tree</span>
-          ) : (
-            path.map((n, i) => (
-              <button
-                key={n.id}
-                onClick={() => setCurrentNodeId(n.id)}
-                className={`px-1 rounded ${
-                  n.id === currentNodeId
-                    ? 'bg-amber-400/15 text-amber-200'
-                    : 'text-zinc-300 hover:bg-amber-400/10'
-                }`}
-              >
-                {n.ply % 2 === 1 ? `${Math.ceil(n.ply / 2)}.` : ''}
-                {n.san}
-              </button>
-            ))
-          )}
-        </div>
-      </div>
+      {mode === 'tree' ? (
+        <>
+          <div className="grid grid-cols-[auto_1fr] gap-4">
+            <div className="flex flex-col gap-3">
+              <BoardWithBuild
+                study={study}
+                currentNode={currentNode}
+                currentFen={currentFen}
+                onAddChild={onAddChild}
+                onSelectExisting={setCurrentNodeId}
+              />
+              <div className="panel p-3 text-xs text-zinc-400 font-mono leading-6 max-w-[440px]">
+                {path.length === 0 ? (
+                  <button
+                    onClick={() => setCurrentNodeId(null)}
+                    className="text-zinc-600 hover:text-amber-300"
+                  >
+                    ★ root position — drag a piece to start
+                  </button>
+                ) : (
+                  <>
+                    <button
+                      onClick={() => setCurrentNodeId(null)}
+                      className={`px-1 rounded ${
+                        currentNodeId == null
+                          ? 'bg-amber-400/15 text-amber-200'
+                          : 'text-zinc-500 hover:bg-amber-400/10'
+                      }`}
+                    >
+                      ★
+                    </button>
+                    {path.map((n) => (
+                      <button
+                        key={n.id}
+                        onClick={() => setCurrentNodeId(n.id)}
+                        className={`px-1 rounded ${
+                          n.id === currentNodeId
+                            ? 'bg-amber-400/15 text-amber-200'
+                            : 'text-zinc-300 hover:bg-amber-400/10'
+                        }`}
+                      >
+                        {n.ply % 2 === 1 ? `${Math.ceil(n.ply / 2)}.` : ''}
+                        {n.san}
+                      </button>
+                    ))}
+                  </>
+                )}
+              </div>
+            </div>
 
-      <ChapterPanel
-        key={currentNode?.id ?? 'root'}
-        study={study}
-        node={currentNode}
-        chapter={currentChapter}
-        busy={busy}
-        onSave={async (title, body) => {
-          if (!currentNode) return;
-          setBusy(true);
-          try {
-            await trainerStudies.saveChapter(study.id, currentNode.id, title, body);
-            const refreshed = await trainerStudies.get(study.id);
-            setStudy(refreshed);
-          } finally {
-            setBusy(false);
-          }
-        }}
-      />
+            <ChapterPanel
+              key={currentNode?.id ?? 'root'}
+              study={study}
+              node={currentNode}
+              chapter={currentChapter}
+              busy={busy}
+              onSave={async (title, body) => {
+                if (!currentNode) return;
+                setBusy(true);
+                try {
+                  await trainerStudies.saveChapter(study.id, currentNode.id, title, body);
+                  const refreshed = await trainerStudies.get(study.id);
+                  setStudy(refreshed);
+                } finally {
+                  setBusy(false);
+                }
+              }}
+            />
+          </div>
+
+          <section className="panel p-3">
+            <div className="flex items-center mb-2">
+              <h2 className="text-xs uppercase tracking-wider text-zinc-500">Opening tree</h2>
+              <div className="ml-auto flex items-center gap-3 text-[10px] text-zinc-500">
+                <span><span className="text-amber-400">★</span> main line</span>
+                <span><span className="text-emerald-400">●</span> has chapter</span>
+                <span className="text-zinc-600">hover a node for ✕ / ★ actions</span>
+              </div>
+            </div>
+            <TreeGraph
+              tree={tree}
+              currentNodeId={currentNodeId}
+              chaptersSet={chaptersSet}
+              onSelect={setCurrentNodeId}
+              onDelete={(n) => setConfirmDeleteNode(n)}
+              onToggleMain={async (n) => {
+                await trainerStudies.setIsMain(study.id, n.id, !n.is_main);
+                const refreshed = await trainerStudies.get(study.id);
+                setStudy(refreshed);
+              }}
+            />
+          </section>
+        </>
+      ) : (
+        <div className="grid grid-cols-[340px_1fr] gap-4">
+          <aside className="panel p-3 max-h-[80vh] overflow-auto">
+            <h2 className="text-xs uppercase tracking-wider text-zinc-500 mb-2">Chapters</h2>
+            <ChaptersOutline
+              nodes={study.nodes}
+              chapters={study.chapters}
+              currentNodeId={currentNodeId}
+              onSelect={setCurrentNodeId}
+            />
+          </aside>
+          <ChapterPanel
+            key={currentNode?.id ?? 'root'}
+            study={study}
+            node={currentNode}
+            chapter={currentChapter}
+            busy={busy}
+            onSave={async (title, body) => {
+              if (!currentNode) return;
+              setBusy(true);
+              try {
+                await trainerStudies.saveChapter(study.id, currentNode.id, title, body);
+                const refreshed = await trainerStudies.get(study.id);
+                setStudy(refreshed);
+              } finally {
+                setBusy(false);
+              }
+            }}
+          />
+        </div>
+      )}
 
       <ConfirmDialog
         open={confirmDeleteNode != null}
@@ -246,66 +259,113 @@ export function OpeningStudyEditor() {
   );
 }
 
-function TreeView({
-  tree,
-  currentNodeId,
-  chapters,
-  onSelect,
-  onDelete,
-  onToggleMain,
+// ─── Board (handles new-move detection + existing-child reuse) ───────────────
+
+function BoardWithBuild({
+  study,
+  currentNode,
+  currentFen,
+  onAddChild,
+  onSelectExisting,
 }: {
-  tree: TreeNode[];
-  currentNodeId: number | null;
-  chapters: OpeningChapter[];
-  onSelect: (id: number) => void;
-  onDelete: (n: TreeNode) => void;
-  onToggleMain: (n: TreeNode) => void;
+  study: OpeningStudyFull;
+  currentNode: OpeningNode | null;
+  currentFen: string;
+  onAddChild: (
+    parentNode: OpeningNode | null,
+    parentFen: string,
+    mv: { from: Key; to: Key; san: string; promotion?: string },
+  ) => Promise<void>;
+  onSelectExisting: (id: number) => void;
 }) {
-  const hasChapter = new Set(chapters.map((c) => c.node_id));
-  function render(nodes: TreeNode[], depth: number): JSX.Element[] {
-    return nodes.flatMap((n) => {
-      const isCur = n.id === currentNodeId;
-      const moveNum = n.ply % 2 === 1 ? `${Math.ceil(n.ply / 2)}.` : '';
-      return [
-        <div
-          key={n.id}
-          className="group flex items-center gap-1"
-          style={{ paddingLeft: depth * 12 }}
-        >
-          <button
-            onClick={() => onSelect(n.id)}
-            className={`text-left text-xs px-1.5 py-0.5 rounded font-mono flex-1 ${
-              isCur
-                ? 'bg-amber-400/15 text-amber-200'
-                : 'text-zinc-300 hover:bg-amber-400/10'
-            }`}
-          >
-            {moveNum}
-            {n.san}
-            {n.is_main && <span className="ml-1 text-amber-400">★</span>}
-            {hasChapter.has(n.id) && <span className="ml-1 text-emerald-400">●</span>}
-          </button>
-          <button
-            onClick={() => onToggleMain(n)}
-            title={n.is_main ? 'Unmark main line' : 'Mark as main line'}
-            className="opacity-0 group-hover:opacity-100 text-[10px] text-zinc-500 hover:text-amber-400"
-          >
-            {n.is_main ? '☆' : '★'}
-          </button>
-          <button
-            onClick={() => onDelete(n)}
-            title="Delete sub-tree"
-            className="opacity-0 group-hover:opacity-100 text-[10px] text-zinc-500 hover:text-red-400"
-          >
-            ✕
-          </button>
-        </div>,
-        ...render(n.children, depth + 1),
-      ];
+  const boardRef = useRef<HTMLDivElement | null>(null);
+  const cgRef = useRef<CGApi | null>(null);
+
+  function toDestsMap(c: Chess): Map<Key, Key[]> {
+    const dests = new Map<Key, Key[]>();
+    for (const m of c.moves({ verbose: true })) {
+      const from = m.from as Key;
+      if (!dests.has(from)) dests.set(from, []);
+      dests.get(from)!.push(m.to as Key);
+    }
+    return dests;
+  }
+
+  async function onBoardMove(from: Key, to: Key) {
+    const chess = new Chess(currentFen);
+    let mv;
+    try {
+      mv = chess.move({ from, to, promotion: 'q' });
+    } catch {
+      mv = null;
+    }
+    if (!mv) return;
+    const existing = findChildBySan(study.nodes, currentNode?.id ?? null, mv.san);
+    if (existing) {
+      onSelectExisting(existing.id);
+      return;
+    }
+    await onAddChild(currentNode, currentFen, {
+      from,
+      to,
+      san: mv.san,
+      promotion: mv.promotion,
     });
   }
-  return <div className="flex flex-col gap-0.5">{render(tree, 0)}</div>;
+
+  useEffect(() => {
+    if (!boardRef.current) return;
+    const c = new Chess(currentFen);
+    const turnColor = c.turn() === 'w' ? 'white' : 'black';
+    cgRef.current = Chessground(boardRef.current, {
+      fen: currentFen,
+      turnColor,
+      lastMove: currentNode
+        ? ([currentNode.uci.slice(0, 2), currentNode.uci.slice(2, 4)] as [Key, Key])
+        : undefined,
+      movable: {
+        free: false,
+        color: turnColor,
+        dests: toDestsMap(c),
+        events: { after: onBoardMove },
+      },
+      draggable: { showGhost: true },
+      animation: { duration: 150 },
+    });
+    return () => {
+      cgRef.current?.destroy();
+      cgRef.current = null;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [study.id]);
+
+  useEffect(() => {
+    if (!cgRef.current) return;
+    const c = new Chess(currentFen);
+    const turnColor = c.turn() === 'w' ? 'white' : 'black';
+    cgRef.current.set({
+      fen: currentFen,
+      turnColor,
+      lastMove: currentNode
+        ? ([currentNode.uci.slice(0, 2), currentNode.uci.slice(2, 4)] as [Key, Key])
+        : undefined,
+      movable: {
+        color: turnColor,
+        dests: toDestsMap(c),
+        events: { after: onBoardMove },
+      },
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentFen, currentNode?.id]);
+
+  return (
+    <div className="rounded-xl p-1 panel">
+      <div ref={boardRef} className="w-[440px] h-[440px]" />
+    </div>
+  );
 }
+
+// ─── Chapter editor ──────────────────────────────────────────────────────────
 
 function ChapterPanel({
   study,
@@ -333,8 +393,8 @@ function ChapterPanel({
       <aside className="panel p-3 flex flex-col gap-3">
         <div className="text-xs uppercase tracking-wider text-zinc-500">Chapter</div>
         <p className="text-sm text-zinc-500">
-          Drop a move on the board to create the first node. Then this panel lets
-          you give the position a chapter (title + markdown body).
+          Select a position from the tree (or play a move on the board) to attach a
+          chapter — title plus markdown notes.
         </p>
         <p className="text-xs text-zinc-600">
           Study root: {study.name} · plays {study.side === 'w' ? 'white' : 'black'}
