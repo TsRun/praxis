@@ -146,6 +146,53 @@ CREATE TABLE IF NOT EXISTS opening_annotation (
   UNIQUE (study_id, fen)
 );
 
+-- A node in the opening tree. parent_id NULL = a top-level child of the
+-- study's root_fen. Two nodes can never share (study_id, parent_id, san):
+-- if a child with the same move already exists, the trainer's "make a
+-- move" action just navigates to it instead of creating a duplicate.
+CREATE TABLE IF NOT EXISTS opening_node (
+  id          BIGSERIAL PRIMARY KEY,
+  study_id    BIGINT NOT NULL REFERENCES opening_study(id) ON DELETE CASCADE,
+  parent_id   BIGINT REFERENCES opening_node(id) ON DELETE CASCADE,
+  parent_fen  TEXT NOT NULL,
+  san         TEXT NOT NULL,
+  uci         TEXT NOT NULL,
+  fen         TEXT NOT NULL,
+  ply         INTEGER NOT NULL,
+  is_main     BOOLEAN NOT NULL DEFAULT FALSE,
+  created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  UNIQUE (study_id, parent_id, san)
+);
+
+CREATE INDEX IF NOT EXISTS idx_opening_node_study  ON opening_node(study_id);
+CREATE INDEX IF NOT EXISTS idx_opening_node_parent ON opening_node(study_id, parent_id);
+
+-- A chapter is a rich-text payload attached to one specific node.
+-- Title + markdown body. The student sees it when they reach the node
+-- (in browse mode) or when they answer a quiz card (correct or wrong).
+CREATE TABLE IF NOT EXISTS opening_chapter (
+  node_id    BIGINT PRIMARY KEY REFERENCES opening_node(id) ON DELETE CASCADE,
+  title      TEXT,
+  body_md    TEXT NOT NULL DEFAULT '',
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+-- Per-(user, node) spaced-repetition state for the quiz. The student is
+-- quizzed on nodes where it's *their* side to move (the side they're
+-- training for, from opening_study.side). Opponent-side nodes are played
+-- automatically by the system.
+CREATE TABLE IF NOT EXISTS node_quiz_state (
+  user_id        BIGINT NOT NULL REFERENCES app_user(id) ON DELETE CASCADE,
+  node_id        BIGINT NOT NULL REFERENCES opening_node(id) ON DELETE CASCADE,
+  correct_streak INTEGER NOT NULL DEFAULT 0,
+  wrong_count    INTEGER NOT NULL DEFAULT 0,
+  last_seen_at   TIMESTAMPTZ,
+  next_due_at    TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  PRIMARY KEY (user_id, node_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_node_quiz_due ON node_quiz_state(user_id, next_due_at);
+
 CREATE TABLE IF NOT EXISTS game_study (
   id           BIGSERIAL PRIMARY KEY,
   owner_id     BIGINT NOT NULL REFERENCES app_user(id) ON DELETE CASCADE,

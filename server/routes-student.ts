@@ -68,8 +68,7 @@ export async function studentRoutes(app: FastifyInstance, opts: { pool: Pool }) 
       const uid = req.user!.id;
       const id = Number(req.params.id);
       const access = await pool.query(
-        `SELECT 1
-           FROM opening_study os
+        `SELECT 1 FROM opening_study os
           WHERE os.id = $1
             AND (os.owner_id = $2
                  OR EXISTS(SELECT 1 FROM assignment a
@@ -77,42 +76,181 @@ export async function studentRoutes(app: FastifyInstance, opts: { pool: Pool }) 
         [id, uid],
       );
       if (!access.rowCount) return reply.code(404).send({ error: 'not assigned' });
-      const { rows: s } = await pool.query<{
-        id: number;
-        name: string;
-        root_fen: string;
-        eco: string | null;
-        side: 'w' | 'b';
-      }>(`SELECT id, name, root_fen, eco, side FROM opening_study WHERE id = $1`, [id]);
-      if (!s[0]) return reply.code(404).send({ error: 'not found' });
-      const ann = await pool.query<{ fen: string; comment_md: string }>(
-        `SELECT fen, comment_md FROM opening_annotation WHERE study_id = $1`,
+      const { rows: s } = await pool.query(
+        `SELECT id, name, root_fen, eco, side FROM opening_study WHERE id = $1`,
         [id],
       );
-      const visited = await pool.query<{ fen: string }>(
-        `SELECT fen FROM opening_visit WHERE user_id = $1 AND study_id = $2`,
-        [uid, id],
+      if (!s[0]) return reply.code(404).send({ error: 'not found' });
+      const nodes = await pool.query(
+        `SELECT id, parent_id, parent_fen, san, uci, fen, ply, is_main
+           FROM opening_node WHERE study_id = $1 ORDER BY ply, id`,
+        [id],
       );
-      return { ...s[0], annotations: ann.rows, visited: visited.rows.map((v) => v.fen) };
+      const chapters = await pool.query(
+        `SELECT c.node_id, c.title, c.body_md FROM opening_chapter c
+           JOIN opening_node n ON n.id = c.node_id WHERE n.study_id = $1`,
+        [id],
+      );
+      const states = await pool.query(
+        `SELECT q.node_id, q.correct_streak, q.wrong_count, q.last_seen_at, q.next_due_at
+           FROM node_quiz_state q
+           JOIN opening_node n ON n.id = q.node_id
+          WHERE n.study_id = $1 AND q.user_id = $2`,
+        [id, uid],
+      );
+      return {
+        ...s[0],
+        nodes: nodes.rows,
+        chapters: chapters.rows,
+        quiz_state: states.rows,
+      };
     },
   );
 
-  app.post<{ Params: { id: string }; Body: { fen: string } }>(
-    '/api/student/studies/opening/:id/visited',
+  /**
+   * Pick the next quiz card for this student in this study.
+   *
+   * Rules:
+   *   - Only quiz on nodes where it's the student's side to move at
+   *     `parent_fen` — i.e., the trainer-prescribed move belongs to the
+   *     student's repertoire (study.side).
+   *   - Order by `next_due_at ASC NULLS FIRST` so new cards come up first
+   *     and overdue cards are surfaced.
+   *
+   * Returns { node_id, parent_fen, ply, opponent_line: [sans needed to
+   *   reach parent_fen from root, in order] } or null if nothing's due.
+   */
+  app.get<{ Params: { id: string } }>(
+    '/api/student/studies/opening/:id/quiz/next',
     { preHandler: requireUser },
     async (req, reply) => {
       const uid = req.user!.id;
       const id = Number(req.params.id);
-      const { fen } = req.body ?? ({} as never);
-      if (!fen) return reply.code(400).send({ error: 'missing fen' });
-      await pool.query(
-        `INSERT INTO opening_visit (user_id, study_id, fen) VALUES ($1, $2, $3)
-           ON CONFLICT DO NOTHING`,
-        [uid, id, fen],
+      const { rows: s } = await pool.query<{ side: 'w' | 'b'; root_fen: string }>(
+        `SELECT side, root_fen FROM opening_study WHERE id = $1`,
+        [id],
       );
-      return { ok: true };
+      if (!s[0]) return reply.code(404).send({ error: 'not found' });
+      const side = s[0].side; // student plays this side
+
+      const { rows } = await pool.query<{
+        id: number;
+        parent_id: number | null;
+        parent_fen: string;
+        san: string;
+        ply: number;
+        next_due_at: string | null;
+      }>(
+        `SELECT n.id, n.parent_id, n.parent_fen, n.san, n.ply, q.next_due_at
+           FROM opening_node n
+           LEFT JOIN node_quiz_state q
+             ON q.node_id = n.id AND q.user_id = $2
+          WHERE n.study_id = $1
+            -- ply odd ⇒ white was about to move at parent_fen ⇒ white's move
+            AND (
+              ($3 = 'w' AND n.ply % 2 = 1)
+              OR
+              ($3 = 'b' AND n.ply % 2 = 0)
+            )
+          ORDER BY q.next_due_at ASC NULLS FIRST, n.ply ASC, n.id ASC
+          LIMIT 1`,
+        [id, uid, side],
+      );
+      if (!rows[0]) return { card: null };
+
+      const card = rows[0];
+      // Walk back to root collecting the SAN line that leads to parent_fen
+      const line: string[] = [];
+      let cursor: number | null = card.parent_id;
+      while (cursor) {
+        const { rows: p } = await pool.query<{ parent_id: number | null; san: string }>(
+          `SELECT parent_id, san FROM opening_node WHERE id = $1`,
+          [cursor],
+        );
+        if (!p[0]) break;
+        line.unshift(p[0].san);
+        cursor = p[0].parent_id;
+      }
+      return {
+        card: {
+          node_id: card.id,
+          parent_fen: card.parent_fen,
+          ply: card.ply,
+          opponent_line: line,
+          root_fen: s[0].root_fen,
+        },
+      };
     },
   );
+
+  /**
+   * Submit a quiz attempt. Implements a simple spaced-repetition schedule:
+   *   - correct → correct_streak++, next_due_at = NOW + interval(streak)
+   *   - wrong   → correct_streak = 0, wrong_count++, next_due_at = NOW + 1min
+   *
+   * Intervals (correct streak → delay): 0→1m, 1→10m, 2→1h, 3→1d, 4→3d,
+   * 5→7d, 6→14d, ≥7→30d.
+   */
+  app.post<{
+    Params: { id: string };
+    Body: { node_id: number; attempted_san: string };
+  }>('/api/student/studies/opening/:id/quiz/attempt', { preHandler: requireUser }, async (req, reply) => {
+    const uid = req.user!.id;
+    const id = Number(req.params.id);
+    const { node_id, attempted_san } = req.body ?? ({} as never);
+    if (!node_id || !attempted_san) return reply.code(400).send({ error: 'missing fields' });
+    const { rows: n } = await pool.query<{ san: string; study_id: number }>(
+      `SELECT san, study_id FROM opening_node WHERE id = $1`,
+      [node_id],
+    );
+    if (!n[0] || n[0].study_id !== id)
+      return reply.code(404).send({ error: 'node not found' });
+    const correct = n[0].san === attempted_san;
+
+    // Spaced-repetition interval table (minutes)
+    const minutesByStreak = [1, 10, 60, 1440, 4320, 10080, 20160, 43200];
+    const client = await pool.connect();
+    try {
+      await client.query('BEGIN');
+      const { rows: existing } = await client.query<{ correct_streak: number; wrong_count: number }>(
+        `SELECT correct_streak, wrong_count FROM node_quiz_state WHERE user_id = $1 AND node_id = $2`,
+        [uid, node_id],
+      );
+      const prevStreak = existing[0]?.correct_streak ?? 0;
+      const prevWrong = existing[0]?.wrong_count ?? 0;
+      const newStreak = correct ? prevStreak + 1 : 0;
+      const newWrong = correct ? prevWrong : prevWrong + 1;
+      const idx = correct ? Math.min(newStreak, minutesByStreak.length - 1) : 0;
+      const minutes = minutesByStreak[idx];
+      await client.query(
+        `INSERT INTO node_quiz_state
+           (user_id, node_id, correct_streak, wrong_count, last_seen_at, next_due_at)
+         VALUES ($1, $2, $3, $4, NOW(), NOW() + ($5 * INTERVAL '1 minute'))
+         ON CONFLICT (user_id, node_id) DO UPDATE SET
+           correct_streak = EXCLUDED.correct_streak,
+           wrong_count    = EXCLUDED.wrong_count,
+           last_seen_at   = EXCLUDED.last_seen_at,
+           next_due_at    = EXCLUDED.next_due_at`,
+        [uid, node_id, newStreak, newWrong, minutes],
+      );
+      await client.query('COMMIT');
+    } catch (e) {
+      await client.query('ROLLBACK');
+      throw e;
+    } finally {
+      client.release();
+    }
+
+    const { rows: ch } = await pool.query<{ title: string | null; body_md: string }>(
+      `SELECT title, body_md FROM opening_chapter WHERE node_id = $1`,
+      [node_id],
+    );
+    return {
+      correct,
+      expected_san: n[0].san,
+      chapter: ch[0] ?? null,
+    };
+  });
 
   app.get<{ Params: { id: string } }>(
     '/api/student/studies/game/:id',
