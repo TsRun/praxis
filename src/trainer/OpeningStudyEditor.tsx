@@ -11,6 +11,7 @@ import {
   type OpeningChapter,
 } from '../lib/api';
 import { buildTree, pathToNode, findChildBySan, type TreeNode } from '../lib/opening-tree';
+import { ConfirmDialog } from '../components/ui/ConfirmDialog';
 
 export function OpeningStudyEditor() {
   const { id } = useParams();
@@ -18,6 +19,7 @@ export function OpeningStudyEditor() {
   const [study, setStudy] = useState<OpeningStudyFull | null>(null);
   const [currentNodeId, setCurrentNodeId] = useState<number | null>(null);
   const [busy, setBusy] = useState(false);
+  const [confirmDeleteNode, setConfirmDeleteNode] = useState<TreeNode | null>(null);
 
   // Load study
   useEffect(() => {
@@ -162,15 +164,7 @@ export function OpeningStudyEditor() {
           currentNodeId={currentNodeId}
           chapters={study.chapters}
           onSelect={setCurrentNodeId}
-          onDelete={async (n) => {
-            if (!confirm(`Delete ${n.san} and all sub-lines?`)) return;
-            await trainerStudies.deleteNode(study.id, n.id);
-            const refreshed = await trainerStudies.get(study.id);
-            setStudy(refreshed);
-            if (currentNodeId === n.id || path.some((p) => p.id === n.id)) {
-              setCurrentNodeId(null);
-            }
-          }}
+          onDelete={(n) => setConfirmDeleteNode(n)}
           onToggleMain={async (n) => {
             await trainerStudies.setIsMain(study.id, n.id, !n.is_main);
             const refreshed = await trainerStudies.get(study.id);
@@ -220,6 +214,31 @@ export function OpeningStudyEditor() {
             setStudy(refreshed);
           } finally {
             setBusy(false);
+          }
+        }}
+      />
+
+      <ConfirmDialog
+        open={confirmDeleteNode != null}
+        onClose={() => setConfirmDeleteNode(null)}
+        title="Delete this branch?"
+        body={
+          confirmDeleteNode
+            ? `${confirmDeleteNode.san} and every sub-line below it will be removed. This can't be undone.`
+            : undefined
+        }
+        confirmLabel="Delete branch"
+        destructive
+        onConfirm={async () => {
+          if (!confirmDeleteNode) return;
+          await trainerStudies.deleteNode(study.id, confirmDeleteNode.id);
+          const refreshed = await trainerStudies.get(study.id);
+          setStudy(refreshed);
+          if (
+            currentNodeId === confirmDeleteNode.id ||
+            path.some((p) => p.id === confirmDeleteNode.id)
+          ) {
+            setCurrentNodeId(null);
           }
         }}
       />

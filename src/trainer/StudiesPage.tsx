@@ -6,10 +6,16 @@ import {
   type OpeningStudySummary,
   type GameStudySummary,
 } from '../lib/api';
+import { NewOpeningStudyDialog } from './NewOpeningStudyDialog';
+import { NewGameStudyDialog } from './NewGameStudyDialog';
+
+const START_FEN = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1';
 
 export function StudiesPage() {
   const [opens, setOpens] = useState<OpeningStudySummary[] | null>(null);
   const [games, setGames] = useState<GameStudySummary[] | null>(null);
+  const [openOpenDialog, setOpenOpenDialog] = useState(false);
+  const [openGameDialog, setOpenGameDialog] = useState(false);
   const nav = useNavigate();
 
   useEffect(() => {
@@ -19,42 +25,19 @@ export function StudiesPage() {
     trainerGames.list().then(setGames);
   }, []);
 
-  async function newOpening() {
-    const name = window.prompt('Study name?');
-    if (!name) return;
-    const sideAns = window.prompt("Which side ('w' or 'b')?", 'w');
-    const side: 'w' | 'b' = sideAns === 'b' ? 'b' : 'w';
-    const startFen = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1';
-    const { id } = await trainerStudies.create({ name, root_fen: startFen, side });
-    nav(`/trainer/studies/opening/${id}`);
-  }
-
-  async function newGame() {
-    const name = window.prompt('Study name?');
-    if (!name) return;
-    const pgn = window.prompt('Paste PGN:');
-    if (!pgn) return;
-    try {
-      const { id } = await trainerGames.create(name, pgn);
-      nav(`/trainer/studies/game/${id}`);
-    } catch (e) {
-      alert((e as Error).message);
-    }
-  }
-
   return (
     <div className="flex flex-col gap-6">
       <div className="flex items-center gap-3">
         <h1 className="text-2xl font-semibold tracking-tight">Studies</h1>
         <div className="ml-auto flex gap-2">
           <button
-            onClick={newOpening}
+            onClick={() => setOpenOpenDialog(true)}
             className="bg-amber-500 hover:bg-amber-400 text-zinc-950 px-3 py-1.5 rounded font-medium"
           >
             + Opening
           </button>
           <button
-            onClick={newGame}
+            onClick={() => setOpenGameDialog(true)}
             className="bg-amber-500 hover:bg-amber-400 text-zinc-950 px-3 py-1.5 rounded font-medium"
           >
             + Game
@@ -81,7 +64,7 @@ export function StudiesPage() {
                   </span>
                 )}
                 <span className="ml-auto text-xs text-zinc-500">
-                  {r.annotation_count} notes · plays {r.side === 'w' ? 'white' : 'black'}
+                  {r.annotation_count} chapters · plays {r.side === 'w' ? 'white' : 'black'}
                 </span>
               </div>
             </Link>
@@ -104,13 +87,28 @@ export function StudiesPage() {
                 <span className="text-xs text-zinc-500">
                   {r.headers_json.White} vs {r.headers_json.Black}
                 </span>
-                <span className="ml-auto text-xs text-zinc-500">
-                  {r.annotation_count} notes
-                </span>
+                <span className="ml-auto text-xs text-zinc-500">{r.annotation_count} notes</span>
               </div>
             </Link>
           ))}
       </section>
+
+      <NewOpeningStudyDialog
+        open={openOpenDialog}
+        onClose={() => setOpenOpenDialog(false)}
+        onCreate={async ({ name, side }) => {
+          const { id } = await trainerStudies.create({ name, root_fen: START_FEN, side });
+          nav(`/trainer/studies/opening/${id}`);
+        }}
+      />
+      <NewGameStudyDialog
+        open={openGameDialog}
+        onClose={() => setOpenGameDialog(false)}
+        onCreate={async ({ name, pgn }) => {
+          const { id } = await trainerGames.create(name, pgn);
+          nav(`/trainer/studies/game/${id}`);
+        }}
+      />
     </div>
   );
 }
