@@ -1,17 +1,15 @@
 #!/usr/bin/env bash
-# Overnight data pipeline (fresh re-ingest from Lumbra at depth 24):
-#   1. Back up the current DB to data/pre-lumbra-backup.sql.gz
-#   2. TRUNCATE game / game_move / move_stats (player table kept)
-#   3. Drop partial indexes (faster ingest)
-#   4. Lumbra OTB ingest (depth 24) — all year buckets, ~1.6 GB compressed
-#   5. Recreate partial player-filter indexes
-#   6. Rebuild move_stats
-#   7. Self-remove the cron entry
+# Overnight data pipeline — download-first / truncate-after for safety.
 #
-# Why a fresh re-ingest? Existing 2.35M TWIC games are capped at depth 16,
-# and fingerprint dedupe would skip them on a re-run so they'd stay shallow.
-# Lumbra already contains the same games (and millions more), so a fresh
-# load at depth 24 gives us deeper coverage end to end.
+# 1. Download all Lumbra OTB buckets to data/lumbra/ (idempotent; aborts the
+#    whole pipeline if any bucket can't be obtained after retries).
+# 2. Back up the current DB to data/pre-lumbra-backup.sql.gz.
+# 3. TRUNCATE game / game_move / move_stats (player table kept).
+# 4. Drop partial player-filter indexes (faster ingest).
+# 5. Lumbra ingest from local zips (--skip-download); full-game depth.
+# 6. Recreate partial indexes.
+# 7. Rebuild move_stats.
+# 8. Self-remove the cron entry (if any).
 
 set -euo pipefail
 cd "$(dirname "$0")/.."
@@ -28,27 +26,31 @@ echo "================================================================"
 export PATH=/opt/homebrew/opt/postgresql@16/bin:/opt/homebrew/bin:$PATH
 
 echo
-echo "[1/6] backup current DB to data/pre-lumbra-backup.sql.gz"
-pg_dump openings | gzip > data/pre-lumbra-backup.sql.gz
-echo "  size: $(du -h data/pre-lumbra-backup.sql.gz | awk '{print $1}')"
+echo "[1/7] pre-download all Lumbra OTB buckets (no DB changes)"
+npx tsx scripts/lumbra-ingest.ts --download-only
 
 echo
-echo "[2/6] truncate game, game_move, move_stats"
+echo "[2/7] backup current DB"
+pg_dump openings | gzip > data/pre-lumbra-backup.sql.gz
+echo "  $(du -h data/pre-lumbra-backup.sql.gz | awk '{print $1}') saved"
+
+echo
+echo "[3/7] truncate game, game_move, move_stats"
 psql openings -c "TRUNCATE game_move, game, move_stats RESTART IDENTITY CASCADE;"
 
 echo
-echo "[3/6] drop partial indexes (recreated in step 5)"
+echo "[4/7] drop partial indexes"
 psql openings <<'SQL'
 DROP INDEX IF EXISTS idx_gm_parent_white_fide;
 DROP INDEX IF EXISTS idx_gm_parent_black_fide;
 SQL
 
 echo
-echo "[4/6] Lumbra OTB ingest at depth 24 (all year buckets)"
-npx tsx scripts/lumbra-ingest.ts --no-stats
+echo "[5/7] Lumbra OTB ingest (full game depth, using cached zips)"
+npx tsx scripts/lumbra-ingest.ts --skip-download --no-stats
 
 echo
-echo "[5/6] re-create partial player-filter indexes"
+echo "[6/7] recreate partial indexes"
 psql openings <<'SQL'
 CREATE INDEX IF NOT EXISTS idx_gm_parent_white_fide
   ON game_move(parent_fen, white_fide_id) WHERE white_fide_id IS NOT NULL;
@@ -57,7 +59,7 @@ CREATE INDEX IF NOT EXISTS idx_gm_parent_black_fide
 SQL
 
 echo
-echo "[6/6] rebuild move_stats"
+echo "[7/7] rebuild move_stats"
 npx tsx scripts/rebuild-stats.ts
 
 echo
@@ -67,4 +69,4 @@ echo "================================================================"
 
 # Self-remove the one-shot cron entry so this never fires again.
 ( crontab -l 2>/dev/null | grep -v "OpeningTree-overnight-oneshot" ) | crontab -
-echo "cron entry removed."
+echo "cron entry removed (if any)."

@@ -45,18 +45,37 @@ async function loadUrls(): Promise<BucketEntry[]> {
 }
 
 async function downloadOne(entry: BucketEntry): Promise<string | null> {
-  // Mega downloads use the URL's filename hint. We pass an explicit name.
   await mkdir(DATA_DIR, { recursive: true });
   const dest = resolve(DATA_DIR, `lumbra-otb-${entry.label}.zip`);
   if ((await fileSize(dest)) > 1024 * 100) return dest; // resume: keep cached
 
-  console.log(`  ↓ ${entry.label} (~${entry.mb} MB) → ${basename(dest)}`);
-  const file = MegaFile.fromURL(entry.url);
-  await file.loadAttributes();
-  // megajs's download() returns a Readable; pipe to disk
-  const stream = file.download({});
-  await pipeline(stream as unknown as NodeJS.ReadableStream, createWriteStream(dest));
-  return dest;
+  // Retry transient mega.nz failures with exponential backoff. Anonymous
+  // mega downloads occasionally 5xx or close the stream mid-flight; the
+  // attribute fetch and download are independent so we re-init each try.
+  const MAX_ATTEMPTS = 5;
+  for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+    const tag = attempt === 1 ? '' : ` (attempt ${attempt}/${MAX_ATTEMPTS})`;
+    console.log(`  ↓ ${entry.label} (~${entry.mb} MB) → ${basename(dest)}${tag}`);
+    try {
+      const file = MegaFile.fromURL(entry.url);
+      await file.loadAttributes();
+      const stream = file.download({});
+      await pipeline(stream as unknown as NodeJS.ReadableStream, createWriteStream(dest));
+      return dest;
+    } catch (e) {
+      const msg = (e as Error).message;
+      console.log(`    failed: ${msg}`);
+      // Clean up the partial file before retrying
+      await unlink(dest).catch(() => {});
+      if (attempt < MAX_ATTEMPTS) {
+        const waitMs = Math.min(60_000, 2000 * 2 ** (attempt - 1));
+        console.log(`    sleeping ${(waitMs / 1000).toFixed(0)}s before retry…`);
+        await new Promise((r) => setTimeout(r, waitMs));
+      }
+    }
+  }
+  console.log(`  ✗ ${entry.label}: gave up after ${MAX_ATTEMPTS} attempts`);
+  return null;
 }
 
 async function unzip(zipPath: string): Promise<string[]> {
@@ -110,6 +129,7 @@ async function main() {
   const onlyArg = get('--only');
   const only = onlyArg ? new Set(onlyArg.split(',').map((s) => s.trim())) : null;
   const skipDownload = args.includes('--skip-download');
+  const downloadOnly = args.includes('--download-only');
   const noStats = args.includes('--no-stats');
 
   const all = await loadUrls();
@@ -120,22 +140,38 @@ async function main() {
   }
   console.log(`Lumbra OTB ingest · ${buckets.length} bucket(s): ${buckets.map((b) => b.label).join(', ')}`);
 
+  // ─── Phase 1: download all buckets (idempotent — cached zips are reused). ───
+  // We do this BEFORE any DB mutation so a mega.nz failure can't leave us
+  // with a truncated DB and no data to refill it.
+  if (!skipDownload) {
+    console.log('\n─── phase 1: download ───');
+    const failed: string[] = [];
+    for (const b of buckets) {
+      const zip = await downloadOne(b).catch(() => null);
+      if (!zip) failed.push(b.label);
+    }
+    if (failed.length > 0) {
+      console.error(`\n✗ ${failed.length} bucket(s) failed to download: ${failed.join(', ')}`);
+      console.error('aborting — no DB changes made. Re-run later to retry the failed buckets.');
+      process.exit(1);
+    }
+    console.log('\nall downloads ok.');
+  }
+
+  if (downloadOnly) {
+    console.log('--download-only set; exiting before ingest.');
+    return;
+  }
+
+  // ─── Phase 2: extract + ingest ───
+  console.log('\n─── phase 2: extract + ingest ───');
   for (const b of buckets) {
     console.log(`\n=== ${b.label} ===`);
-    let zip: string | null = null;
-    if (!skipDownload) {
-      zip = await downloadOne(b).catch((e) => {
-        console.warn(`  download failed: ${(e as Error).message}`);
-        return null;
-      });
-    } else {
-      zip = resolve(DATA_DIR, `lumbra-otb-${b.label}.zip`);
-      if ((await fileSize(zip)) === 0) {
-        console.warn(`  --skip-download but ${zip} missing; skipping bucket`);
-        continue;
-      }
+    const zip = resolve(DATA_DIR, `lumbra-otb-${b.label}.zip`);
+    if ((await fileSize(zip)) === 0) {
+      console.warn(`  zip missing: ${zip} — skipping`);
+      continue;
     }
-    if (!zip) continue;
 
     const pgns = await unzip(zip).catch((e) => {
       console.warn(`  unzip failed: ${(e as Error).message}`);
