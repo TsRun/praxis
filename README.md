@@ -1,4 +1,4 @@
-# ChessCoach
+# Praxis
 
 A chess-coaching SaaS. Trainers sign up, build opening studies and annotated
 game reviews, invite students by email, track their progress. Students log in

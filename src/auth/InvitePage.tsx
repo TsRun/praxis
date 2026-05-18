@@ -72,7 +72,7 @@ export function InvitePage() {
     <div className="min-h-screen grid place-items-center px-6 py-12">
       <div className="panel p-8 flex flex-col gap-4 items-center">
         <h2 className="text-lg font-semibold tracking-tight">
-          <span className="text-amber-400">{info.trainer_name}</span> invited you to ChessCoach
+          <span className="text-amber-400">{info.trainer_name}</span> invited you to Praxis
         </h2>
         <p className="text-sm text-zinc-400 text-center max-w-md">
           Hi <strong className="text-zinc-200">{info.student_name}</strong>. Create your account

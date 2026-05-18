@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8" />
-<title>ChessCoach + OpeningTree — database MCD</title>
+<title>Praxis + OpeningTree — database MCD</title>
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <meta name="description" content="Conceptual data model for the OpeningTree openings database: entities, relationships, columns, indexes, and the queries they serve." />
 <style>
@@ -220,15 +220,15 @@
 <h1>Database — conceptual model</h1>
 <p class="lede">
   Two halves living in the same Postgres database:
-  the <strong>ChessCoach app tables</strong> (users, sessions, mentor links, studies,
+  the <strong>Praxis app tables</strong> (users, sessions, mentor links, studies,
   assignments, attempts) on top, and the <strong>OpeningTree library tables</strong>
   (player / game / game_move / move_stats) underneath. The library is read-only
   from the app's point of view — it's the explorer trainers browse when building
   opening studies.
 </p>
 
-<!-- ─── ChessCoach (app) ──────────────────────────────────────────────────── -->
-<h2 style="font-size:30px;margin-top:32px">ChessCoach (app tables)</h2>
+<!-- ─── Praxis (app) ──────────────────────────────────────────────────── -->
+<h2 style="font-size:30px;margin-top:32px">Praxis (app tables)</h2>
 <p>
   One unified <code>app_user</code> table. Every account has a multi-select
   <code>roles</code> array (<code>trainer</code>, <code>student</code>,
@@ -391,7 +391,7 @@
 <!-- ─── OpeningTree library section delimiter ──────────────────────────────── -->
 <h2 style="font-size:30px;margin-top:48px;padding-top:32px;border-top:1px solid var(--border)">OpeningTree library (read-only)</h2>
 <p>
-  These are the original explorer tables — kept unchanged when ChessCoach
+  These are the original explorer tables — kept unchanged when Praxis
   was added. Trainers browse them in-app when building opening studies; the
   app does not write to them.
 </p>

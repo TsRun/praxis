@@ -11,7 +11,7 @@ export function LandingPage() {
     <div className="min-h-screen grid place-items-center px-6 py-12">
       <div className="max-w-3xl flex flex-col gap-10 items-center text-center">
         <h1 className="text-4xl font-semibold tracking-tight">
-          Chess<span className="text-amber-400">Coach</span>
+          Prax<span className="text-amber-400">is</span>
         </h1>
         <p className="text-zinc-400 max-w-lg">
           Build chess studies. Coach others, learn from a coach, or work

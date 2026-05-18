@@ -119,7 +119,7 @@ export function SignInUpForm({ inviteToken, inviteEmail, inviteName }: Props) {
       {mode === 'up' && (
         <fieldset className="flex flex-col gap-2 panel p-3">
           <legend className="text-xs uppercase tracking-wider text-zinc-500 px-1">
-            How will you use ChessCoach?
+            How will you use Praxis?
           </legend>
           <p className="text-xs text-zinc-500 -mt-1">Pick one or more. You can change this later.</p>
           {ALL_ROLES.map((r) => (
