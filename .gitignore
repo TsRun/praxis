@@ -16,3 +16,4 @@ data/
 *.zip
 modern-*.png
 move-selection-*.png
+.superpowers/
