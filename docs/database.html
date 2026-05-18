@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8" />
-<title>OpeningTree — database MCD</title>
+<title>ChessCoach + OpeningTree — database MCD</title>
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <meta name="description" content="Conceptual data model for the OpeningTree openings database: entities, relationships, columns, indexes, and the queries they serve." />
 <style>
@@ -219,11 +219,181 @@
 
 <h1>Database — conceptual model</h1>
 <p class="lede">
-  Four tables. Two write-heavy (<code>game</code>, <code>game_move</code>), one slow-changing reference
-  table (<code>player</code>), one denormalized read-side summary (<code>move_stats</code>). The schema
-  is built around two query patterns: <strong>"what moves are played from this position"</strong>
-  (unfiltered, served from <code>move_stats</code>) and <strong>"what moves does this player choose"</strong>
-  (filtered, served from <code>game_move</code> alone — no JOIN to <code>game</code>).
+  Two halves living in the same Postgres database:
+  the <strong>ChessCoach app tables</strong> (users, sessions, mentor links, studies,
+  assignments, attempts) on top, and the <strong>OpeningTree library tables</strong>
+  (player / game / game_move / move_stats) underneath. The library is read-only
+  from the app's point of view — it's the explorer trainers browse when building
+  opening studies.
+</p>
+
+<!-- ─── ChessCoach (app) ──────────────────────────────────────────────────── -->
+<h2 style="font-size:30px;margin-top:32px">ChessCoach (app tables)</h2>
+<p>
+  One unified <code>app_user</code> table. Every account has a multi-select
+  <code>roles</code> array (<code>trainer</code>, <code>student</code>,
+  <code>self</code>); sign-in is single-form, role choice is on signup. A user
+  with the <code>trainer</code> role can run a roster of <em>other</em> users
+  (linked via <code>mentor</code>); a user with the <code>self</code> role is
+  their own coach (studies they author are auto-assigned to themselves); a user
+  with the <code>student</code> role can be added to a trainer's roster and
+  receive assignments.
+</p>
+
+<div class="er-wrap">
+<svg viewBox="0 0 1140 720" xmlns="http://www.w3.org/2000/svg" font-family="'JetBrains Mono', monospace" font-size="12">
+  <!-- app_user -->
+  <g transform="translate(20,30)">
+    <rect width="280" height="220" rx="10" fill="rgba(39,39,42,0.6)" stroke="rgba(99,102,241,0.3)" />
+    <rect width="280" height="34" rx="10" fill="rgba(251,191,36,0.12)" />
+    <text x="14" y="22" fill="#fbbf24" font-weight="600" font-size="14">app_user</text>
+    <text x="262" y="22" fill="#71717a" font-size="10" text-anchor="end">one per account</text>
+    <g fill="#e4e4e7">
+      <text x="14" y="60"><tspan fill="#fbbf24" font-weight="600">●</tspan> id <tspan fill="#71717a">BIGSERIAL</tspan></text>
+      <text x="14" y="80"><tspan fill="#fb7185">⚏</tspan> email <tspan fill="#71717a">TEXT</tspan></text>
+      <text x="14" y="100">password_hash <tspan fill="#71717a">TEXT</tspan></text>
+      <text x="14" y="120">name <tspan fill="#71717a">TEXT</tspan></text>
+      <text x="14" y="140">roles <tspan fill="#71717a">TEXT[]</tspan> <tspan fill="#a78bfa" font-size="9">gin idx</tspan></text>
+      <text x="14" y="160" fill="#71717a" font-size="10">⊆ {'trainer','student','self'}</text>
+      <text x="14" y="180">created_at <tspan fill="#71717a">TIMESTAMPTZ</tspan></text>
+    </g>
+  </g>
+
+  <!-- mentor -->
+  <g transform="translate(420,30)">
+    <rect width="280" height="120" rx="10" fill="rgba(39,39,42,0.6)" stroke="rgba(99,102,241,0.3)" />
+    <rect width="280" height="34" rx="10" fill="rgba(251,191,36,0.12)" />
+    <text x="14" y="22" fill="#fbbf24" font-weight="600" font-size="14">mentor</text>
+    <text x="262" y="22" fill="#71717a" font-size="10" text-anchor="end">trainer ↔ student</text>
+    <g fill="#e4e4e7">
+      <text x="14" y="60"><tspan fill="#fbbf24" font-weight="600">●</tspan><tspan fill="#38bdf8">↪</tspan> trainer_user_id</text>
+      <text x="14" y="80"><tspan fill="#fbbf24" font-weight="600">●</tspan><tspan fill="#38bdf8">↪</tspan> student_user_id</text>
+      <text x="14" y="100">linked_at <tspan fill="#71717a">TIMESTAMPTZ</tspan></text>
+    </g>
+  </g>
+
+  <!-- invite -->
+  <g transform="translate(820,30)">
+    <rect width="280" height="140" rx="10" fill="rgba(39,39,42,0.6)" stroke="rgba(99,102,241,0.3)" />
+    <rect width="280" height="34" rx="10" fill="rgba(251,191,36,0.12)" />
+    <text x="14" y="22" fill="#fbbf24" font-weight="600" font-size="14">invite</text>
+    <text x="262" y="22" fill="#71717a" font-size="10" text-anchor="end">pending email invites</text>
+    <g fill="#e4e4e7">
+      <text x="14" y="60"><tspan fill="#fbbf24" font-weight="600">●</tspan> token <tspan fill="#71717a">TEXT</tspan></text>
+      <text x="14" y="80"><tspan fill="#38bdf8">↪</tspan> trainer_user_id</text>
+      <text x="14" y="100">student_email <tspan fill="#71717a">TEXT</tspan></text>
+      <text x="14" y="120">student_name <tspan fill="#71717a">TEXT</tspan></text>
+      <text x="14" y="140">expires_at <tspan fill="#71717a">TIMESTAMPTZ</tspan></text>
+    </g>
+  </g>
+
+  <!-- opening_study -->
+  <g transform="translate(20,290)">
+    <rect width="280" height="190" rx="10" fill="rgba(39,39,42,0.6)" stroke="rgba(99,102,241,0.3)" />
+    <rect width="280" height="34" rx="10" fill="rgba(251,191,36,0.12)" />
+    <text x="14" y="22" fill="#fbbf24" font-weight="600" font-size="14">opening_study</text>
+    <g fill="#e4e4e7">
+      <text x="14" y="60"><tspan fill="#fbbf24" font-weight="600">●</tspan> id</text>
+      <text x="14" y="80"><tspan fill="#38bdf8">↪</tspan> owner_id <tspan fill="#71717a">BIGINT</tspan></text>
+      <text x="14" y="100">name <tspan fill="#71717a">TEXT</tspan></text>
+      <text x="14" y="120">root_fen <tspan fill="#71717a">TEXT</tspan></text>
+      <text x="14" y="140">eco <tspan fill="#71717a">TEXT</tspan></text>
+      <text x="14" y="160">side <tspan fill="#71717a">CHAR(1)</tspan></text>
+    </g>
+  </g>
+
+  <!-- game_study -->
+  <g transform="translate(420,290)">
+    <rect width="280" height="190" rx="10" fill="rgba(39,39,42,0.6)" stroke="rgba(99,102,241,0.3)" />
+    <rect width="280" height="34" rx="10" fill="rgba(251,191,36,0.12)" />
+    <text x="14" y="22" fill="#fbbf24" font-weight="600" font-size="14">game_study</text>
+    <g fill="#e4e4e7">
+      <text x="14" y="60"><tspan fill="#fbbf24" font-weight="600">●</tspan> id</text>
+      <text x="14" y="80"><tspan fill="#38bdf8">↪</tspan> owner_id <tspan fill="#71717a">BIGINT</tspan></text>
+      <text x="14" y="100">name <tspan fill="#71717a">TEXT</tspan></text>
+      <text x="14" y="120">pgn <tspan fill="#71717a">TEXT</tspan></text>
+      <text x="14" y="140">headers_json <tspan fill="#71717a">JSONB</tspan></text>
+    </g>
+  </g>
+
+  <!-- assignment -->
+  <g transform="translate(820,290)">
+    <rect width="280" height="200" rx="10" fill="rgba(39,39,42,0.6)" stroke="rgba(99,102,241,0.3)" />
+    <rect width="280" height="34" rx="10" fill="rgba(251,191,36,0.12)" />
+    <text x="14" y="22" fill="#fbbf24" font-weight="600" font-size="14">assignment</text>
+    <g fill="#e4e4e7">
+      <text x="14" y="60"><tspan fill="#fbbf24" font-weight="600">●</tspan> id</text>
+      <text x="14" y="80"><tspan fill="#38bdf8">↪</tspan> assignee_id <tspan fill="#71717a">BIGINT</tspan></text>
+      <text x="14" y="100">study_kind <tspan fill="#71717a">'opening'|'game'</tspan></text>
+      <text x="14" y="120">study_id <tspan fill="#71717a">BIGINT</tspan></text>
+      <text x="14" y="140">assigned_at <tspan fill="#71717a">TIMESTAMPTZ</tspan></text>
+      <text x="14" y="160">completed_at <tspan fill="#71717a">TIMESTAMPTZ</tspan></text>
+      <text x="14" y="180" fill="#71717a" font-size="10">poly: study_id → opening_study | game_study</text>
+    </g>
+  </g>
+
+  <!-- annotations + visit/attempt as cluster -->
+  <g transform="translate(20,520)">
+    <rect width="1100" height="160" rx="10" fill="rgba(39,39,42,0.4)" stroke="rgba(167,139,250,0.25)" stroke-dasharray="4 4" />
+    <text x="14" y="22" fill="#a78bfa" font-weight="600" font-size="13">child tables (CASCADE)</text>
+    <g fill="#e4e4e7" font-size="11">
+      <text x="14" y="50"><tspan fill="#fbbf24" font-weight="600">opening_annotation</tspan> (study_id, fen) → opening_study</text>
+      <text x="14" y="70"><tspan fill="#fbbf24" font-weight="600">game_annotation</tspan>    (study_id, ply, is_quiz, comment_md) → game_study</text>
+      <text x="14" y="90"><tspan fill="#fbbf24" font-weight="600">opening_visit</tspan>      (user_id, study_id, fen) — tracks which annotations a student has seen</text>
+      <text x="14" y="110"><tspan fill="#fbbf24" font-weight="600">quiz_attempt</tspan>       (user_id, game_study_id, ply, attempted_san, correct) — quiz submissions</text>
+      <text x="14" y="130"><tspan fill="#fbbf24" font-weight="600">session</tspan>            (id, user_id, expires_at) — DB-backed cookie sessions, 30-day TTL</text>
+    </g>
+  </g>
+
+  <!-- arrows -->
+  <path d="M 300,140 L 420,80" fill="none" stroke="#a78bfa" stroke-width="1.4" />
+  <path d="M 300,160 L 420,100" fill="none" stroke="#a78bfa" stroke-width="1.4" />
+  <text x="320" y="125" fill="#a78bfa" font-size="10">trainer + student (self-ref)</text>
+
+  <path d="M 300,180 L 820,80" fill="none" stroke="#a78bfa" stroke-width="1.4" stroke-dasharray="3 3" />
+  <text x="500" y="130" fill="#a78bfa" font-size="10">trainer issues invite</text>
+
+  <path d="M 160,250 V 290" fill="none" stroke="#a78bfa" stroke-width="1.4" />
+  <text x="50" y="280" fill="#a78bfa" font-size="10">authors openings</text>
+
+  <path d="M 200,250 L 540,290" fill="none" stroke="#a78bfa" stroke-width="1.4" />
+  <text x="370" y="280" fill="#a78bfa" font-size="10">authors games</text>
+
+  <path d="M 250,250 L 920,290" fill="none" stroke="#a78bfa" stroke-width="1.4" />
+  <text x="700" y="280" fill="#a78bfa" font-size="10">receives assignments (assignee_id)</text>
+</svg>
+</div>
+
+<h3 style="margin-top:24px">app_user · roles</h3>
+<table class="columns">
+  <thead><tr><th style="width:18%">role</th><th>what it unlocks</th></tr></thead>
+  <tbody>
+    <tr><td class="col-name">trainer</td><td class="col-note">Build studies, invite students by email, manage roster (<code>mentor</code> links), assign studies to students.</td></tr>
+    <tr><td class="col-name">student</td><td class="col-note">Be added to a trainer's roster, receive <code>assignment</code> rows, walk assigned studies and answer quiz prompts.</td></tr>
+    <tr><td class="col-name">self</td><td class="col-note">Build studies for solo use. Authored studies auto-create an <code>assignment</code> row with <code>assignee_id = author_id</code>.</td></tr>
+  </tbody>
+</table>
+
+<h3 style="margin-top:24px">App relationships</h3>
+<table class="columns">
+  <thead><tr><th>from</th><th>to</th><th>cardinality</th><th>note</th></tr></thead>
+  <tbody>
+    <tr><td class="col-name">app_user</td><td class="col-name">mentor (as trainer)</td><td class="col-type">1 — N</td><td class="col-note">Roster of this trainer's students.</td></tr>
+    <tr><td class="col-name">app_user</td><td class="col-name">mentor (as student)</td><td class="col-type">1 — N</td><td class="col-note">A student may have multiple trainers.</td></tr>
+    <tr><td class="col-name">app_user</td><td class="col-name">opening_study / game_study</td><td class="col-type">1 — N</td><td class="col-note">Authored studies (<code>owner_id</code>).</td></tr>
+    <tr><td class="col-name">opening_study / game_study</td><td class="col-name">opening_annotation / game_annotation</td><td class="col-type">1 — N</td><td class="col-note"><code>ON DELETE CASCADE</code>.</td></tr>
+    <tr><td class="col-name">app_user</td><td class="col-name">assignment</td><td class="col-type">1 — N</td><td class="col-note">Studies assigned to this user (<code>assignee_id</code>). Polymorphic FK to opening/game study via <code>study_kind</code> + <code>study_id</code>.</td></tr>
+    <tr><td class="col-name">app_user</td><td class="col-name">quiz_attempt / opening_visit</td><td class="col-type">1 — N</td><td class="col-note">Per-user progress tracking.</td></tr>
+    <tr><td class="col-name">invite</td><td class="col-name">app_user (on accept)</td><td class="col-type">1 — 1</td><td class="col-note">Token consumed on accept; signup with <code>X-Invite-Token</code> header auto-links the new account to the inviting trainer's roster.</td></tr>
+  </tbody>
+</table>
+
+<!-- ─── OpeningTree library section delimiter ──────────────────────────────── -->
+<h2 style="font-size:30px;margin-top:48px;padding-top:32px;border-top:1px solid var(--border)">OpeningTree library (read-only)</h2>
+<p>
+  These are the original explorer tables — kept unchanged when ChessCoach
+  was added. Trainers browse them in-app when building opening studies; the
+  app does not write to them.
 </p>
 
 <div class="legend">

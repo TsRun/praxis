@@ -1,15 +1,21 @@
+export type Role = 'trainer' | 'student' | 'self';
+export const ALL_ROLES: Role[] = ['trainer', 'student', 'self'];
+
 export interface CurrentUser {
   id: number;
   email: string;
   name: string;
-  kind: 'trainer' | 'student';
+  roles: Role[];
 }
 
-async function request<T>(method: string, path: string, body?: unknown): Promise<T> {
+async function request<T>(method: string, path: string, body?: unknown, extraHeaders?: Record<string, string>): Promise<T> {
   const res = await fetch(path, {
     method,
     credentials: 'include',
-    headers: body ? { 'content-type': 'application/json' } : undefined,
+    headers: {
+      ...(body ? { 'content-type': 'application/json' } : {}),
+      ...(extraHeaders ?? {}),
+    },
     body: body ? JSON.stringify(body) : undefined,
   });
   if (!res.ok) {
@@ -21,7 +27,8 @@ async function request<T>(method: string, path: string, body?: unknown): Promise
 
 export const api = {
   get: <T>(path: string) => request<T>('GET', path),
-  post: <T>(path: string, body?: unknown) => request<T>('POST', path, body),
+  post: <T>(path: string, body?: unknown, headers?: Record<string, string>) =>
+    request<T>('POST', path, body, headers),
   put: <T>(path: string, body?: unknown) => request<T>('PUT', path, body),
   del: <T>(path: string) => request<T>('DELETE', path),
 };
@@ -30,9 +37,11 @@ export const auth = {
   me: () => api.get<CurrentUser>('/api/auth/me'),
   signin: (email: string, password: string) =>
     api.post<CurrentUser>('/api/auth/signin', { email, password }),
-  signup: (email: string, password: string, name: string) =>
-    api.post<CurrentUser>('/api/auth/signup', { email, password, name }),
+  signup: (email: string, password: string, name: string, roles: Role[], inviteToken?: string) =>
+    api.post<CurrentUser>('/api/auth/signup', { email, password, name, roles },
+      inviteToken ? { 'X-Invite-Token': inviteToken } : undefined),
   signout: () => api.post<{ ok: true }>('/api/auth/signout'),
+  setRoles: (roles: Role[]) => api.put<CurrentUser>('/api/auth/roles', { roles }),
 };
 
 export interface InviteInfo {
@@ -41,22 +50,22 @@ export interface InviteInfo {
   student_name: string;
   student_email: string;
   trainer_name: string;
+  already_user: boolean;
 }
 
 export const invites = {
   lookup: (token: string) => api.get<InviteInfo>(`/api/invites/${token}`),
-  accept: (token: string, password: string) =>
-    api.post<CurrentUser>(`/api/invites/${token}/accept`, { password }),
+  link: (token: string) => api.post<{ ok: true }>(`/api/invites/${token}/link`),
 };
 
-// ─── Trainer API ──────────────────────────────────────────────────────────────
+// ─── Trainer-only API (roster + invites; the studies endpoints are usable by
+// either 'trainer' or 'self' role and are documented here for clarity) ───
 
 export interface StudentRow {
   id: number;
   email: string;
   name: string;
-  invited_at: string;
-  joined_at: string | null;
+  linked_at: string;
   assignment_count: number;
 }
 
@@ -64,8 +73,6 @@ export interface StudentDetail {
   id: number;
   email: string;
   name: string;
-  invited_at: string;
-  joined_at: string | null;
   assignments: {
     id: number;
     study_kind: 'opening' | 'game';
@@ -78,7 +85,10 @@ export interface StudentDetail {
 
 export const trainer = {
   invite: (email: string, name: string) =>
-    api.post<{ ok: true; student_id: number }>('/api/trainer/invites', { email, name }),
+    api.post<{ ok: true; mode: 'linked-existing' | 'invited'; student_user_id?: number }>(
+      '/api/trainer/invites',
+      { email, name },
+    ),
   students: () => api.get<StudentRow[]>('/api/trainer/students'),
 };
 
@@ -147,7 +157,7 @@ export const trainerGames = {
     api.put<{ ok: true; count: number }>(`/api/trainer/studies/game/${id}/annotations`, { annotations }),
 };
 
-// ─── Student API ──────────────────────────────────────────────────────────────
+// ─── Student / any-user API ───────────────────────────────────────────────────
 
 export interface AssignmentRow {
   id: number;

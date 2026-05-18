@@ -1,13 +1,17 @@
 import type { FastifyInstance } from 'fastify';
 import type { Pool } from 'pg';
-import { requireStudent } from './auth-guards.js';
+import { requireUser } from './auth-guards.js';
 import { moveAtPly } from './pgn.js';
 
+// Routes scoped to "my own data" — assignments, study viewing, quiz attempts.
+// Any signed-in user can hit these; access checks happen per-row using the
+// `assignment` and `mentor` tables (you can read a study you authored, a study
+// assigned to you, or a study authored by a trainer who linked you).
 export async function studentRoutes(app: FastifyInstance, opts: { pool: Pool }) {
   const { pool } = opts;
 
-  app.get('/api/student/assignments', { preHandler: requireStudent }, async (req) => {
-    const studentId = req.session!.user_id;
+  app.get('/api/student/assignments', { preHandler: requireUser }, async (req) => {
+    const uid = req.user!.id;
     const { rows } = await pool.query<{
       id: number;
       study_kind: 'opening' | 'game';
@@ -24,7 +28,7 @@ export async function studentRoutes(app: FastifyInstance, opts: { pool: Pool }) 
                   WHEN 'game'    THEN (SELECT name FROM game_study WHERE id = a.study_id)
                 END AS name
            FROM assignment a
-          WHERE a.student_id = $1
+          WHERE a.assignee_id = $1
        )
        SELECT b.*,
          CASE b.study_kind
@@ -32,7 +36,7 @@ export async function studentRoutes(app: FastifyInstance, opts: { pool: Pool }) 
              SELECT CASE WHEN (SELECT COUNT(*) FROM opening_annotation WHERE study_id = b.study_id) = 0
                          THEN '0'
                          ELSE (100.0 * (SELECT COUNT(*) FROM opening_visit
-                                          WHERE student_id = $1 AND study_id = b.study_id)
+                                          WHERE user_id = $1 AND study_id = b.study_id)
                                /
                                (SELECT COUNT(*) FROM opening_annotation WHERE study_id = b.study_id))::text
                     END
@@ -41,7 +45,7 @@ export async function studentRoutes(app: FastifyInstance, opts: { pool: Pool }) 
              SELECT CASE WHEN (SELECT COUNT(*) FROM game_annotation WHERE study_id = b.study_id AND is_quiz) = 0
                          THEN '0'
                          ELSE (100.0 * (SELECT COUNT(*) FROM quiz_attempt
-                                          WHERE student_id = $1 AND game_study_id = b.study_id)
+                                          WHERE user_id = $1 AND game_study_id = b.study_id)
                                /
                                (SELECT COUNT(*) FROM game_annotation WHERE study_id = b.study_id AND is_quiz))::text
                     END
@@ -49,7 +53,7 @@ export async function studentRoutes(app: FastifyInstance, opts: { pool: Pool }) 
          END AS progress_pct
          FROM base b
          ORDER BY b.assigned_at DESC`,
-      [studentId],
+      [uid],
     );
     return rows.map((r) => ({
       ...r,
@@ -59,33 +63,35 @@ export async function studentRoutes(app: FastifyInstance, opts: { pool: Pool }) 
 
   app.get<{ Params: { id: string } }>(
     '/api/student/studies/opening/:id',
-    { preHandler: requireStudent },
+    { preHandler: requireUser },
     async (req, reply) => {
-      const studentId = req.session!.user_id;
+      const uid = req.user!.id;
       const id = Number(req.params.id);
-      const owns = await pool.query(
-        `SELECT 1 FROM assignment WHERE student_id = $1 AND study_kind = 'opening' AND study_id = $2`,
-        [studentId, id],
+      const access = await pool.query(
+        `SELECT 1
+           FROM opening_study os
+          WHERE os.id = $1
+            AND (os.owner_id = $2
+                 OR EXISTS(SELECT 1 FROM assignment a
+                            WHERE a.assignee_id = $2 AND a.study_kind = 'opening' AND a.study_id = $1))`,
+        [id, uid],
       );
-      if (!owns.rowCount) return reply.code(404).send({ error: 'not assigned' });
+      if (!access.rowCount) return reply.code(404).send({ error: 'not assigned' });
       const { rows: s } = await pool.query<{
         id: number;
         name: string;
         root_fen: string;
         eco: string | null;
         side: 'w' | 'b';
-      }>(
-        `SELECT id, name, root_fen, eco, side FROM opening_study WHERE id = $1`,
-        [id],
-      );
+      }>(`SELECT id, name, root_fen, eco, side FROM opening_study WHERE id = $1`, [id]);
       if (!s[0]) return reply.code(404).send({ error: 'not found' });
       const ann = await pool.query<{ fen: string; comment_md: string }>(
         `SELECT fen, comment_md FROM opening_annotation WHERE study_id = $1`,
         [id],
       );
       const visited = await pool.query<{ fen: string }>(
-        `SELECT fen FROM opening_visit WHERE student_id = $1 AND study_id = $2`,
-        [studentId, id],
+        `SELECT fen FROM opening_visit WHERE user_id = $1 AND study_id = $2`,
+        [uid, id],
       );
       return { ...s[0], annotations: ann.rows, visited: visited.rows.map((v) => v.fen) };
     },
@@ -93,16 +99,16 @@ export async function studentRoutes(app: FastifyInstance, opts: { pool: Pool }) 
 
   app.post<{ Params: { id: string }; Body: { fen: string } }>(
     '/api/student/studies/opening/:id/visited',
-    { preHandler: requireStudent },
+    { preHandler: requireUser },
     async (req, reply) => {
-      const studentId = req.session!.user_id;
+      const uid = req.user!.id;
       const id = Number(req.params.id);
       const { fen } = req.body ?? ({} as never);
       if (!fen) return reply.code(400).send({ error: 'missing fen' });
       await pool.query(
-        `INSERT INTO opening_visit (student_id, study_id, fen) VALUES ($1, $2, $3)
+        `INSERT INTO opening_visit (user_id, study_id, fen) VALUES ($1, $2, $3)
            ON CONFLICT DO NOTHING`,
-        [studentId, id, fen],
+        [uid, id, fen],
       );
       return { ok: true };
     },
@@ -110,15 +116,20 @@ export async function studentRoutes(app: FastifyInstance, opts: { pool: Pool }) 
 
   app.get<{ Params: { id: string } }>(
     '/api/student/studies/game/:id',
-    { preHandler: requireStudent },
+    { preHandler: requireUser },
     async (req, reply) => {
-      const studentId = req.session!.user_id;
+      const uid = req.user!.id;
       const id = Number(req.params.id);
-      const owns = await pool.query(
-        `SELECT 1 FROM assignment WHERE student_id = $1 AND study_kind = 'game' AND study_id = $2`,
-        [studentId, id],
+      const access = await pool.query(
+        `SELECT 1
+           FROM game_study gs
+          WHERE gs.id = $1
+            AND (gs.owner_id = $2
+                 OR EXISTS(SELECT 1 FROM assignment a
+                            WHERE a.assignee_id = $2 AND a.study_kind = 'game' AND a.study_id = $1))`,
+        [id, uid],
       );
-      if (!owns.rowCount) return reply.code(404).send({ error: 'not assigned' });
+      if (!access.rowCount) return reply.code(404).send({ error: 'not assigned' });
       const { rows: s } = await pool.query<{
         id: number;
         name: string;
@@ -132,8 +143,8 @@ export async function studentRoutes(app: FastifyInstance, opts: { pool: Pool }) 
       );
       const attempts = await pool.query<{ ply: number; attempted_san: string; correct: boolean }>(
         `SELECT ply, attempted_san, correct FROM quiz_attempt
-          WHERE student_id = $1 AND game_study_id = $2 ORDER BY ply`,
-        [studentId, id],
+          WHERE user_id = $1 AND game_study_id = $2 ORDER BY ply`,
+        [uid, id],
       );
       return { ...s[0], annotations: ann.rows, attempts: attempts.rows };
     },
@@ -141,17 +152,20 @@ export async function studentRoutes(app: FastifyInstance, opts: { pool: Pool }) 
 
   app.post<{ Params: { id: string }; Body: { ply: number; attempted_san: string } }>(
     '/api/student/studies/game/:id/attempt',
-    { preHandler: requireStudent },
+    { preHandler: requireUser },
     async (req, reply) => {
-      const studentId = req.session!.user_id;
+      const uid = req.user!.id;
       const id = Number(req.params.id);
       const { ply, attempted_san } = req.body ?? ({} as never);
       if (!ply || !attempted_san) return reply.code(400).send({ error: 'missing fields' });
-      const owns = await pool.query(
-        `SELECT 1 FROM assignment WHERE student_id = $1 AND study_kind = 'game' AND study_id = $2`,
-        [studentId, id],
+      const access = await pool.query(
+        `SELECT 1 FROM game_study gs
+          WHERE gs.id = $1 AND (gs.owner_id = $2
+                                OR EXISTS(SELECT 1 FROM assignment a
+                                           WHERE a.assignee_id = $2 AND a.study_kind = 'game' AND a.study_id = $1))`,
+        [id, uid],
       );
-      if (!owns.rowCount) return reply.code(404).send({ error: 'not assigned' });
+      if (!access.rowCount) return reply.code(404).send({ error: 'not assigned' });
       const { rows: g } = await pool.query<{ pgn: string }>(
         `SELECT pgn FROM game_study WHERE id = $1`,
         [id],
@@ -159,9 +173,9 @@ export async function studentRoutes(app: FastifyInstance, opts: { pool: Pool }) 
       const expected = g[0] ? moveAtPly(g[0].pgn, ply) : null;
       const correct = expected != null && expected === attempted_san;
       await pool.query(
-        `INSERT INTO quiz_attempt (student_id, game_study_id, ply, attempted_san, correct)
+        `INSERT INTO quiz_attempt (user_id, game_study_id, ply, attempted_san, correct)
            VALUES ($1, $2, $3, $4, $5)`,
-        [studentId, id, ply, attempted_san, correct],
+        [uid, id, ply, attempted_san, correct],
       );
       const { rows: a } = await pool.query<{ comment_md: string | null }>(
         `SELECT comment_md FROM game_annotation WHERE study_id = $1 AND ply = $2`,

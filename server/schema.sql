@@ -83,46 +83,53 @@ CREATE TABLE IF NOT EXISTS move_stats (
 
 CREATE INDEX IF NOT EXISTS idx_move_stats_parent_games ON move_stats(parent_fen, games DESC);
 
--- ─── ChessCoach trainer SaaS additions ──────────────────────────────────────
+-- ─── ChessCoach trainer SaaS — unified user model ──────────────────────────
 
-CREATE TABLE IF NOT EXISTS trainer (
+-- Single user table; `roles` is a multi-select set chosen at signup
+-- ('trainer', 'student', 'self'). A user can be any combination.
+CREATE TABLE IF NOT EXISTS app_user (
   id            BIGSERIAL PRIMARY KEY,
   email         TEXT UNIQUE NOT NULL,
   password_hash TEXT NOT NULL,
   name          TEXT NOT NULL,
+  roles         TEXT[] NOT NULL DEFAULT ARRAY[]::TEXT[]
+                CHECK (roles <@ ARRAY['trainer','student','self']::TEXT[]),
   created_at    TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
-CREATE TABLE IF NOT EXISTS student (
-  id            BIGSERIAL PRIMARY KEY,
-  trainer_id    BIGINT NOT NULL REFERENCES trainer(id) ON DELETE CASCADE,
-  email         TEXT NOT NULL,
-  password_hash TEXT,
-  name          TEXT NOT NULL,
-  invited_at    TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  joined_at     TIMESTAMPTZ,
-  UNIQUE (trainer_id, email)
-);
-CREATE INDEX IF NOT EXISTS idx_student_email ON student(email);
-
-CREATE TABLE IF NOT EXISTS invite (
-  token       TEXT PRIMARY KEY,
-  student_id  BIGINT NOT NULL REFERENCES student(id) ON DELETE CASCADE,
-  expires_at  TIMESTAMPTZ NOT NULL
-);
+CREATE INDEX IF NOT EXISTS idx_app_user_roles ON app_user USING gin (roles);
 
 CREATE TABLE IF NOT EXISTS session (
   id          TEXT PRIMARY KEY,
-  user_kind   TEXT NOT NULL CHECK (user_kind IN ('trainer','student')),
-  user_id     BIGINT NOT NULL,
+  user_id     BIGINT NOT NULL REFERENCES app_user(id) ON DELETE CASCADE,
   created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   expires_at  TIMESTAMPTZ NOT NULL
 );
-CREATE INDEX IF NOT EXISTS idx_session_user ON session(user_kind, user_id);
+CREATE INDEX IF NOT EXISTS idx_session_user ON session(user_id);
+
+-- Mentor link: a trainer-user and a student-user. A trainer's "roster" is
+-- the set of rows with trainer_user_id = me; a student's "trainers" is the
+-- rows with student_user_id = me.
+CREATE TABLE IF NOT EXISTS mentor (
+  trainer_user_id BIGINT NOT NULL REFERENCES app_user(id) ON DELETE CASCADE,
+  student_user_id BIGINT NOT NULL REFERENCES app_user(id) ON DELETE CASCADE,
+  linked_at       TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  PRIMARY KEY (trainer_user_id, student_user_id)
+);
+
+-- Invite tokens used to bring in students by email. The invitee may or
+-- may not already be an app_user; we resolve at /accept time.
+CREATE TABLE IF NOT EXISTS invite (
+  token            TEXT PRIMARY KEY,
+  trainer_user_id  BIGINT NOT NULL REFERENCES app_user(id) ON DELETE CASCADE,
+  student_email    TEXT NOT NULL,
+  student_name     TEXT NOT NULL,
+  expires_at       TIMESTAMPTZ NOT NULL
+);
 
 CREATE TABLE IF NOT EXISTS opening_study (
   id          BIGSERIAL PRIMARY KEY,
-  trainer_id  BIGINT NOT NULL REFERENCES trainer(id) ON DELETE CASCADE,
+  owner_id    BIGINT NOT NULL REFERENCES app_user(id) ON DELETE CASCADE,
   name        TEXT NOT NULL,
   root_fen    TEXT NOT NULL,
   eco         TEXT,
@@ -141,7 +148,7 @@ CREATE TABLE IF NOT EXISTS opening_annotation (
 
 CREATE TABLE IF NOT EXISTS game_study (
   id           BIGSERIAL PRIMARY KEY,
-  trainer_id   BIGINT NOT NULL REFERENCES trainer(id) ON DELETE CASCADE,
+  owner_id     BIGINT NOT NULL REFERENCES app_user(id) ON DELETE CASCADE,
   name         TEXT NOT NULL,
   pgn          TEXT NOT NULL,
   headers_json JSONB NOT NULL,
@@ -158,31 +165,33 @@ CREATE TABLE IF NOT EXISTS game_annotation (
   UNIQUE (study_id, ply)
 );
 
+-- An assignment of a study to a user (which can be another user or the
+-- same user when working solo with the 'self' role).
 CREATE TABLE IF NOT EXISTS assignment (
   id           BIGSERIAL PRIMARY KEY,
-  student_id   BIGINT NOT NULL REFERENCES student(id) ON DELETE CASCADE,
+  assignee_id  BIGINT NOT NULL REFERENCES app_user(id) ON DELETE CASCADE,
   study_kind   TEXT NOT NULL CHECK (study_kind IN ('opening','game')),
   study_id     BIGINT NOT NULL,
   assigned_at  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   completed_at TIMESTAMPTZ,
-  UNIQUE (student_id, study_kind, study_id)
+  UNIQUE (assignee_id, study_kind, study_id)
 );
 
 CREATE TABLE IF NOT EXISTS quiz_attempt (
   id             BIGSERIAL PRIMARY KEY,
-  student_id     BIGINT NOT NULL REFERENCES student(id) ON DELETE CASCADE,
+  user_id        BIGINT NOT NULL REFERENCES app_user(id) ON DELETE CASCADE,
   game_study_id  BIGINT NOT NULL REFERENCES game_study(id) ON DELETE CASCADE,
   ply            SMALLINT NOT NULL,
   attempted_san  TEXT NOT NULL,
   correct        BOOLEAN NOT NULL,
   attempted_at   TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
-CREATE INDEX IF NOT EXISTS idx_quiz_attempt ON quiz_attempt(student_id, game_study_id);
+CREATE INDEX IF NOT EXISTS idx_quiz_attempt ON quiz_attempt(user_id, game_study_id);
 
 CREATE TABLE IF NOT EXISTS opening_visit (
-  student_id  BIGINT NOT NULL REFERENCES student(id) ON DELETE CASCADE,
+  user_id     BIGINT NOT NULL REFERENCES app_user(id) ON DELETE CASCADE,
   study_id    BIGINT NOT NULL REFERENCES opening_study(id) ON DELETE CASCADE,
   fen         TEXT NOT NULL,
   visited_at  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  PRIMARY KEY (student_id, study_id, fen)
+  PRIMARY KEY (user_id, study_id, fen)
 );

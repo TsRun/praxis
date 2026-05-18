@@ -13,7 +13,7 @@ export default function App() {
       <Route
         path="/trainer/*"
         element={
-          <RequireRole role="trainer">
+          <RequireRole anyOf={['trainer', 'self']}>
             <TrainerLayout />
           </RequireRole>
         }
@@ -21,7 +21,7 @@ export default function App() {
       <Route
         path="/student/*"
         element={
-          <RequireRole role="student">
+          <RequireRole anyOf={['trainer', 'student', 'self']}>
             <StudentLayout />
           </RequireRole>
         }

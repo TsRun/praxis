@@ -36,7 +36,7 @@ export function StudentsPage() {
             <tr className="text-left">
               <th className="py-2">Name</th>
               <th>Email</th>
-              <th>Status</th>
+              <th>Linked</th>
               <th className="text-right">Assignments</th>
             </tr>
           </thead>
@@ -49,12 +49,8 @@ export function StudentsPage() {
               >
                 <td className="py-2">{s.name}</td>
                 <td className="text-zinc-400">{s.email}</td>
-                <td>
-                  {s.joined_at ? (
-                    <span className="text-emerald-400">joined</span>
-                  ) : (
-                    <span className="text-amber-300">invited</span>
-                  )}
+                <td className="text-zinc-400 text-xs">
+                  {new Date(s.linked_at).toLocaleDateString()}
                 </td>
                 <td className="text-right tabular-nums">{s.assignment_count}</td>
               </tr>

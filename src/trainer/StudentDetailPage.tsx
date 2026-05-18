@@ -38,9 +38,7 @@ export function StudentDetailPage() {
     <div className="flex flex-col gap-6">
       <div>
         <h1 className="text-2xl font-semibold tracking-tight">{detail.name}</h1>
-        <p className="text-zinc-400">
-          {detail.email} · {detail.joined_at ? 'joined' : 'invited, not joined yet'}
-        </p>
+        <p className="text-zinc-400">{detail.email}</p>
       </div>
 
       <section>
