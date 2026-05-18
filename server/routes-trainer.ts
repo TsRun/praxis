@@ -197,35 +197,111 @@ export async function trainerRoutes(app: FastifyInstance, opts: { pool: Pool }) 
         [id, uid],
       );
       if (!rows[0]) return reply.code(404).send({ error: 'not found' });
-      const ann = await pool.query<{ fen: string; comment_md: string }>(
-        `SELECT fen, comment_md FROM opening_annotation WHERE study_id = $1`,
+      const nodes = await pool.query(
+        `SELECT id, parent_id, parent_fen, san, uci, fen, ply, is_main
+           FROM opening_node WHERE study_id = $1 ORDER BY ply ASC, id ASC`,
         [id],
       );
-      return { ...rows[0], annotations: ann.rows };
+      const chapters = await pool.query(
+        `SELECT c.node_id, c.title, c.body_md
+           FROM opening_chapter c
+           JOIN opening_node n ON n.id = c.node_id
+          WHERE n.study_id = $1`,
+        [id],
+      );
+      return { ...rows[0], nodes: nodes.rows, chapters: chapters.rows };
     },
   );
 
-  app.put<{ Params: { id: string }; Body: { annotations: { fen: string; comment_md: string }[] } }>(
-    '/api/trainer/studies/opening/:id/annotations',
+  // Upsert a node by (study, parent, san). The trainer's "make a move on
+  // the board" handler calls this — if the child already exists we just
+  // return its id so navigation is idempotent.
+  app.post<{
+    Params: { id: string };
+    Body: {
+      parent_id: number | null;
+      parent_fen: string;
+      san: string;
+      uci: string;
+      fen: string;
+      ply: number;
+    };
+  }>('/api/trainer/studies/opening/:id/nodes', { preHandler: requireAuthor }, async (req, reply) => {
+    const uid = req.user!.id;
+    const id = Number(req.params.id);
+    const owns = await pool.query(`SELECT 1 FROM opening_study WHERE id = $1 AND owner_id = $2`, [id, uid]);
+    if (!owns.rowCount) return reply.code(404).send({ error: 'not found' });
+    const { parent_id, parent_fen, san, uci, fen, ply } = req.body ?? ({} as never);
+    if (!san || !uci || !parent_fen || !fen || ply == null) {
+      return reply.code(400).send({ error: 'missing fields' });
+    }
+    const existing = await pool.query<{ id: number }>(
+      `SELECT id FROM opening_node
+        WHERE study_id = $1
+          AND parent_id IS NOT DISTINCT FROM $2
+          AND san = $3`,
+      [id, parent_id, san],
+    );
+    if (existing.rowCount) {
+      return { id: existing.rows[0].id, created: false };
+    }
+    const { rows } = await pool.query<{ id: number }>(
+      `INSERT INTO opening_node (study_id, parent_id, parent_fen, san, uci, fen, ply)
+       VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id`,
+      [id, parent_id, parent_fen, san, uci, fen, ply],
+    );
+    await pool.query(`UPDATE opening_study SET updated_at = NOW() WHERE id = $1`, [id]);
+    return { id: rows[0].id, created: true };
+  });
+
+  app.delete<{ Params: { id: string; nid: string } }>(
+    '/api/trainer/studies/opening/:id/nodes/:nid',
     { preHandler: requireAuthor },
     async (req, reply) => {
       const uid = req.user!.id;
       const id = Number(req.params.id);
+      const nid = Number(req.params.nid);
       const owns = await pool.query(`SELECT 1 FROM opening_study WHERE id = $1 AND owner_id = $2`, [id, uid]);
       if (!owns.rowCount) return reply.code(404).send({ error: 'not found' });
-      const list = req.body?.annotations ?? [];
+      // CASCADE deletes children + chapter + quiz_state via FK
+      await pool.query(`DELETE FROM opening_node WHERE id = $1 AND study_id = $2`, [nid, id]);
+      await pool.query(`UPDATE opening_study SET updated_at = NOW() WHERE id = $1`, [id]);
+      return { ok: true };
+    },
+  );
+
+  app.put<{
+    Params: { id: string; nid: string };
+    Body: { is_main?: boolean };
+  }>('/api/trainer/studies/opening/:id/nodes/:nid', { preHandler: requireAuthor }, async (req, reply) => {
+    const uid = req.user!.id;
+    const id = Number(req.params.id);
+    const nid = Number(req.params.nid);
+    const owns = await pool.query(`SELECT 1 FROM opening_study WHERE id = $1 AND owner_id = $2`, [id, uid]);
+    if (!owns.rowCount) return reply.code(404).send({ error: 'not found' });
+    if (req.body?.is_main != null) {
+      // Mark as main and clear is_main on its siblings (only one main
+      // line per parent at a time).
       const client = await pool.connect();
       try {
         await client.query('BEGIN');
-        await client.query(`DELETE FROM opening_annotation WHERE study_id = $1`, [id]);
-        for (const a of list) {
-          if (!a.fen || !a.comment_md) continue;
-          await client.query(
-            `INSERT INTO opening_annotation (study_id, fen, comment_md) VALUES ($1, $2, $3)`,
-            [id, a.fen, a.comment_md],
+        if (req.body.is_main) {
+          const { rows: ns } = await client.query<{ parent_id: number | null }>(
+            `SELECT parent_id FROM opening_node WHERE id = $1 AND study_id = $2`,
+            [nid, id],
           );
+          if (ns[0]) {
+            await client.query(
+              `UPDATE opening_node SET is_main = false
+                WHERE study_id = $1 AND parent_id IS NOT DISTINCT FROM $2`,
+              [id, ns[0].parent_id],
+            );
+          }
         }
-        await client.query(`UPDATE opening_study SET updated_at = NOW() WHERE id = $1`, [id]);
+        await client.query(`UPDATE opening_node SET is_main = $1 WHERE id = $2`, [
+          req.body.is_main,
+          nid,
+        ]);
         await client.query('COMMIT');
       } catch (e) {
         await client.query('ROLLBACK');
@@ -233,9 +309,36 @@ export async function trainerRoutes(app: FastifyInstance, opts: { pool: Pool }) 
       } finally {
         client.release();
       }
-      return { ok: true, count: list.length };
-    },
-  );
+    }
+    return { ok: true };
+  });
+
+  // Upsert the chapter for a single node.
+  app.put<{
+    Params: { id: string; nid: string };
+    Body: { title: string | null; body_md: string };
+  }>('/api/trainer/studies/opening/:id/nodes/:nid/chapter', { preHandler: requireAuthor }, async (req, reply) => {
+    const uid = req.user!.id;
+    const id = Number(req.params.id);
+    const nid = Number(req.params.nid);
+    const owns = await pool.query(
+      `SELECT 1 FROM opening_node n
+        JOIN opening_study s ON s.id = n.study_id
+       WHERE n.id = $1 AND s.id = $2 AND s.owner_id = $3`,
+      [nid, id, uid],
+    );
+    if (!owns.rowCount) return reply.code(404).send({ error: 'not found' });
+    const { title, body_md } = req.body ?? ({} as never);
+    await pool.query(
+      `INSERT INTO opening_chapter (node_id, title, body_md, updated_at)
+       VALUES ($1, $2, $3, NOW())
+       ON CONFLICT (node_id) DO UPDATE SET title = EXCLUDED.title,
+                                            body_md = EXCLUDED.body_md,
+                                            updated_at = NOW()`,
+      [nid, title ?? null, body_md ?? ''],
+    );
+    return { ok: true };
+  });
 
   // ─── Game studies (author = trainer or self-trainer) ─────────────────────
   app.get('/api/trainer/studies/game', { preHandler: requireAuthor }, async (req) => {

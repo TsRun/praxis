@@ -109,13 +109,31 @@ export interface OpeningStudySummary {
   annotation_count: number;
 }
 
+export interface OpeningNode {
+  id: number;
+  parent_id: number | null;
+  parent_fen: string;
+  san: string;
+  uci: string;
+  fen: string;
+  ply: number;
+  is_main: boolean;
+}
+
+export interface OpeningChapter {
+  node_id: number;
+  title: string | null;
+  body_md: string;
+}
+
 export interface OpeningStudyFull {
   id: number;
   name: string;
   root_fen: string;
   eco: string | null;
   side: 'w' | 'b';
-  annotations: { fen: string; comment_md: string }[];
+  nodes: OpeningNode[];
+  chapters: OpeningChapter[];
 }
 
 export const trainerStudies = {
@@ -123,8 +141,26 @@ export const trainerStudies = {
   create: (input: { name: string; root_fen: string; eco?: string; side: 'w' | 'b' }) =>
     api.post<{ id: number }>('/api/trainer/studies/opening', input),
   get: (id: number) => api.get<OpeningStudyFull>(`/api/trainer/studies/opening/${id}`),
-  saveAnnotations: (id: number, annotations: { fen: string; comment_md: string }[]) =>
-    api.put<{ ok: true; count: number }>(`/api/trainer/studies/opening/${id}/annotations`, { annotations }),
+  upsertNode: (
+    id: number,
+    input: {
+      parent_id: number | null;
+      parent_fen: string;
+      san: string;
+      uci: string;
+      fen: string;
+      ply: number;
+    },
+  ) => api.post<{ id: number; created: boolean }>(`/api/trainer/studies/opening/${id}/nodes`, input),
+  deleteNode: (id: number, nid: number) =>
+    api.del<{ ok: true }>(`/api/trainer/studies/opening/${id}/nodes/${nid}`),
+  setIsMain: (id: number, nid: number, is_main: boolean) =>
+    api.put<{ ok: true }>(`/api/trainer/studies/opening/${id}/nodes/${nid}`, { is_main }),
+  saveChapter: (id: number, nid: number, title: string | null, body_md: string) =>
+    api.put<{ ok: true }>(`/api/trainer/studies/opening/${id}/nodes/${nid}/chapter`, {
+      title,
+      body_md,
+    }),
 };
 
 export interface GameStudySummary {
@@ -169,14 +205,31 @@ export interface AssignmentRow {
   progress_pct: number;
 }
 
+export interface NodeQuizState {
+  node_id: number;
+  correct_streak: number;
+  wrong_count: number;
+  last_seen_at: string | null;
+  next_due_at: string;
+}
+
 export interface OpeningStudyForStudent {
   id: number;
   name: string;
   root_fen: string;
   eco: string | null;
   side: 'w' | 'b';
-  annotations: { fen: string; comment_md: string }[];
-  visited: string[];
+  nodes: OpeningNode[];
+  chapters: OpeningChapter[];
+  quiz_state: NodeQuizState[];
+}
+
+export interface QuizCard {
+  node_id: number;
+  parent_fen: string;
+  ply: number;
+  opponent_line: string[];
+  root_fen: string;
 }
 
 export interface GameStudyForStudent {
@@ -192,12 +245,18 @@ export const student = {
   assignments: () => api.get<AssignmentRow[]>('/api/student/assignments'),
   opening: (id: number) => api.get<OpeningStudyForStudent>(`/api/student/studies/opening/${id}`),
   game: (id: number) => api.get<GameStudyForStudent>(`/api/student/studies/game/${id}`),
-  markVisited: (id: number, fen: string) =>
-    api.post<{ ok: true }>(`/api/student/studies/opening/${id}/visited`, { fen }),
   attempt: (id: number, ply: number, attempted_san: string) =>
     api.post<{
       correct: boolean;
       expected_san: string | null;
       comment_md: string | null;
     }>(`/api/student/studies/game/${id}/attempt`, { ply, attempted_san }),
+  nextQuiz: (id: number) =>
+    api.get<{ card: QuizCard | null }>(`/api/student/studies/opening/${id}/quiz/next`),
+  quizAttempt: (id: number, node_id: number, attempted_san: string) =>
+    api.post<{
+      correct: boolean;
+      expected_san: string;
+      chapter: { title: string | null; body_md: string } | null;
+    }>(`/api/student/studies/opening/${id}/quiz/attempt`, { node_id, attempted_san }),
 };
