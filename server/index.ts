@@ -1,12 +1,19 @@
 import Fastify from 'fastify';
 import cors from '@fastify/cors';
+import cookie from '@fastify/cookie';
 import { makePool, ensureSchema, epdFromFen } from './db.js';
+import { makeAuthHook } from './auth-guards.js';
+import { authRoutes } from './routes-auth.js';
 
 const app = Fastify({ logger: false });
-await app.register(cors, { origin: true });
+await app.register(cors, { origin: true, credentials: true });
+await app.register(cookie);
 
 const pool = makePool();
 await ensureSchema(pool);
+
+app.addHook('onRequest', makeAuthHook(pool));
+await app.register(authRoutes, { pool });
 
 interface ExplorerQuery {
   fen?: string;

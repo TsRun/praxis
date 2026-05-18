@@ -82,3 +82,107 @@ CREATE TABLE IF NOT EXISTS move_stats (
 );
 
 CREATE INDEX IF NOT EXISTS idx_move_stats_parent_games ON move_stats(parent_fen, games DESC);
+
+-- ─── ChessCoach trainer SaaS additions ──────────────────────────────────────
+
+CREATE TABLE IF NOT EXISTS trainer (
+  id            BIGSERIAL PRIMARY KEY,
+  email         TEXT UNIQUE NOT NULL,
+  password_hash TEXT NOT NULL,
+  name          TEXT NOT NULL,
+  created_at    TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS student (
+  id            BIGSERIAL PRIMARY KEY,
+  trainer_id    BIGINT NOT NULL REFERENCES trainer(id) ON DELETE CASCADE,
+  email         TEXT NOT NULL,
+  password_hash TEXT,
+  name          TEXT NOT NULL,
+  invited_at    TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  joined_at     TIMESTAMPTZ,
+  UNIQUE (trainer_id, email)
+);
+CREATE INDEX IF NOT EXISTS idx_student_email ON student(email);
+
+CREATE TABLE IF NOT EXISTS invite (
+  token       TEXT PRIMARY KEY,
+  student_id  BIGINT NOT NULL REFERENCES student(id) ON DELETE CASCADE,
+  expires_at  TIMESTAMPTZ NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS session (
+  id          TEXT PRIMARY KEY,
+  user_kind   TEXT NOT NULL CHECK (user_kind IN ('trainer','student')),
+  user_id     BIGINT NOT NULL,
+  created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  expires_at  TIMESTAMPTZ NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_session_user ON session(user_kind, user_id);
+
+CREATE TABLE IF NOT EXISTS opening_study (
+  id          BIGSERIAL PRIMARY KEY,
+  trainer_id  BIGINT NOT NULL REFERENCES trainer(id) ON DELETE CASCADE,
+  name        TEXT NOT NULL,
+  root_fen    TEXT NOT NULL,
+  eco         TEXT,
+  side        CHAR(1) NOT NULL CHECK (side IN ('w','b')),
+  created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS opening_annotation (
+  id          BIGSERIAL PRIMARY KEY,
+  study_id    BIGINT NOT NULL REFERENCES opening_study(id) ON DELETE CASCADE,
+  fen         TEXT NOT NULL,
+  comment_md  TEXT NOT NULL,
+  UNIQUE (study_id, fen)
+);
+
+CREATE TABLE IF NOT EXISTS game_study (
+  id           BIGSERIAL PRIMARY KEY,
+  trainer_id   BIGINT NOT NULL REFERENCES trainer(id) ON DELETE CASCADE,
+  name         TEXT NOT NULL,
+  pgn          TEXT NOT NULL,
+  headers_json JSONB NOT NULL,
+  created_at   TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at   TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS game_annotation (
+  id          BIGSERIAL PRIMARY KEY,
+  study_id    BIGINT NOT NULL REFERENCES game_study(id) ON DELETE CASCADE,
+  ply         SMALLINT NOT NULL,
+  comment_md  TEXT,
+  is_quiz     BOOLEAN NOT NULL DEFAULT FALSE,
+  UNIQUE (study_id, ply)
+);
+
+CREATE TABLE IF NOT EXISTS assignment (
+  id           BIGSERIAL PRIMARY KEY,
+  student_id   BIGINT NOT NULL REFERENCES student(id) ON DELETE CASCADE,
+  study_kind   TEXT NOT NULL CHECK (study_kind IN ('opening','game')),
+  study_id     BIGINT NOT NULL,
+  assigned_at  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  completed_at TIMESTAMPTZ,
+  UNIQUE (student_id, study_kind, study_id)
+);
+
+CREATE TABLE IF NOT EXISTS quiz_attempt (
+  id             BIGSERIAL PRIMARY KEY,
+  student_id     BIGINT NOT NULL REFERENCES student(id) ON DELETE CASCADE,
+  game_study_id  BIGINT NOT NULL REFERENCES game_study(id) ON DELETE CASCADE,
+  ply            SMALLINT NOT NULL,
+  attempted_san  TEXT NOT NULL,
+  correct        BOOLEAN NOT NULL,
+  attempted_at   TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS idx_quiz_attempt ON quiz_attempt(student_id, game_study_id);
+
+CREATE TABLE IF NOT EXISTS opening_visit (
+  student_id  BIGINT NOT NULL REFERENCES student(id) ON DELETE CASCADE,
+  study_id    BIGINT NOT NULL REFERENCES opening_study(id) ON DELETE CASCADE,
+  fen         TEXT NOT NULL,
+  visited_at  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  PRIMARY KEY (student_id, study_id, fen)
+);
