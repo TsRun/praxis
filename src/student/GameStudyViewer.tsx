@@ -140,7 +140,7 @@ export function GameStudyViewer() {
               marginBottom: 10,
             }}
           >
-            <h2 className="overline">Move list</h2>
+            <h2 className="t-h3" style={{ margin: 0 }}>Move list</h2>
             <label
               style={{
                 fontSize: 12,
@@ -188,7 +188,7 @@ export function GameStudyViewer() {
             gap: 12,
           }}
         >
-          <div className="overline">Progress</div>
+          <h3 className="t-h3" style={{ margin: 0 }}>Progress</h3>
           <div style={{ fontSize: 14 }}>
             <strong className="mono">
               {study.attempts.filter((a) => a.correct).length}
