@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <title>Praxis · king in negative space</title>
+  <defs>
+    <mask id="king-cut">
+      <rect width="64" height="64" fill="white"></rect>
+      <g fill="black">
+        
+        <rect x="26" y="12" width="12" height="3.5" rx="1"></rect>
+        
+        <rect x="30" y="9" width="4" height="11" rx="1"></rect>
+        
+        <path d="M22 24 C22 19 25 18 32 18 C39 18 42 19 42 24 C44 32 44 39 42 42 L22 42 C20 39 20 32 22 24 Z"></path>
+        
+        <rect x="20" y="42" width="24" height="4" rx="1.2"></rect>
+        
+        <rect x="16" y="47.5" width="32" height="6.5" rx="2"></rect>
+      </g>
+    </mask>
+    <linearGradient id="o-amber" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#fcc845"></stop>
+      <stop offset="1" stop-color="#f5a623"></stop>
+    </linearGradient>
+  </defs>
+  <rect width="64" height="64" rx="14" fill="url(#o-amber)" mask="url(#king-cut)"></rect>
+</svg>
