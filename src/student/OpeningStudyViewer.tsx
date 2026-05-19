@@ -9,9 +9,9 @@ import {
   type OpeningStudyForStudent,
   type QuizCard,
 } from '../lib/api';
-import { buildTree, pathToNode } from '../lib/opening-tree';
-import { Markdown } from '../lib/markdown';
+import { pathToNode } from '../lib/opening-tree';
 import { TreeGraph } from '../components/opening/TreeGraph';
+import { MovesView } from '../components/opening/MovesView';
 import { ChaptersOutline } from '../components/opening/ChaptersOutline';
 import { useOpeningTreeNav } from '../hooks/useOpeningTreeNav';
 
@@ -70,6 +70,7 @@ function TreeMode({ study }: { study: OpeningStudyForStudent }) {
   const [orientation, setOrientation] = useState<'white' | 'black'>(
     study.side === 'b' ? 'black' : 'white',
   );
+  const [rightView, setRightView] = useState<'moves' | 'tree'>('moves');
   const boardRef = useRef<HTMLDivElement | null>(null);
   const cgRef = useRef<CGApi | null>(null);
 
@@ -118,7 +119,6 @@ function TreeMode({ study }: { study: OpeningStudyForStudent }) {
     });
   }, [currentFen, currentNode, orientation]);
 
-  const tree = buildTree(study.nodes);
   const path = pathToNode(study.nodes, currentNodeId);
   const chaptersSet = new Set(study.chapters.map((c) => c.node_id));
 
@@ -178,7 +178,7 @@ function TreeMode({ study }: { study: OpeningStudyForStudent }) {
             {currentChapter ? currentChapter.title ?? "Trainer's note" : 'No chapter here'}
           </div>
           {currentChapter ? (
-            <Markdown>{currentChapter.body_md}</Markdown>
+            <div className="text-sm text-zinc-200 whitespace-pre-wrap">{currentChapter.body_md}</div>
           ) : (
             <p className="text-zinc-500 text-sm">
               Click a node in the tree below — chapters appear on annotated positions.
@@ -188,19 +188,49 @@ function TreeMode({ study }: { study: OpeningStudyForStudent }) {
       </div>
 
       <section className="panel p-3">
-        <div className="flex items-center mb-2">
-          <h2 className="text-xs uppercase tracking-wider text-zinc-500">Opening tree</h2>
+        <div className="flex items-center gap-2 mb-3">
+          <div className="inline-flex bg-zinc-900/60 ring-1 ring-zinc-800 rounded-lg overflow-hidden text-xs">
+            <button
+              onClick={() => setRightView('moves')}
+              className={`px-3 py-1 ${
+                rightView === 'moves'
+                  ? 'bg-amber-400/15 text-amber-200'
+                  : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/60'
+              }`}
+            >
+              Moves
+            </button>
+            <button
+              onClick={() => setRightView('tree')}
+              className={`px-3 py-1 ${
+                rightView === 'tree'
+                  ? 'bg-amber-400/15 text-amber-200'
+                  : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/60'
+              }`}
+            >
+              Tree
+            </button>
+          </div>
           <div className="ml-auto flex items-center gap-3 text-[10px] text-zinc-500">
             <span><span className="text-amber-400">★</span> main line</span>
-            <span><span className="text-emerald-400">●</span> has chapter</span>
+            <span><span className="text-emerald-400">●</span> chapter</span>
           </div>
         </div>
-        <TreeGraph
-          tree={tree}
-          currentNodeId={currentNodeId}
-          chaptersSet={chaptersSet}
-          onSelect={setCurrentNodeId}
-        />
+        {rightView === 'moves' ? (
+          <MovesView
+            nodes={study.nodes}
+            currentNodeId={currentNodeId}
+            chaptersSet={chaptersSet}
+            onSelect={setCurrentNodeId}
+          />
+        ) : (
+          <TreeGraph
+            nodes={study.nodes}
+            currentNodeId={currentNodeId}
+            chaptersSet={chaptersSet}
+            onSelect={setCurrentNodeId}
+          />
+        )}
       </section>
     </>
   );
@@ -234,7 +264,7 @@ function ChaptersMode({ study }: { study: OpeningStudyForStudent }) {
             <div className="text-xs uppercase tracking-wider text-zinc-500 mb-2">
               {currentChapter.title ?? "Trainer's note"}
             </div>
-            <Markdown>{currentChapter.body_md}</Markdown>
+            <div className="text-sm text-zinc-200 whitespace-pre-wrap">{currentChapter.body_md}</div>
           </>
         ) : (
           <p className="text-sm text-zinc-500">
@@ -397,7 +427,7 @@ function QuizMode({
                     {revealed.chapter.title}
                   </div>
                 )}
-                <Markdown>{revealed.chapter.body_md}</Markdown>
+                <div className="text-sm text-zinc-200 whitespace-pre-wrap">{revealed.chapter.body_md}</div>
               </div>
             )}
             <button

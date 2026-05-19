@@ -5,7 +5,6 @@ import { ChessBoard } from '../components/board/ChessBoard';
 import { MoveList } from '../components/board/MoveList';
 import { useGameStore } from '../store/gameStore';
 import { student, type GameStudyForStudent } from '../lib/api';
-import { Markdown } from '../lib/markdown';
 
 type QuizState =
   | { ply: number; phase: 'asking' }
@@ -97,7 +96,7 @@ export function GameStudyViewer() {
         <MoveList />
         {showComments && noteByPly.get(currentPly)?.comment_md && (
           <div className="mt-2 panel p-3">
-            <Markdown>{noteByPly.get(currentPly)!.comment_md!}</Markdown>
+            <div className="text-sm text-zinc-200 whitespace-pre-wrap">{noteByPly.get(currentPly)!.comment_md!}</div>
           </div>
         )}
       </div>
@@ -116,7 +115,9 @@ export function GameStudyViewer() {
             <p className={quizState.correct ? 'text-emerald-400' : 'text-red-400'}>
               {quizState.correct ? '✓ Correct' : `✗ Played: ${quizState.expected}`}
             </p>
-            {quizState.comment && <Markdown>{quizState.comment}</Markdown>}
+            {quizState.comment && (
+              <div className="text-sm text-zinc-200 whitespace-pre-wrap">{quizState.comment}</div>
+            )}
             <button
               onClick={() => {
                 goToPly(quizState.ply);
