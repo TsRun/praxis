@@ -5,11 +5,13 @@ import { SettingsPage } from './auth/SettingsPage';
 import { RequireRole } from './auth/RequireRole';
 import { TrainerLayout } from './trainer/TrainerLayout';
 import { StudentLayout } from './student/StudentLayout';
+import { TourPage } from './marketing/TourPage';
 
 export default function App() {
   return (
     <Routes>
       <Route path="/" element={<LandingPage />} />
+      <Route path="/tour" element={<TourPage />} />
       <Route path="/invite/:token" element={<InvitePage />} />
       <Route
         path="/settings"
