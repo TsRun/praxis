@@ -2,13 +2,11 @@ import { Navigate, Link } from 'react-router-dom';
 import { SignInUpForm } from './SignInUpForm';
 import { useAuth } from './AuthContext';
 import { defaultLandingForRoles } from './routing';
-import { Card, Btn, Chip, MoveChip } from '../components/ui/atoms';
+import { Card, Btn } from '../components/ui/atoms';
 import { FenBoard } from '../components/board/FenBoard';
-import { IconTree, IconGame, IconClock, IconCheck } from '../components/ui/Icons';
+import { IconTree, IconGame, IconClock } from '../components/ui/Icons';
 
-const CAROKANN_FEN = 'rn1qkbnr/pp2pppp/2p3b1/8/3P4/6N1/PPP2PPP/R1BQKBNR w KQkq - 3 6';
-const ITALIAN_FEN = 'r1bqkbnr/pppp1ppp/2n5/4p3/2B1P3/5N2/PPPP1PPP/RNBQK2R b KQkq - 3 3';
-const KID_FEN = 'rnbq1rk1/ppp1ppbp/3p1np1/8/2PPP3/2N2N2/PP2BPPP/R1BQK2R b KQ - 0 6';
+const START_FEN = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1';
 
 export function LandingPage() {
   const { user, loading } = useAuth();
@@ -44,18 +42,7 @@ export function LandingPage() {
               fontSize: 13.5,
             }}
           >
-            Coaches
-          </a>
-          <a
-            href="#features"
-            style={{
-              color: 'var(--text-dim)',
-              padding: '6px 12px',
-              borderRadius: 8,
-              fontSize: 13.5,
-            }}
-          >
-            Students
+            Features
           </a>
           <a
             href="#auth"
@@ -87,38 +74,6 @@ export function LandingPage() {
         }}
       >
         <div>
-          <span
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: 8,
-              padding: '5px 12px 5px 6px',
-              borderRadius: 999,
-              background: 'var(--accent-soft)',
-              border: '1px solid var(--accent-ring)',
-              color: 'var(--accent)',
-              fontSize: 12,
-              fontWeight: 500,
-              marginBottom: 22,
-            }}
-          >
-            <span
-              style={{
-                background: 'var(--accent)',
-                color: 'var(--accent-on)',
-                padding: '2px 8px',
-                borderRadius: 999,
-                fontSize: 10.5,
-                fontWeight: 600,
-                letterSpacing: '0.04em',
-                textTransform: 'uppercase',
-              }}
-            >
-              New
-            </span>
-            <span>Spaced-repetition drills for opening trees</span>
-          </span>
-
           <h1
             style={{
               fontSize: 64,
@@ -142,7 +97,7 @@ export function LandingPage() {
               marginBottom: 30,
             }}
           >
-            A small workshop for trainers and self-learners. Author{' '}
+            A workshop for trainers and self-learners. Author{' '}
             <strong style={{ color: 'var(--text)', fontWeight: 500 }}>
               branching opening trees
             </strong>{' '}
@@ -150,8 +105,8 @@ export function LandingPage() {
             <strong style={{ color: 'var(--text)', fontWeight: 500 }}>
               annotated game studies
             </strong>
-            . Assign by nickname. Your students drill them with Chessable-style
-            spaced repetition until the lines stick.
+            . Assign them to students by nickname, and they drill the positions
+            with spaced repetition until the lines stick.
           </p>
 
           <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
@@ -159,33 +114,21 @@ export function LandingPage() {
               <Btn variant="primary" size="lg">Start a study →</Btn>
             </a>
             <a href="#features">
-              <Btn variant="ghost" size="lg">Watch the 90-second tour</Btn>
+              <Btn variant="ghost" size="lg">See how it works</Btn>
             </a>
-          </div>
-
-          <div
-            style={{
-              marginTop: 28,
-              display: 'flex',
-              gap: 14,
-              alignItems: 'center',
-              fontSize: 12.5,
-              color: 'var(--text-faint)',
-            }}
-          >
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <div className="avatar">★</div>
-              <span>
-                <strong style={{ color: 'var(--text)' }}>4.8</strong> · 240+ trainers
-              </span>
-            </div>
-            <span>·</span>
-            <span>From the team that built Layout Tester</span>
           </div>
         </div>
 
-        {/* hero right */}
-        <div style={{ position: 'relative', minHeight: 540 }}>
+        {/* hero right — single straight board, no overlays */}
+        <div
+          style={{
+            position: 'relative',
+            minHeight: 540,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}
+        >
           <div
             style={{
               position: 'absolute',
@@ -197,139 +140,19 @@ export function LandingPage() {
               pointerEvents: 'none',
             }}
           />
-          {/* main board card */}
           <div
             style={{
-              position: 'absolute',
-              width: 360,
+              position: 'relative',
+              width: 440,
+              padding: 18,
               background: 'var(--card-bg)',
               borderRadius: 18,
-              padding: 16,
-              boxShadow: 'var(--card-shadow), 0 40px 80px -20px rgba(0,0,0,0.6)',
-              transform: 'rotate(-3deg)',
-              top: 20,
-              left: '12%',
+              boxShadow:
+                'var(--card-shadow), 0 40px 80px -20px rgba(0,0,0,0.6)',
               zIndex: 2,
             }}
           >
-            <div
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                marginBottom: 12,
-                padding: '0 4px',
-              }}
-            >
-              <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                <span className="dot-mainline" />
-                <span style={{ fontSize: 13, fontWeight: 600 }}>Caro-Kann · Classical</span>
-              </div>
-              <Chip variant="mono">B19</Chip>
-            </div>
-            <FenBoard fen={CAROKANN_FEN} flip lastMove="f5g6" size={328} coordinates={false} />
-            <div
-              style={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                marginTop: 12,
-                padding: '0 4px',
-                alignItems: 'center',
-              }}
-            >
-              <span className="meta">After 5…Bg6</span>
-              <div style={{ display: 'flex', gap: 4 }}>
-                <MoveChip san="h4" ply={6} mainline minor />
-                <MoveChip san="Bd3" minor />
-                <MoveChip san="Nh5" minor />
-              </div>
-            </div>
-          </div>
-
-          {/* side study stack */}
-          <div
-            style={{
-              position: 'absolute',
-              right: 0,
-              top: 50,
-              width: 320,
-              display: 'flex',
-              flexDirection: 'column',
-              gap: 12,
-              transform: 'rotate(2deg)',
-              zIndex: 1,
-            }}
-          >
-            {[
-              { name: 'Italian Game', sub: 'C53 · 22 chapters · 5 students', fen: ITALIAN_FEN, pct: '62%', flip: false },
-              { name: "King's Indian · Mar del Plata", sub: 'E97 · 9 chapters · 2 students', fen: KID_FEN, pct: '28%', flip: true },
-              { name: 'Carlsen — Nepo g6', sub: 'annotated · 38 chapters', fen: 'r1bq1rk1/pp2bppp/2n2n2/2pp4/3P4/2NBPN2/PPP2PPP/R1BQ1RK1 w - - 1 8', pct: '88%', flip: false },
-            ].map((s) => (
-              <div
-                key={s.name}
-                style={{
-                  background: 'var(--card-bg)',
-                  borderRadius: 14,
-                  padding: 14,
-                  boxShadow: 'var(--card-shadow)',
-                  display: 'grid',
-                  gridTemplateColumns: '56px 1fr auto',
-                  gap: 12,
-                  alignItems: 'center',
-                }}
-              >
-                <FenBoard fen={s.fen} flip={s.flip} size={56} coordinates={false} />
-                <div>
-                  <div style={{ fontSize: 13, fontWeight: 600 }}>{s.name}</div>
-                  <div style={{ fontSize: 11.5, color: 'var(--text-dim)' }}>{s.sub}</div>
-                </div>
-                <div className="mono" style={{ fontSize: 12, color: 'var(--text-faint)' }}>
-                  {s.pct}
-                </div>
-              </div>
-            ))}
-          </div>
-
-          {/* quiz toast */}
-          <div
-            style={{
-              position: 'absolute',
-              left: '4%',
-              bottom: 24,
-              background: 'var(--card-bg)',
-              borderRadius: 14,
-              padding: '14px 16px',
-              width: 260,
-              boxShadow: 'var(--card-shadow), 0 20px 50px -12px rgba(0,0,0,0.6)',
-              transform: 'rotate(-2deg)',
-              display: 'flex',
-              alignItems: 'center',
-              gap: 12,
-              zIndex: 4,
-            }}
-          >
-            <div
-              style={{
-                width: 32,
-                height: 32,
-                borderRadius: 999,
-                background: 'rgba(52,211,153,0.18)',
-                color: 'var(--success)',
-                display: 'inline-flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                flexShrink: 0,
-              }}
-            >
-              <IconCheck size={16} strokeWidth={2.6} />
-            </div>
-            <div style={{ fontSize: 13 }}>
-              <div>
-                <strong className="mono">capablanka</strong> nailed{' '}
-                <strong className="mono" style={{ color: 'var(--accent)' }}>Bf5</strong>
-              </div>
-              <div className="meta" style={{ fontSize: 11.5 }}>streak +1 · Caro-Kann</div>
-            </div>
+            <FenBoard fen={START_FEN} size={404} coordinates={false} />
           </div>
         </div>
       </div>
@@ -372,7 +195,7 @@ export function LandingPage() {
             {
               Icon: IconGame,
               title: 'Game studies',
-              body: 'Paste a PGN, annotate per ply, mark which positions become quiz cards. Carlsen-Nepo Game 6 is in there as a sample — copy a chapter and ride.',
+              body: 'Paste a PGN, annotate ply by ply, and mark which positions become quiz cards. Your students walk the game with the same controls you used to author it.',
             },
             {
               Icon: IconClock,
@@ -430,26 +253,13 @@ export function LandingPage() {
       >
         <div>
           <h2 style={{ fontSize: 32, lineHeight: 1.1, letterSpacing: '-0.02em', margin: '0 0 16px' }}>
-            Start your first study in under a minute.
+            Sign up and start a study.
           </h2>
           <p style={{ fontSize: 15, color: 'var(--text-dim)', lineHeight: 1.55, maxWidth: 460 }}>
-            Sign up with any email. Pick the roles that fit you — you can be a
-            trainer for some students and a student for someone else, all in
-            the same account.
+            Pick the roles that fit you — you can be a trainer for some
+            students and a student for someone else, all in the same account.
+            Change them later from settings.
           </p>
-          <ul
-            style={{
-              marginTop: 24,
-              paddingLeft: 18,
-              lineHeight: 1.9,
-              color: 'var(--text-dim)',
-              fontSize: 14,
-            }}
-          >
-            <li>Free for up to 3 students</li>
-            <li>Import Lichess studies in one click</li>
-            <li>No installs, no plugins</li>
-          </ul>
         </div>
         <Card style={{ padding: 28 }}>
           <SignInUpForm />
