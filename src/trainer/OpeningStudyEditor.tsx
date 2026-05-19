@@ -116,7 +116,7 @@ export function OpeningStudyEditor() {
 
       {mode === 'tree' ? (
         <>
-          <div className="grid grid-cols-[auto_1fr] gap-4">
+          <div className="flex flex-wrap items-start gap-4">
             <div className="flex flex-col gap-3">
               <BoardWithBuild
                 study={study}
@@ -208,8 +208,8 @@ export function OpeningStudyEditor() {
           </section>
         </>
       ) : (
-        <div className="grid grid-cols-[340px_1fr] gap-4">
-          <aside className="panel p-3 max-h-[80vh] overflow-auto">
+        <div className="flex items-start gap-4">
+          <aside className="panel p-3 max-h-[80vh] overflow-auto w-[340px] shrink-0">
             <h2 className="text-xs uppercase tracking-wider text-zinc-500 mb-2">Chapters</h2>
             <ChaptersOutline
               nodes={study.nodes}
@@ -417,7 +417,7 @@ function ChapterPanel({
 
   if (!node) {
     return (
-      <aside className="panel p-3 flex flex-col gap-3">
+      <aside className="panel p-3 flex flex-col gap-3 w-[380px] shrink-0">
         <div className="text-xs uppercase tracking-wider text-zinc-500">Chapter</div>
         <p className="text-sm text-zinc-500">
           Select a position from the tree (or play a move on the board) to attach a
@@ -431,7 +431,7 @@ function ChapterPanel({
   }
 
   return (
-    <aside className="panel p-3 flex flex-col gap-3">
+    <aside className="panel p-3 flex flex-col gap-3 w-[380px] shrink-0">
       <div className="text-xs uppercase tracking-wider text-zinc-500">
         Chapter for ply {node.ply} · {node.san}
       </div>
