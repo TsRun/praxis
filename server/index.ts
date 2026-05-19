@@ -12,12 +12,38 @@ import { inviteRoutes } from './routes-invites.js';
 import { trainerRoutes } from './routes-trainer.js';
 import { studentRoutes } from './routes-student.js';
 
-const app = Fastify({ logger: false });
-await app.register(cors, { origin: true, credentials: true });
-await app.register(cookie);
+const app = Fastify({ logger: false, trustProxy: true });
+
+// CORS: only allow the configured frontend origin. In single-origin prod the
+// SPA is served from the same Fastify, so requests are same-origin and CORS
+// never fires; this guard exists for split-origin deploys / local dev where
+// the SPA runs on a different port. NEVER combine `origin: true` (reflective)
+// with `credentials: true` — that lets any third-party site read responses
+// from a signed-in user's session.
+const corsAllow = (process.env.CORS_ALLOWED_ORIGINS ?? process.env.APP_BASE_URL ?? '')
+  .split(',')
+  .map((s) => s.trim())
+  .filter(Boolean);
+await app.register(cors, {
+  origin: corsAllow.length > 0 ? corsAllow : false,
+  credentials: true,
+});
+
+// Signed cookies. SESSION_SECRET is required in production; in dev a stable
+// default is fine since the cookie is not Secure anyway.
+const cookieSecret = process.env.SESSION_SECRET
+  ?? (process.env.NODE_ENV === 'production'
+        ? (() => { throw new Error('SESSION_SECRET is required in production'); })()
+        : 'dev-only-cookie-secret-do-not-use-in-prod');
+await app.register(cookie, { secret: cookieSecret });
 
 const pool = makePool();
-await ensureSchema(pool);
+// schema.sql is bootstrap DDL for local dev. In prod we run migrations
+// out-of-band via .github/workflows/migrate.yml — don't let a request-serving
+// container re-execute schema on every boot.
+if (process.env.NODE_ENV !== 'production' || process.env.RUN_ENSURE_SCHEMA === '1') {
+  await ensureSchema(pool);
+}
 
 app.addHook('onRequest', makeAuthHook(pool));
 await app.register(authRoutes, { pool });
