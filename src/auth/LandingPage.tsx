@@ -47,6 +47,17 @@ export function LandingPage() {
           >
             Features
           </a>
+          <Link
+            to="/tour"
+            style={{
+              color: 'var(--text-dim)',
+              padding: '6px 12px',
+              borderRadius: 8,
+              fontSize: 13.5,
+            }}
+          >
+            Tour
+          </Link>
           <a
             href="#auth"
             style={{
@@ -116,9 +127,9 @@ export function LandingPage() {
             <a href="#auth">
               <Btn variant="primary" size="lg">Start a study →</Btn>
             </a>
-            <a href="#features">
-              <Btn variant="ghost" size="lg">See how it works</Btn>
-            </a>
+            <Link to="/tour">
+              <Btn variant="ghost" size="lg">Take the 90s tour</Btn>
+            </Link>
           </div>
         </div>
 
