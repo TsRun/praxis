@@ -67,6 +67,9 @@ export function OpeningStudyViewer() {
 
 function TreeMode({ study }: { study: OpeningStudyForStudent }) {
   const [currentNodeId, setCurrentNodeId] = useState<number | null>(null);
+  const [orientation, setOrientation] = useState<'white' | 'black'>(
+    study.side === 'b' ? 'black' : 'white',
+  );
   const boardRef = useRef<HTMLDivElement | null>(null);
   const cgRef = useRef<CGApi | null>(null);
 
@@ -92,6 +95,7 @@ function TreeMode({ study }: { study: OpeningStudyForStudent }) {
       fen: currentFen,
       viewOnly: true,
       coordinates: true,
+      orientation,
       lastMove: currentNode
         ? ([currentNode.uci.slice(0, 2), currentNode.uci.slice(2, 4)] as [Key, Key])
         : undefined,
@@ -107,11 +111,12 @@ function TreeMode({ study }: { study: OpeningStudyForStudent }) {
     if (!cgRef.current) return;
     cgRef.current.set({
       fen: currentFen,
+      orientation,
       lastMove: currentNode
         ? ([currentNode.uci.slice(0, 2), currentNode.uci.slice(2, 4)] as [Key, Key])
         : undefined,
     });
-  }, [currentFen, currentNode]);
+  }, [currentFen, currentNode, orientation]);
 
   const tree = buildTree(study.nodes);
   const path = pathToNode(study.nodes, currentNodeId);
@@ -121,6 +126,15 @@ function TreeMode({ study }: { study: OpeningStudyForStudent }) {
     <>
       <div className="grid grid-cols-[auto_1fr] gap-4">
         <div className="flex flex-col gap-3">
+          <div className="flex items-center justify-end">
+            <button
+              onClick={() => setOrientation((o) => (o === 'white' ? 'black' : 'white'))}
+              title="Flip board"
+              className="text-xs text-zinc-400 hover:text-amber-300 px-2 py-0.5 rounded ring-1 ring-zinc-800 hover:ring-amber-400/40"
+            >
+              ⇅ flip · {orientation === 'white' ? 'white' : 'black'} at bottom
+            </button>
+          </div>
           <div className="rounded-xl p-1 panel">
             <div ref={boardRef} className="w-[440px] h-[440px]" />
           </div>
@@ -246,6 +260,9 @@ function QuizMode({
     | { correct: boolean; expected: string; chapter: { title: string | null; body_md: string } | null }
     | null
   >(null);
+  const [orientation, setOrientation] = useState<'white' | 'black'>(
+    study.side === 'b' ? 'black' : 'white',
+  );
   const boardRef = useRef<HTMLDivElement | null>(null);
   const cgRef = useRef<CGApi | null>(null);
 
@@ -274,6 +291,7 @@ function QuizMode({
     cgRef.current = Chessground(boardRef.current, {
       fen,
       turnColor,
+      orientation,
       movable: {
         free: false,
         color: turnColor,
@@ -308,6 +326,10 @@ function QuizMode({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [card?.node_id]);
 
+  useEffect(() => {
+    cgRef.current?.set({ orientation });
+  }, [orientation]);
+
   if (card === undefined) return <p className="text-zinc-500">Loading…</p>;
   if (card === null) {
     return (
@@ -323,6 +345,15 @@ function QuizMode({
   return (
     <div className="grid grid-cols-[auto_1fr] gap-5">
       <div className="flex flex-col gap-3">
+        <div className="flex items-center justify-end">
+          <button
+            onClick={() => setOrientation((o) => (o === 'white' ? 'black' : 'white'))}
+            title="Flip board"
+            className="text-xs text-zinc-400 hover:text-amber-300 px-2 py-0.5 rounded ring-1 ring-zinc-800 hover:ring-amber-400/40"
+          >
+            ⇅ flip · {orientation === 'white' ? 'white' : 'black'} at bottom
+          </button>
+        </div>
         <div className="rounded-xl p-1 panel">
           <div ref={boardRef} className="w-[440px] h-[440px]" />
         </div>

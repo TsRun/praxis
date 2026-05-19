@@ -288,6 +288,9 @@ function BoardWithBuild({
 }) {
   const boardRef = useRef<HTMLDivElement | null>(null);
   const cgRef = useRef<CGApi | null>(null);
+  const [orientation, setOrientation] = useState<'white' | 'black'>(
+    study.side === 'b' ? 'black' : 'white',
+  );
 
   function toDestsMap(c: Chess): Map<Key, Key[]> {
     const dests = new Map<Key, Key[]>();
@@ -328,6 +331,7 @@ function BoardWithBuild({
     cgRef.current = Chessground(boardRef.current, {
       fen: currentFen,
       turnColor,
+      orientation,
       lastMove: currentNode
         ? ([currentNode.uci.slice(0, 2), currentNode.uci.slice(2, 4)] as [Key, Key])
         : undefined,
@@ -346,6 +350,10 @@ function BoardWithBuild({
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [study.id]);
+
+  useEffect(() => {
+    cgRef.current?.set({ orientation });
+  }, [orientation]);
 
   useEffect(() => {
     if (!cgRef.current) return;
@@ -367,8 +375,19 @@ function BoardWithBuild({
   }, [currentFen, currentNode?.id]);
 
   return (
-    <div className="rounded-xl p-1 panel">
-      <div ref={boardRef} className="w-[440px] h-[440px]" />
+    <div className="flex flex-col gap-1.5">
+      <div className="flex items-center justify-end">
+        <button
+          onClick={() => setOrientation((o) => (o === 'white' ? 'black' : 'white'))}
+          title="Flip board"
+          className="text-xs text-zinc-400 hover:text-amber-300 px-2 py-0.5 rounded ring-1 ring-zinc-800 hover:ring-amber-400/40"
+        >
+          ⇅ flip · {orientation === 'white' ? 'white' : 'black'} at bottom
+        </button>
+      </div>
+      <div className="rounded-xl p-1 panel">
+        <div ref={boardRef} className="w-[440px] h-[440px]" />
+      </div>
     </div>
   );
 }
