@@ -8,6 +8,7 @@ function setCookie(reply: FastifyReply, sid: string, expiresAt: Date) {
   reply.setCookie(COOKIE_NAME, sid, {
     httpOnly: true,
     sameSite: 'lax',
+    secure: process.env.NODE_ENV === 'production',
     path: '/',
     expires: expiresAt,
   });
