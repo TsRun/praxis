@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from 'react';
+import { useState, useEffect, type FormEvent } from 'react';
 import { useAuth } from './AuthContext';
 import { ALL_ROLES, type Role } from '../lib/api';
 import { Btn } from '../components/ui/atoms';
@@ -8,6 +8,13 @@ const ROLE_LABELS: Record<Role, { title: string; sub: string; Icon: typeof IconM
   trainer: { title: 'Trainer',     sub: 'I coach others',     Icon: IconMortar },
   student: { title: 'Student',     sub: 'A coach assigns me', Icon: IconUser },
   self:    { title: 'Solo',        sub: 'My own materials',   Icon: IconClock },
+};
+
+const OAUTH_ERROR_MESSAGES: Record<string, string> = {
+  'oauth-cancelled': 'Google sign-in was cancelled.',
+  'oauth-state':     'Your sign-in link expired. Please try again.',
+  'oauth-failed':    'We could not finish signing you in with Google. Please try again.',
+  'google-unverified': "Your Google email is not verified yet. Verify it on Google's side, then try again.",
 };
 
 interface Props {
@@ -27,6 +34,25 @@ export function SignInUpForm({ inviteToken, inviteEmail, inviteName }: Props) {
   );
   const [err, setErr] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+
+  // Surface ?error=<code> from the OAuth callback redirect, then strip the
+  // query string so a refresh doesn't show it again.
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const code = params.get('error');
+    if (!code) return;
+    setErr(OAUTH_ERROR_MESSAGES[code] ?? 'Sign-in failed. Please try again.');
+    params.delete('error');
+    const qs = params.toString();
+    window.history.replaceState(
+      {}, '',
+      window.location.pathname + (qs ? `?${qs}` : '') + window.location.hash,
+    );
+  }, []);
+
+  const googleStartHref = inviteToken
+    ? `/api/auth/oauth/google/start?invite=${encodeURIComponent(inviteToken)}`
+    : '/api/auth/oauth/google/start';
 
   function toggle(r: Role) {
     setRoles((prev) => {
@@ -106,6 +132,43 @@ export function SignInUpForm({ inviteToken, inviteEmail, inviteName }: Props) {
         >
           Create account
         </button>
+      </div>
+
+      <a
+        href={googleStartHref}
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: 10,
+          height: 42,
+          background: 'var(--inset-bg)',
+          border: '1px solid var(--inset-border)',
+          borderRadius: 10,
+          color: 'var(--text)',
+          fontSize: 13.5,
+          fontWeight: 500,
+          textDecoration: 'none',
+          marginBottom: 14,
+        }}
+      >
+        <GoogleG />
+        Continue with Google
+      </a>
+
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: 12,
+          color: 'var(--text-faint)',
+          fontSize: 11.5,
+          margin: '0 0 14px',
+        }}
+      >
+        <div style={{ flex: 1, height: 1, background: 'var(--hairline)' }} />
+        or
+        <div style={{ flex: 1, height: 1, background: 'var(--hairline)' }} />
       </div>
 
       <div style={{ marginBottom: 12 }}>
@@ -254,5 +317,16 @@ export function SignInUpForm({ inviteToken, inviteEmail, inviteName }: Props) {
         <a className="link" href="#">privacy</a>.
       </div>
     </form>
+  );
+}
+
+function GoogleG() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 48 48" aria-hidden="true">
+      <path fill="#FFC107" d="M43.6 20.5H42V20H24v8h11.3c-1.6 4.7-6.1 8-11.3 8-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.9 1.2 8 3.1l5.7-5.7C34 6.1 29.3 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20 20-8.9 20-20c0-1.2-.1-2.4-.4-3.5z" />
+      <path fill="#FF3D00" d="M6.3 14.7l6.6 4.8C14.6 16 18.9 13 24 13c3.1 0 5.9 1.2 8 3.1l5.7-5.7C34 6.1 29.3 4 24 4 16.3 4 9.6 8.3 6.3 14.7z" />
+      <path fill="#4CAF50" d="M24 44c5.2 0 9.8-2 13.3-5.2l-6.2-5.2c-2 1.5-4.5 2.4-7.2 2.4-5.2 0-9.7-3.3-11.3-8l-6.5 5C9.4 39.6 16.1 44 24 44z" />
+      <path fill="#1976D2" d="M43.6 20.5H42V20H24v8h11.3c-.8 2.2-2.2 4.1-4.1 5.5l6.2 5.2C41.2 35.8 44 30.3 44 24c0-1.2-.1-2.4-.4-3.5z" />
+    </svg>
   );
 }

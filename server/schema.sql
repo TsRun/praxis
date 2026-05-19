@@ -90,7 +90,7 @@ CREATE INDEX IF NOT EXISTS idx_move_stats_parent_games ON move_stats(parent_fen,
 CREATE TABLE IF NOT EXISTS app_user (
   id            BIGSERIAL PRIMARY KEY,
   email         TEXT UNIQUE NOT NULL,
-  password_hash TEXT NOT NULL,
+  password_hash TEXT,  -- NULL allowed: OAuth-only accounts have no password.
   name          TEXT NOT NULL,
   roles         TEXT[] NOT NULL DEFAULT ARRAY[]::TEXT[]
                 CHECK (roles <@ ARRAY['trainer','student','self']::TEXT[]),
@@ -98,6 +98,18 @@ CREATE TABLE IF NOT EXISTS app_user (
 );
 
 CREATE INDEX IF NOT EXISTS idx_app_user_roles ON app_user USING gin (roles);
+
+-- Multiple OAuth identities can point at one app_user (google now, lichess
+-- later). PK on (provider, subject) prevents the same provider account
+-- from being linked twice.
+CREATE TABLE IF NOT EXISTS oauth_identity (
+  provider   TEXT   NOT NULL,
+  subject    TEXT   NOT NULL,
+  user_id    BIGINT NOT NULL REFERENCES app_user(id) ON DELETE CASCADE,
+  linked_at  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  PRIMARY KEY (provider, subject)
+);
+CREATE INDEX IF NOT EXISTS idx_oauth_identity_user ON oauth_identity(user_id);
 
 CREATE TABLE IF NOT EXISTS session (
   id          TEXT PRIMARY KEY,

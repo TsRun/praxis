@@ -9,6 +9,7 @@ import { makePool, ensureSchema, epdFromFen } from './db.js';
 import { makeAuthHook } from './auth-guards.js';
 import { authRoutes } from './routes-auth.js';
 import { inviteRoutes } from './routes-invites.js';
+import { oauthRoutes } from './routes-oauth.js';
 import { trainerRoutes } from './routes-trainer.js';
 import { studentRoutes } from './routes-student.js';
 
@@ -48,6 +49,7 @@ if (process.env.NODE_ENV !== 'production' || process.env.RUN_ENSURE_SCHEMA === '
 app.addHook('onRequest', makeAuthHook(pool));
 await app.register(authRoutes, { pool });
 await app.register(inviteRoutes, { pool });
+await app.register(oauthRoutes, { pool });
 await app.register(trainerRoutes, { pool });
 await app.register(studentRoutes, { pool });
 
