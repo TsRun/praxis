@@ -6,6 +6,8 @@ import type { OpeningNode } from '../lib/api';
  *
  *   ← : jump to parent (root if at depth 1)
  *   → : enter first child — prefer the main-line child, else the oldest
+ *   ↑ : previous sibling variation (same parent, clamped at the first)
+ *   ↓ : next sibling variation (same parent, clamped at the last)
  *   Home : jump to root
  *   End  : walk forward along the main line until no more children
  *
@@ -22,11 +24,13 @@ export function useOpeningTreeNav(
   useEffect(() => {
     if (!enabled) return;
 
-    function firstChild(parentId: number | null): OpeningNode | undefined {
+    function siblings(parentId: number | null): OpeningNode[] {
       const kids = nodes.filter((n) => n.parent_id === parentId);
-      if (kids.length === 0) return undefined;
       kids.sort((a, b) => Number(b.is_main) - Number(a.is_main) || a.id - b.id);
-      return kids[0];
+      return kids;
+    }
+    function firstChild(parentId: number | null): OpeningNode | undefined {
+      return siblings(parentId)[0];
     }
 
     function onKey(e: KeyboardEvent) {
@@ -50,6 +54,26 @@ export function useOpeningTreeNav(
           e.stopImmediatePropagation();
           const child = firstChild(currentNodeId);
           if (child) onSelect(child.id);
+          break;
+        }
+        case 'ArrowDown':
+        case 'ArrowUp': {
+          if (!cur) {
+            // At root — no siblings to cycle.
+            e.preventDefault();
+            e.stopImmediatePropagation();
+            return;
+          }
+          e.preventDefault();
+          e.stopImmediatePropagation();
+          const sibs = siblings(cur.parent_id);
+          if (sibs.length <= 1) return;
+          const idx = sibs.findIndex((n) => n.id === cur.id);
+          const next =
+            e.key === 'ArrowDown'
+              ? Math.min(sibs.length - 1, idx + 1)
+              : Math.max(0, idx - 1);
+          if (next !== idx) onSelect(sibs[next].id);
           break;
         }
         case 'Home': {
