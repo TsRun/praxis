@@ -18,3 +18,4 @@ data/
 modern-*.png
 move-selection-*.png
 .superpowers/
+.claude/
