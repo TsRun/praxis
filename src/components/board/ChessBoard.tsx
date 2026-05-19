@@ -100,5 +100,10 @@ export function ChessBoard() {
     });
   }, [fen, lastMove]);
 
-  return <div ref={ref} className="w-[480px] h-[480px]" />;
+  return (
+    <div
+      ref={ref}
+      style={{ width: '100%', maxWidth: 480, aspectRatio: '1 / 1' }}
+    />
+  );
 }

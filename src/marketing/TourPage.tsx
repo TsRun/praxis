@@ -125,7 +125,7 @@ function TopBar() {
         <span>Pra</span>
         <span className="accent">xis</span>
       </Link>
-      <span style={{ color: 'var(--text-faint)', fontSize: 13 }}>· 90-second tour</span>
+      <span className="hide-mobile" style={{ color: 'var(--text-faint)', fontSize: 13 }}>· 90-second tour</span>
       <div style={{ flex: 1 }} />
       <Link to="/" style={{ color: 'var(--text-dim)', fontSize: 13 }}>
         Skip
@@ -137,11 +137,10 @@ function TopBar() {
 function SceneTabs({ idx, onPick }: { idx: number; onPick: (i: number) => void }) {
   return (
     <div
+      className="scroll-row"
       style={{
-        display: 'flex',
         gap: 6,
         padding: '14px 24px 10px',
-        overflowX: 'auto',
       }}
     >
       {SCENES.map((s, i) => {
@@ -167,6 +166,8 @@ function SceneTabs({ idx, onPick }: { idx: number; onPick: (i: number) => void }
                 : 'var(--text-faint)',
               cursor: 'pointer',
               letterSpacing: 0.2,
+              flexShrink: 0,
+              whiteSpace: 'nowrap',
             }}
           >
             <span style={{ marginRight: 6, fontVariantNumeric: 'tabular-nums' }}>
@@ -200,12 +201,13 @@ function ControlBar({
   return (
     <div
       style={{
-        height: 64,
+        minHeight: 64,
         display: 'flex',
         alignItems: 'center',
-        gap: 8,
-        padding: '0 24px',
+        gap: 6,
+        padding: '8px 16px',
         borderTop: '1px solid var(--hairline)',
+        flexWrap: 'wrap',
       }}
     >
       <Btn variant="ghost" size="sm" onClick={onPrev} disabled={idx === 0}>
@@ -218,7 +220,7 @@ function ControlBar({
         <span style={{ marginRight: 4 }}>Next</span> <IconArrowR size={14} />
       </Btn>
 
-      <div style={{ flex: 1 }} />
+      <div style={{ flex: 1, minWidth: 8 }} />
 
       {ended && (
         <Btn variant="ghost" size="sm" onClick={onRestart}>
@@ -255,8 +257,6 @@ function SceneStage({ scene, elapsed }: { scene: SceneId; elapsed: number }) {
 
 /* ─── layouts ────────────────────────────────────────────────────────── */
 
-const STAGE_WIDTH = 1080;
-
 function Stage({
   left,
   right,
@@ -265,16 +265,7 @@ function Stage({
   right: ReactNode;
 }) {
   return (
-    <div
-      style={{
-        width: '100%',
-        maxWidth: STAGE_WIDTH,
-        display: 'grid',
-        gridTemplateColumns: '1fr 1fr',
-        gap: 56,
-        alignItems: 'center',
-      }}
-    >
+    <div className="tour-stage">
       <div style={{ display: 'flex', justifyContent: 'center' }}>{left}</div>
       <div>{right}</div>
     </div>
@@ -567,7 +558,7 @@ function TransposeScene({ elapsed }: { elapsed: number }) {
     <div
       style={{
         width: '100%',
-        maxWidth: STAGE_WIDTH,
+        maxWidth: 1080,
         display: 'flex',
         flexDirection: 'column',
         gap: 28,
@@ -598,14 +589,7 @@ function TransposeScene({ elapsed }: { elapsed: number }) {
         </p>
       </div>
 
-      <div
-        style={{
-          display: 'grid',
-          gridTemplateColumns: '1fr auto 1fr',
-          alignItems: 'center',
-          gap: 36,
-        }}
-      >
+      <div className="tour-stage-3">
         <TransposePane
           label="Path A"
           movesText="1.e4 e5 2.Nf3"
@@ -826,6 +810,7 @@ function DrillRow({
         gap: 10,
         padding: '8px 12px',
         borderRadius: 8,
+        flexWrap: 'wrap',
         background: isCorrect
           ? 'var(--success-bg)'
           : isWrong
@@ -948,6 +933,9 @@ function TourBoard({
   return (
     <div
       style={{
+        width: '100%',
+        maxWidth: size + 28,
+        marginInline: 'auto',
         padding: 14,
         background: 'var(--card-bg)',
         borderRadius: 16,

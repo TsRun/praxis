@@ -9,7 +9,11 @@ interface FenBoardProps {
   lastMove?: string | null;
   /** Show board from black's perspective. */
   flip?: boolean;
-  /** Width in pixels. Square. */
+  /**
+   * Cap width in pixels (board is square). The board fills the parent up to
+   * this cap, so the parent's width controls actual rendered size on small
+   * viewports. Use a fixed-size wrapper if you need a strict square.
+   */
   size?: number;
   className?: string;
   /** When false, hides chessground coordinate labels (used by mini thumbnails). */
@@ -67,7 +71,7 @@ export function FenBoard({
     <div
       ref={ref}
       className={className}
-      style={{ width: size, height: size }}
+      style={{ width: '100%', maxWidth: size, aspectRatio: '1 / 1' }}
     />
   );
 }

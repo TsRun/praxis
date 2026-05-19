@@ -75,16 +75,16 @@ export function GameStudyEditor() {
 
   return (
     <div
+      className="page-wrap"
       style={{
-        maxWidth: 1400,
-        margin: '0 auto',
-        padding: '24px 28px 80px',
+        paddingTop: 24,
+        paddingBottom: 80,
         display: 'flex',
         flexDirection: 'column',
         gap: 18,
       }}
     >
-      <div style={{ display: 'flex', alignItems: 'flex-start', gap: 24 }}>
+      <div style={{ display: 'flex', alignItems: 'flex-start', gap: 24, flexWrap: 'wrap' }}>
         <div>
           <h1 className="t-h1" style={{ margin: 0 }}>{study.name}</h1>
           <div
@@ -110,6 +110,7 @@ export function GameStudyEditor() {
             display: 'flex',
             alignItems: 'center',
             gap: 10,
+            flexWrap: 'wrap',
           }}
         >
           <Btn variant="secondary" onClick={save} disabled={busy}>
@@ -127,14 +128,7 @@ export function GameStudyEditor() {
         </div>
       </div>
 
-      <div
-        style={{
-          display: 'grid',
-          gridTemplateColumns: 'auto 1fr 360px',
-          gap: 20,
-          alignItems: 'start',
-        }}
-      >
+      <div className="three-pane">
         <ChessBoard />
         <Card style={{ padding: 16, overflow: 'auto', maxHeight: '80vh' }}>
           <h2 className="t-h3" style={{ margin: '0 0 10px' }}>
@@ -142,7 +136,7 @@ export function GameStudyEditor() {
           </h2>
           <PlyList study={study} currentPly={currentPly} onJump={goToPly} />
         </Card>
-        <Card style={{ padding: 16, display: 'flex', flexDirection: 'column', gap: 12 }}>
+        <Card style={{ padding: 16, display: 'flex', flexDirection: 'column', gap: 12, width: '100%', maxWidth: 360 }}>
           <h3 className="t-h3" style={{ margin: 0 }}>
             Annotation at ply {currentPly || 0}
           </h3>

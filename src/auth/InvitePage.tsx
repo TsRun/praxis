@@ -10,7 +10,7 @@ const PAGE_STYLE: React.CSSProperties = {
   minHeight: '100vh',
   display: 'grid',
   placeItems: 'center',
-  padding: '48px 24px',
+  padding: 'clamp(16px, 6vw, 48px)',
 };
 
 export function InvitePage() {
@@ -46,7 +46,7 @@ export function InvitePage() {
   if (user && user.email === info.student_email) {
     return (
       <div style={PAGE_STYLE}>
-        <Card style={{ padding: 32, width: 380, display: 'flex', flexDirection: 'column', gap: 14 }}>
+        <Card style={{ padding: 32, width: '100%', maxWidth: 380, display: 'flex', flexDirection: 'column', gap: 14 }}>
           <h2 className="t-h2" style={{ margin: 0 }}>
             <span style={{ color: 'var(--accent)' }}>{info.trainer_name}</span> invited you
           </h2>
@@ -79,6 +79,7 @@ export function InvitePage() {
       <Card
         style={{
           padding: 32,
+          width: '100%',
           maxWidth: 480,
           display: 'flex',
           flexDirection: 'column',

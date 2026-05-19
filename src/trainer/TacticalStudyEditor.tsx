@@ -85,7 +85,8 @@ export function TacticalStudyEditor() {
 
   return (
     <div
-      style={{ maxWidth: 1400, margin: '0 auto', padding: '24px 28px 80px' }}
+      className="page-wrap"
+      style={{ paddingTop: 24, paddingBottom: 80 }}
     >
       {/* head */}
       <div
@@ -94,6 +95,7 @@ export function TacticalStudyEditor() {
           alignItems: 'flex-start',
           gap: 22,
           paddingBottom: 6,
+          flexWrap: 'wrap',
         }}
       >
         <div
@@ -148,6 +150,7 @@ export function TacticalStudyEditor() {
             display: 'flex',
             alignItems: 'center',
             gap: 10,
+            flexWrap: 'wrap',
           }}
         >
           <Btn variant="secondary">
@@ -165,7 +168,7 @@ export function TacticalStudyEditor() {
       <div
         style={{
           display: 'grid',
-          gridTemplateColumns: 'repeat(4, 1fr)',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))',
           gap: 12,
           margin: '20px 0 22px',
         }}
@@ -235,11 +238,8 @@ export function TacticalStudyEditor() {
 
       {/* list */}
       <div
-        style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(2, 1fr)',
-          gap: 12,
-        }}
+        className="grid-2"
+        style={{ gap: 12, alignItems: 'stretch' }}
       >
         {list.map((p, i) => (
           <PuzzleCard

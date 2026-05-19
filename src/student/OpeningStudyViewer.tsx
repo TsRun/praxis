@@ -78,13 +78,7 @@ export function OpeningStudyViewer() {
   const pct = totalChapters > 0 ? Math.round((seen / totalChapters) * 100) : 0;
 
   return (
-    <div
-      style={{
-        maxWidth: 1400,
-        margin: '0 auto',
-        padding: '24px 28px 80px',
-      }}
-    >
+    <div className="page-wrap" style={{ paddingTop: 24, paddingBottom: 80 }}>
       {/* progress hero */}
       <Card
         style={{
@@ -150,16 +144,17 @@ export function OpeningStudyViewer() {
             alignItems: 'center',
             color: 'var(--text-dim)',
             fontSize: 13,
+            flexShrink: 0,
           }}
         >
-          <IconArrowL size={14} /> Dashboard
+          <IconArrowL size={14} /> <span className="hide-mobile">Dashboard</span>
         </Link>
       </Card>
 
       {/* mode tabs */}
       <div
+        className="scroll-row"
         style={{
-          display: 'flex',
           alignItems: 'center',
           gap: 14,
           margin: '18px 0',
@@ -313,9 +308,8 @@ function DrillView({
   const turn = study.side === 'w' ? 'w' : 'b';
   return (
     <div
+      className="editor-grid"
       style={{
-        display: 'grid',
-        gridTemplateColumns: '520px 1fr',
         gap: 24,
         alignItems: 'start',
       }}
@@ -342,7 +336,10 @@ function DrillView({
           </span>
         </div>
 
-        <div ref={boardRef} style={{ width: 520, height: 520 }} />
+        <div
+          ref={boardRef}
+          style={{ width: '100%', maxWidth: 520, aspectRatio: '1 / 1' }}
+        />
 
         <Card
           style={{
@@ -418,9 +415,8 @@ function DrillView({
       {/* right: stats + feedback + up-next */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
         <div
+          className="grid-3"
           style={{
-            display: 'grid',
-            gridTemplateColumns: '1fr 1fr 1fr',
             gap: 10,
           }}
         >
@@ -748,9 +744,8 @@ function TreeMode({
 
   return (
     <div
+      className="editor-grid"
       style={{
-        display: 'grid',
-        gridTemplateColumns: '520px 1fr',
         gap: 24,
         alignItems: 'start',
       }}
@@ -981,7 +976,12 @@ function FixedReadOnlyBoard({
     });
   }, [fen, lastMove, flip]);
 
-  return <div ref={ref} style={{ width: 520, height: 520 }} />;
+  return (
+    <div
+      ref={ref}
+      style={{ width: '100%', maxWidth: 520, aspectRatio: '1 / 1' }}
+    />
+  );
 }
 
 /* ─────────────────────────── Chapters view (student) ────────────────────────── */
@@ -1011,9 +1011,8 @@ function ChaptersView({
 
   return (
     <div
+      className="editor-grid-rev"
       style={{
-        display: 'grid',
-        gridTemplateColumns: '1fr 520px',
         gap: 24,
         alignItems: 'start',
       }}

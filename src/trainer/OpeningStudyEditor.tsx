@@ -265,10 +265,10 @@ export function OpeningStudyEditor() {
 
   return (
     <div
+      className="page-wrap"
       style={{
-        maxWidth: 1400,
-        margin: '0 auto',
-        padding: '24px 28px 80px',
+        paddingTop: 24,
+        paddingBottom: 80,
         display: 'flex',
         flexDirection: 'column',
         gap: 20,
@@ -281,6 +281,7 @@ export function OpeningStudyEditor() {
           alignItems: 'flex-start',
           gap: 24,
           paddingBottom: 6,
+          flexWrap: 'wrap',
         }}
       >
         <div>
@@ -313,6 +314,7 @@ export function OpeningStudyEditor() {
             display: 'flex',
             alignItems: 'center',
             gap: 10,
+            flexWrap: 'wrap',
           }}
         >
           <Segmented<ViewMode>
@@ -372,6 +374,7 @@ export function OpeningStudyEditor() {
           ))}
         </div>
         <div
+          className="hide-tablet"
           style={{
             display: 'flex',
             gap: 14,
@@ -404,22 +407,13 @@ export function OpeningStudyEditor() {
       )}
 
       {mode === 'tree' ? (
-        <div
-          style={{
-            display: 'grid',
-            gridTemplateColumns: '520px 1fr',
-            gap: 24,
-            alignItems: 'start',
-          }}
-        >
+        <div className="editor-grid">
           {/* LEFT: board */}
           <div
             style={{
               display: 'flex',
               flexDirection: 'column',
               gap: 14,
-              position: 'sticky',
-              top: 72,
             }}
           >
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -464,6 +458,7 @@ export function OpeningStudyEditor() {
               flexDirection: 'column',
               gap: 16,
               minWidth: 0,
+              width: '100%',
             }}
           >
             <CandidatesCard
@@ -672,7 +667,12 @@ function BoardWithBuild({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentFen, currentNode?.id]);
 
-  return <div ref={boardRef} style={{ width: 520, height: 520 }} />;
+  return (
+    <div
+      ref={boardRef}
+      style={{ width: '100%', maxWidth: 520, aspectRatio: '1 / 1' }}
+    />
+  );
 }
 
 /* ────────────────────────── Candidates card ───────────────────────────── */
@@ -1092,14 +1092,7 @@ function ChaptersMode({
   const lastMove = selectedNode?.uci ?? null;
 
   return (
-    <div
-      style={{
-        display: 'grid',
-        gridTemplateColumns: '1fr 520px',
-        gap: 24,
-        alignItems: 'start',
-      }}
-    >
+    <div className="editor-grid-rev">
       <Card style={{ padding: 0 }}>
         <div
           style={{
@@ -1196,8 +1189,6 @@ function ChaptersMode({
           display: 'flex',
           flexDirection: 'column',
           gap: 14,
-          position: 'sticky',
-          top: 72,
         }}
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -1301,7 +1292,12 @@ function ReadOnlyBoard({
     });
   }, [fen, lastMove, flip]);
 
-  return <div ref={ref} style={{ width: 520, height: 520 }} />;
+  return (
+    <div
+      ref={ref}
+      style={{ width: '100%', maxWidth: 520, aspectRatio: '1 / 1' }}
+    />
+  );
 }
 
 /* ────────────────────────── Chapter card (under board) ─────────────────── */

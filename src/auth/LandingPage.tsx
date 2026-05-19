@@ -20,14 +20,12 @@ export function LandingPage() {
     <div style={{ minHeight: '100vh' }}>
       {/* nav */}
       <div
+        className="page-wrap"
         style={{
           display: 'flex',
           alignItems: 'center',
           gap: 22,
           height: 64,
-          padding: '0 32px',
-          maxWidth: 1320,
-          margin: '0 auto',
         }}
       >
         <Link to="/" className="wordmark" style={{ fontSize: 18 }}>
@@ -35,7 +33,7 @@ export function LandingPage() {
           <span className="accent">xis</span>
         </Link>
         <div style={{ flex: 1 }} />
-        <div style={{ display: 'flex', gap: 6 }}>
+        <div className="hide-mobile" style={{ display: 'flex', gap: 6 }}>
           <a
             href="#features"
             style={{
@@ -77,20 +75,17 @@ export function LandingPage() {
 
       {/* hero */}
       <div
+        className="page-wrap hero-grid"
         style={{
-          maxWidth: 1320,
-          margin: '0 auto',
-          padding: '60px 32px 40px',
-          display: 'grid',
-          gridTemplateColumns: '1.05fr 1fr',
-          gap: 56,
+          paddingTop: 60,
+          paddingBottom: 40,
           alignItems: 'center',
         }}
       >
         <div>
           <h1
+            className="hero-h1"
             style={{
-              fontSize: 64,
               lineHeight: 1.02,
               fontWeight: 600,
               letterSpacing: '-0.035em',
@@ -137,7 +132,6 @@ export function LandingPage() {
         <div
           style={{
             position: 'relative',
-            minHeight: 540,
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
@@ -157,7 +151,9 @@ export function LandingPage() {
           <div
             style={{
               position: 'relative',
-              width: 440,
+              width: '100%',
+              maxWidth: 440,
+              marginInline: 'auto',
               padding: 18,
               background: 'var(--card-bg)',
               borderRadius: 18,
@@ -166,13 +162,15 @@ export function LandingPage() {
               zIndex: 2,
             }}
           >
-            <FenBoard fen={START_FEN} size={404} coordinates={false} />
+            <div className="board-cap-400" style={{ marginInline: 'auto' }}>
+              <FenBoard fen={START_FEN} size={404} coordinates={false} />
+            </div>
           </div>
         </div>
       </div>
 
       {/* features */}
-      <div id="features" style={{ maxWidth: 1320, margin: '80px auto 0', padding: '0 32px' }}>
+      <div id="features" className="page-wrap" style={{ marginTop: 80 }}>
         <div
           style={{
             display: 'flex',
@@ -180,16 +178,13 @@ export function LandingPage() {
             justifyContent: 'space-between',
             marginBottom: 28,
             gap: 24,
+            flexWrap: 'wrap',
           }}
         >
           <h2
+            className="section-h2"
             style={{
-              fontSize: 36,
-              fontWeight: 600,
-              letterSpacing: '-0.025em',
-              margin: 0,
               maxWidth: 560,
-              lineHeight: 1.1,
             }}
           >
             Two modes. The same calm workspace.
@@ -199,7 +194,7 @@ export function LandingPage() {
             Students see the same board, drilled in the same way.
           </div>
         </div>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 14 }}>
+        <div className="grid-3">
           {[
             {
               Icon: IconTree,
@@ -255,14 +250,10 @@ export function LandingPage() {
       {/* auth */}
       <div
         id="auth"
+        className="page-wrap grid-2"
         style={{
-          maxWidth: 1320,
-          margin: '100px auto 80px',
-          padding: '0 32px',
-          display: 'grid',
-          gridTemplateColumns: '1fr 480px',
-          gap: 60,
-          alignItems: 'center',
+          marginTop: 100,
+          marginBottom: 80,
         }}
       >
         <div>
@@ -275,7 +266,7 @@ export function LandingPage() {
             Change them later from settings.
           </p>
         </div>
-        <Card style={{ padding: 28 }}>
+        <Card style={{ padding: 28, width: '100%', maxWidth: 480, marginInline: 'auto' }}>
           <SignInUpForm />
         </Card>
       </div>
