@@ -1,6 +1,10 @@
+import { fileURLToPath } from 'node:url';
+import { dirname, join, resolve } from 'node:path';
+import { existsSync } from 'node:fs';
 import Fastify from 'fastify';
 import cors from '@fastify/cors';
 import cookie from '@fastify/cookie';
+import fastifyStatic from '@fastify/static';
 import { makePool, ensureSchema, epdFromFen } from './db.js';
 import { makeAuthHook } from './auth-guards.js';
 import { authRoutes } from './routes-auth.js';
@@ -234,6 +238,20 @@ app.get<{ Querystring: ExplorerQuery }>('/api/explorer', async (req, reply) => {
   };
 });
 
+// ── Serve the built SPA when dist/ exists (production single-origin deploy) ──
+const here = dirname(fileURLToPath(import.meta.url));
+const distDir = resolve(here, '..', 'dist');
+if (existsSync(distDir)) {
+  await app.register(fastifyStatic, { root: distDir, prefix: '/', wildcard: false });
+  // SPA fallback: any non-/api 404 returns index.html so React Router can take over.
+  app.setNotFoundHandler((req, reply) => {
+    if (req.url.startsWith('/api/')) return reply.code(404).send({ error: 'not found' });
+    return reply.type('text/html').sendFile('index.html');
+  });
+  console.log(`[server] serving SPA from ${distDir}`);
+}
+
 const port = Number(process.env.PORT ?? 5174);
-await app.listen({ port, host: '127.0.0.1' });
-console.log(`openings backend on http://127.0.0.1:${port}`);
+const host = process.env.HOST ?? '0.0.0.0';
+await app.listen({ port, host });
+console.log(`openings backend on http://${host}:${port}`);
