@@ -127,6 +127,11 @@ export function OpeningStudyEditor() {
 
   const path = pathToNode(study.nodes, currentNodeId);
   const chaptersSet = new Set(study.chapters.map((c) => c.node_id));
+  const transpositions = currentNode
+    ? study.nodes.filter(
+        (n) => n.id !== currentNode.id && n.fen === currentNode.fen,
+      )
+    : [];
 
   async function onAddChild(
     parentNode: OpeningNode | null,
@@ -359,6 +364,14 @@ export function OpeningStudyEditor() {
         </div>
       </div>
 
+      {transpositions.length > 0 && (
+        <TranspositionBar
+          study={study}
+          matches={transpositions}
+          onSelect={setCurrentNodeId}
+        />
+      )}
+
       {mode === 'tree' ? (
         <div
           style={{
@@ -579,6 +592,8 @@ function BoardWithBuild({
       mv = null;
     }
     if (!mv) return;
+
+    // Existing direct child for this SAN — common case, reuse it.
     const existing = findChildBySan(
       study.nodes,
       currentNode?.id ?? null,
@@ -588,6 +603,19 @@ function BoardWithBuild({
       onSelectExisting(existing.id);
       return;
     }
+
+    // Transposition: the resulting FEN already exists elsewhere in the tree
+    // (different move order). Jump to the canonical node instead of creating
+    // a duplicate. Prefer mainline matches when there's more than one.
+    const targetFen = chess.fen().split(' ').slice(0, 4).join(' ');
+    const fenMatches = study.nodes.filter((n) => n.fen === targetFen);
+    if (fenMatches.length > 0) {
+      const pick =
+        fenMatches.find((n) => n.is_main) ?? fenMatches[0];
+      onSelectExisting(pick.id);
+      return;
+    }
+
     await onAddChild(currentNode, currentFen, {
       from,
       to,
@@ -1251,6 +1279,99 @@ function ReadOnlyBoard({
   }, [fen, lastMove, flip]);
 
   return <div ref={ref} style={{ width: 520, height: 520 }} />;
+}
+
+/* ────────────────────────── Transposition bar ───────────────────────────── */
+
+function TranspositionBar({
+  study,
+  matches,
+  onSelect,
+}: {
+  study: OpeningStudyFull;
+  matches: OpeningNode[];
+  onSelect: (id: number) => void;
+}) {
+  const visible = matches.slice(0, 3);
+  const hidden = matches.length - visible.length;
+  const titleByNode = new Map(
+    study.chapters.map((c) => [c.node_id, c.title] as const),
+  );
+
+  function shortLine(nodeId: number): string {
+    const full = pathToNode(study.nodes, nodeId);
+    // last 5 plies (or full line if short) gives enough context without bloat
+    const tail = full.length > 5 ? full.slice(-5) : full;
+    const prefix = full.length > 5 ? '… ' : '';
+    return (
+      prefix +
+      tail
+        .map((n) =>
+          n.ply % 2 === 1 ? `${Math.ceil(n.ply / 2)}.${n.san}` : n.san,
+        )
+        .join(' ')
+    );
+  }
+
+  return (
+    <div
+      className="inset"
+      style={{
+        padding: '10px 14px',
+        display: 'flex',
+        alignItems: 'center',
+        gap: 12,
+        flexWrap: 'wrap',
+      }}
+    >
+      <span
+        style={{
+          display: 'inline-flex',
+          alignItems: 'center',
+          gap: 6,
+          color: 'var(--accent)',
+          fontSize: 12.5,
+          fontWeight: 500,
+        }}
+      >
+        <span style={{ fontSize: 14 }}>↻</span>
+        Transposition · also reached via {matches.length} other{' '}
+        {matches.length === 1 ? 'line' : 'lines'}
+      </span>
+      <div
+        style={{
+          display: 'flex',
+          gap: 6,
+          flexWrap: 'wrap',
+          alignItems: 'center',
+        }}
+      >
+        {visible.map((n) => {
+          const title = titleByNode.get(n.id);
+          return (
+            <button
+              key={n.id}
+              type="button"
+              onClick={() => onSelect(n.id)}
+              title={title ? `Chapter: ${title}` : undefined}
+              className="movechip minor"
+              style={{
+                fontFamily: 'var(--font-mono)',
+                whiteSpace: 'nowrap',
+              }}
+            >
+              <span className="san">{shortLine(n.id)}</span>
+            </button>
+          );
+        })}
+        {hidden > 0 && (
+          <span className="meta" style={{ fontSize: 12 }}>
+            +{hidden} more
+          </span>
+        )}
+      </div>
+    </div>
+  );
 }
 
 /* unused exports kept for direct prop typing */
