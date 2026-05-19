@@ -61,6 +61,16 @@ export async function authRoutes(app: FastifyInstance, opts: { pool: Pool }) {
         // Generic message — don't reveal which emails are registered.
         return reply.code(400).send({ error: 'could not create account' });
       }
+      // Nicknames are how trainers link students, so they must be unique.
+      const dupeName = await pool.query(
+        'SELECT 1 FROM app_user WHERE LOWER(name) = LOWER($1) LIMIT 1',
+        [name],
+      );
+      if (dupeName.rowCount) {
+        return reply.code(409).send({
+          error: `nickname "${name}" is already taken — pick another`,
+        });
+      }
       const hash = await hashPassword(password);
       const { rows } = await pool.query<{ id: number }>(
         `INSERT INTO app_user (email, password_hash, name, roles)
@@ -126,6 +136,91 @@ export async function authRoutes(app: FastifyInstance, opts: { pool: Pool }) {
     await pool.query(`UPDATE app_user SET roles = $1 WHERE id = $2`, [roles, req.user.id]);
     return { ...req.user, roles };
   });
+
+  app.put<{ Body: { name?: string; email?: string } }>(
+    '/api/auth/profile',
+    async (req, reply) => {
+      if (!req.user) return reply.code(401).send({ error: 'not signed in' });
+      const updates: { name?: string; email?: string } = {};
+      if (req.body?.name !== undefined) {
+        const cleaned = sanitizeName(req.body.name);
+        if (!cleaned) return reply.code(400).send({ error: 'invalid name' });
+        if (cleaned !== req.user.name) {
+          const dupe = await pool.query(
+            'SELECT 1 FROM app_user WHERE LOWER(name) = LOWER($1) AND id <> $2 LIMIT 1',
+            [cleaned, req.user.id],
+          );
+          if (dupe.rowCount) {
+            return reply.code(409).send({
+              error: `nickname "${cleaned}" is already taken — pick another`,
+            });
+          }
+          updates.name = cleaned;
+        }
+      }
+      if (req.body?.email !== undefined) {
+        const lower = req.body.email.toLowerCase().trim();
+        if (!lower.includes('@')) {
+          return reply.code(400).send({ error: 'invalid email' });
+        }
+        if (lower !== req.user.email) {
+          const dupe = await pool.query(
+            'SELECT 1 FROM app_user WHERE email = $1 AND id <> $2 LIMIT 1',
+            [lower, req.user.id],
+          );
+          if (dupe.rowCount) {
+            return reply.code(409).send({ error: 'email already in use' });
+          }
+          updates.email = lower;
+        }
+      }
+      if (updates.name) {
+        await pool.query('UPDATE app_user SET name = $1 WHERE id = $2', [
+          updates.name,
+          req.user.id,
+        ]);
+      }
+      if (updates.email) {
+        await pool.query('UPDATE app_user SET email = $1 WHERE id = $2', [
+          updates.email,
+          req.user.id,
+        ]);
+      }
+      return {
+        ...req.user,
+        name: updates.name ?? req.user.name,
+        email: updates.email ?? req.user.email,
+      };
+    },
+  );
+
+  app.put<{ Body: { current_password?: string; new_password?: string } }>(
+    '/api/auth/password',
+    async (req, reply) => {
+      if (!req.user) return reply.code(401).send({ error: 'not signed in' });
+      const current = req.body?.current_password ?? '';
+      const next = req.body?.new_password ?? '';
+      if (!current || !next) {
+        return reply.code(400).send({ error: 'missing fields' });
+      }
+      if (next.length < 8) {
+        return reply.code(400).send({ error: 'password too short' });
+      }
+      const { rows } = await pool.query<{ password_hash: string }>(
+        'SELECT password_hash FROM app_user WHERE id = $1',
+        [req.user.id],
+      );
+      if (!rows[0] || !(await verifyPassword(current, rows[0].password_hash))) {
+        return reply.code(401).send({ error: 'current password is incorrect' });
+      }
+      const hash = await hashPassword(next);
+      await pool.query('UPDATE app_user SET password_hash = $1 WHERE id = $2', [
+        hash,
+        req.user.id,
+      ]);
+      return { ok: true };
+    },
+  );
 }
 
 /**

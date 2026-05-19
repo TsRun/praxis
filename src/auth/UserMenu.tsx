@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { useAuth } from './AuthContext';
 import { ALL_ROLES, type Role } from '../lib/api';
 import { Avatar, Btn, Chip } from '../components/ui/atoms';
@@ -96,28 +97,35 @@ export function UserMenu() {
                   </Chip>
                 ))}
               </div>
-              <button
-                type="button"
-                onClick={() => setEditing(true)}
+              <Link
+                to="/settings"
+                onClick={() => setOpen(false)}
                 style={{
-                  textAlign: 'left',
-                  background: 'transparent',
-                  border: 0,
                   color: 'var(--text-dim)',
                   fontSize: 12,
-                  cursor: 'pointer',
-                  padding: 0,
+                  textDecoration: 'none',
                 }}
               >
-                Manage roles →
-              </button>
+                Open settings →
+              </Link>
               <div
                 style={{
                   borderTop: '1px solid var(--hairline)',
                   paddingTop: 10,
                   display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  gap: 6,
                 }}
               >
+                <Btn
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setEditing(true)}
+                  style={{ color: 'var(--text-dim)' }}
+                >
+                  Quick roles
+                </Btn>
                 <Btn
                   variant="ghost"
                   size="sm"

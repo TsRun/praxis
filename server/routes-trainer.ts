@@ -1,6 +1,11 @@
 import type { FastifyInstance } from 'fastify';
 import type { Pool } from 'pg';
-import { sendStudentLinkedEmail, sendAssignmentEmail } from './email.js';
+import { randomBytes } from 'node:crypto';
+import {
+  sendStudentLinkedEmail,
+  sendAssignmentEmail,
+  sendInviteEmail,
+} from './email.js';
 import { requireTrainer, requireAuthor, requireUser } from './auth-guards.js';
 import {
   parsePgnWithVariations,
@@ -74,6 +79,82 @@ export async function trainerRoutes(app: FastifyInstance, opts: { pool: Pool }) 
         mode: 'linked-existing',
         student_user_id: candidate.id,
       };
+    },
+  );
+
+  // Invite by email. Creates an invite row + token, emails the magic link.
+  // Used when no signed-in user matches the nickname.
+  app.post<{ Body: { email?: string; name?: string } }>(
+    '/api/trainer/invites/email',
+    { preHandler: requireTrainer },
+    async (req, reply) => {
+      const trainerId = req.user!.id;
+      const email = (req.body?.email ?? '').trim().toLowerCase();
+      if (!email || !email.includes('@')) {
+        return reply.code(400).send({ error: 'valid email required' });
+      }
+      const suggested = (email.split('@')[0] ?? '')
+        .replace(/[^a-zA-Z0-9_]+/g, '_')
+        .replace(/^_+|_+$/g, '')
+        .slice(0, 24);
+      const studentName =
+        (req.body?.name ?? '').trim() || suggested || 'student';
+
+      // If a user with this email already exists, prefer linking directly
+      // instead of issuing a magic link they won't need.
+      const existing = await pool.query<{
+        id: number;
+        name: string;
+        email: string;
+      }>('SELECT id, name, email FROM app_user WHERE LOWER(email) = $1', [email]);
+      if (existing.rows[0]) {
+        const user = existing.rows[0];
+        await pool.query(
+          `INSERT INTO mentor (trainer_user_id, student_user_id) VALUES ($1, $2)
+             ON CONFLICT DO NOTHING`,
+          [trainerId, user.id],
+        );
+        await pool.query(
+          `UPDATE app_user SET roles = ARRAY(SELECT DISTINCT unnest(roles || ARRAY['student'])) WHERE id = $1`,
+          [user.id],
+        );
+        const tr = await pool.query<{ name: string }>(
+          'SELECT name FROM app_user WHERE id = $1',
+          [trainerId],
+        );
+        try {
+          await sendStudentLinkedEmail({
+            to: user.email,
+            trainerName: tr.rows[0]?.name ?? 'A trainer',
+            studentName: user.name,
+          });
+        } catch (e) {
+          console.warn('[invite/email] linked-email failed:', (e as Error).message);
+        }
+        return { ok: true, mode: 'linked-existing', student_user_id: user.id };
+      }
+
+      const token = randomBytes(24).toString('base64url');
+      await pool.query(
+        `INSERT INTO invite (token, trainer_user_id, student_email, student_name, expires_at)
+         VALUES ($1, $2, $3, $4, NOW() + INTERVAL '14 days')`,
+        [token, trainerId, email, studentName],
+      );
+      const tr = await pool.query<{ name: string }>(
+        'SELECT name FROM app_user WHERE id = $1',
+        [trainerId],
+      );
+      try {
+        await sendInviteEmail({
+          to: email,
+          trainerName: tr.rows[0]?.name ?? 'A trainer',
+          studentName,
+          token,
+        });
+      } catch (e) {
+        console.warn('[invite/email] send failed:', (e as Error).message);
+      }
+      return { ok: true, mode: 'invited', token };
     },
   );
 
