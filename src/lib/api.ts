@@ -83,11 +83,27 @@ export interface StudentDetail {
   }[];
 }
 
+export interface LinkCandidate {
+  id: number;
+  name: string;
+}
+
 export const trainer = {
-  invite: (email: string, name: string) =>
-    api.post<{ ok: true; mode: 'linked-existing' | 'invited'; student_user_id?: number }>(
+  /**
+   * Link an existing signed-in user as your student by nickname (case-
+   * insensitive exact match). If multiple users share that nickname the
+   * server returns 409 with a `candidates` list and the caller should
+   * retry passing one of those user_ids.
+   */
+  link: (name: string) =>
+    api.post<{ ok: true; mode: 'linked-existing'; student_user_id: number }>(
       '/api/trainer/invites',
-      { email, name },
+      { name },
+    ),
+  linkById: (user_id: number) =>
+    api.post<{ ok: true; mode: 'linked-existing'; student_user_id: number }>(
+      '/api/trainer/invites',
+      { user_id },
     ),
   students: () => api.get<StudentRow[]>('/api/trainer/students'),
 };

@@ -23,7 +23,7 @@ export function StudentsPage() {
           onClick={() => setShowInvite(true)}
           className="ml-auto bg-amber-500 hover:bg-amber-400 text-zinc-950 px-3 py-1.5 rounded font-medium"
         >
-          + Invite student
+          + Add student
         </button>
       </div>
       {!rows && <p className="text-zinc-500">Loading…</p>}
