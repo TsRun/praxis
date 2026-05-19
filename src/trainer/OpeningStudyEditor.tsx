@@ -15,6 +15,7 @@ import { ConfirmDialog } from '../components/ui/ConfirmDialog';
 import { TreeGraph } from '../components/opening/TreeGraph';
 import { ChaptersOutline } from '../components/opening/ChaptersOutline';
 import { useOpeningTreeNav } from '../hooks/useOpeningTreeNav';
+import { ImportLichessDialog } from './ImportLichessDialog';
 
 type ViewMode = 'tree' | 'chapters';
 
@@ -26,6 +27,7 @@ export function OpeningStudyEditor() {
   const [busy, setBusy] = useState(false);
   const [confirmDeleteNode, setConfirmDeleteNode] = useState<TreeNode | null>(null);
   const [mode, setMode] = useState<ViewMode>('tree');
+  const [showImport, setShowImport] = useState(false);
 
   useEffect(() => {
     trainerStudies.get(numId).then((s) => {
@@ -90,27 +92,35 @@ export function OpeningStudyEditor() {
           plays {study.side === 'w' ? 'white' : 'black'} · {study.nodes.length} positions ·{' '}
           {study.chapters.length} chapters
         </div>
-        <div className="ml-auto inline-flex bg-zinc-900/60 ring-1 ring-zinc-800 rounded-lg overflow-hidden text-xs">
+        <div className="ml-auto flex items-center gap-2">
           <button
-            onClick={() => setMode('tree')}
-            className={`px-3 py-1 ${
-              mode === 'tree'
-                ? 'bg-amber-400/15 text-amber-200'
-                : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/60'
-            }`}
+            onClick={() => setShowImport(true)}
+            className="text-xs text-zinc-400 hover:text-amber-300 px-3 py-1 rounded ring-1 ring-zinc-800 hover:ring-amber-400/40"
           >
-            Tree
+            Import from Lichess
           </button>
-          <button
-            onClick={() => setMode('chapters')}
-            className={`px-3 py-1 ${
-              mode === 'chapters'
-                ? 'bg-amber-400/15 text-amber-200'
-                : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/60'
-            }`}
-          >
-            Chapters
-          </button>
+          <div className="inline-flex bg-zinc-900/60 ring-1 ring-zinc-800 rounded-lg overflow-hidden text-xs">
+            <button
+              onClick={() => setMode('tree')}
+              className={`px-3 py-1 ${
+                mode === 'tree'
+                  ? 'bg-amber-400/15 text-amber-200'
+                  : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/60'
+              }`}
+            >
+              Tree
+            </button>
+            <button
+              onClick={() => setMode('chapters')}
+              className={`px-3 py-1 ${
+                mode === 'chapters'
+                  ? 'bg-amber-400/15 text-amber-200'
+                  : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/60'
+              }`}
+            >
+              Chapters
+            </button>
+          </div>
         </div>
       </header>
 
@@ -238,6 +248,16 @@ export function OpeningStudyEditor() {
           />
         </div>
       )}
+
+      <ImportLichessDialog
+        open={showImport}
+        studyId={study.id}
+        onClose={() => setShowImport(false)}
+        onImported={async () => {
+          const refreshed = await trainerStudies.get(study.id);
+          setStudy(refreshed);
+        }}
+      />
 
       <ConfirmDialog
         open={confirmDeleteNode != null}

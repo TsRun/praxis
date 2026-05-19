@@ -161,7 +161,36 @@ export const trainerStudies = {
       title,
       body_md,
     }),
+  importPreview: (id: number, pgn: string) =>
+    api.post<{ chapters: LichessChapterPreview[] }>(
+      `/api/trainer/studies/opening/${id}/import-preview`,
+      { pgn },
+    ),
+  importLichess: (id: number, pgn: string, chapter_indexes: number[]) =>
+    api.post<ImportResult>(
+      `/api/trainer/studies/opening/${id}/import`,
+      { pgn, chapter_indexes },
+    ),
 };
+
+export interface LichessChapterPreview {
+  index: number;
+  name: string;
+  mainline_move_count: number;
+  root_fen: string;
+  matches_study_root: boolean;
+}
+
+export interface ImportResult {
+  imported_chapters: number;
+  imported_nodes: number;
+  reused_nodes: number;
+  skipped: {
+    kind: 'chapter-exists' | 'fen-mismatch' | 'parse-error';
+    name?: string;
+    reason: string;
+  }[];
+}
 
 export interface GameStudySummary {
   id: number;
