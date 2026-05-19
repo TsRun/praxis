@@ -8,6 +8,8 @@ interface AuthState {
   signup: (email: string, password: string, name: string, roles: Role[], inviteToken?: string) => Promise<void>;
   signout: () => Promise<void>;
   setRoles: (roles: Role[]) => Promise<void>;
+  updateProfile: (patch: { name?: string; email?: string }) => Promise<void>;
+  updatePassword: (currentPassword: string, newPassword: string) => Promise<void>;
 }
 
 const Ctx = createContext<AuthState | null>(null);
@@ -33,9 +35,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const setRoles = async (roles: Role[]) => {
     setUser(await auth.setRoles(roles));
   };
+  const updateProfile = async (patch: { name?: string; email?: string }) => {
+    setUser(await auth.updateProfile(patch));
+  };
+  const updatePassword = async (currentPassword: string, newPassword: string) => {
+    await auth.updatePassword(currentPassword, newPassword);
+  };
 
   return (
-    <Ctx.Provider value={{ user, loading, signin, signup, signout, setRoles }}>
+    <Ctx.Provider
+      value={{
+        user,
+        loading,
+        signin,
+        signup,
+        signout,
+        setRoles,
+        updateProfile,
+        updatePassword,
+      }}
+    >
       {children}
     </Ctx.Provider>
   );

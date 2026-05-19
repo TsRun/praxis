@@ -1,43 +1,42 @@
-import { useState, type FormEvent } from 'react';
-import { trainer, type LinkCandidate } from '../lib/api';
-import { Btn, Avatar } from '../components/ui/atoms';
-import { IconSearch, IconX } from '../components/ui/Icons';
+import { useState, useRef, type FormEvent } from 'react';
+import { trainer } from '../lib/api';
+import { Btn } from '../components/ui/atoms';
+import { IconSearch, IconX, IconCheck } from '../components/ui/Icons';
 
-type Ambig = { kind: 'ambiguous'; candidates: LinkCandidate[] };
+type Mode = 'nickname' | 'email';
 
 export function InviteStudentDialog({ onClose }: { onClose: () => void }) {
+  const [mode, setMode] = useState<Mode>('nickname');
   const [name, setName] = useState('');
+  const [email, setEmail] = useState('');
+  const [emailName, setEmailName] = useState('');
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
-  const [ambig, setAmbig] = useState<Ambig | null>(null);
+  const [sent, setSent] = useState<
+    | { kind: 'invited'; email: string }
+    | { kind: 'linked'; name: string }
+    | null
+  >(null);
 
-  async function submit(e: FormEvent) {
+  async function submitNickname(e: FormEvent) {
     e.preventDefault();
     if (!name.trim()) return;
     setBusy(true);
     setErr(null);
-    setAmbig(null);
     try {
       await trainer.link(name.trim());
       onClose();
     } catch (e) {
       const msg = (e as Error).message ?? '';
-      try {
-        const res = await fetch('/api/trainer/invites', {
-          method: 'POST',
-          credentials: 'include',
-          headers: { 'content-type': 'application/json' },
-          body: JSON.stringify({ name: name.trim() }),
-        });
-        if (res.status === 409) {
-          const body = (await res.json()) as { candidates: LinkCandidate[] };
-          setAmbig({ kind: 'ambiguous', candidates: body.candidates });
-        } else if (res.status === 404) {
-          setErr(`No signed-in user has the nickname "${name.trim()}".`);
-        } else if (!res.ok) {
-          setErr(msg);
-        }
-      } catch {
+      if (msg.includes('multiple users')) {
+        setErr(
+          `Multiple users share that nickname — ask your student to set a unique one before linking.`,
+        );
+      } else if (msg.includes('no signed-in user')) {
+        setErr(
+          `No signed-in user has the nickname "${name.trim()}". Invite them by email instead.`,
+        );
+      } else {
         setErr(msg);
       }
     } finally {
@@ -45,12 +44,24 @@ export function InviteStudentDialog({ onClose }: { onClose: () => void }) {
     }
   }
 
-  async function linkById(id: number) {
+  async function submitEmail(e: FormEvent) {
+    e.preventDefault();
+    if (!email.trim()) return;
     setBusy(true);
     setErr(null);
     try {
-      await trainer.linkById(id);
-      onClose();
+      const res = await trainer.inviteByEmail(
+        email.trim(),
+        emailName.trim() || undefined,
+      );
+      if (res.mode === 'linked-existing') {
+        setSent({
+          kind: 'linked',
+          name: emailName.trim() || email.split('@')[0],
+        });
+      } else {
+        setSent({ kind: 'invited', email: email.trim() });
+      }
     } catch (e) {
       setErr((e as Error).message);
     } finally {
@@ -58,17 +69,22 @@ export function InviteStudentDialog({ onClose }: { onClose: () => void }) {
     }
   }
 
+  function switchMode(next: Mode) {
+    setMode(next);
+    setErr(null);
+  }
+
   return (
     <div className="modal-backdrop" onClick={onClose}>
-      <form
-        onSubmit={submit}
+      <div
         onClick={(e) => e.stopPropagation()}
         style={{
           width: 520,
           padding: 24,
           background: 'var(--card-bg)',
           borderRadius: 16,
-          boxShadow: 'var(--card-shadow), 0 30px 80px -20px rgba(0,0,0,0.6)',
+          boxShadow:
+            'var(--card-shadow), 0 30px 80px -20px rgba(0,0,0,0.6)',
           display: 'flex',
           flexDirection: 'column',
         }}
@@ -86,143 +102,371 @@ export function InviteStudentDialog({ onClose }: { onClose: () => void }) {
             <IconX size={14} strokeWidth={2.4} />
           </Btn>
         </div>
-        <div
-          style={{
-            color: 'var(--text-dim)',
-            fontSize: 13.5,
-            marginBottom: 18,
-          }}
-        >
-          Type a nickname. If they already use Praxis we'll link them and send
-          a notification email.
-        </div>
 
-        <div style={{ position: 'relative', marginBottom: 16 }}>
-          <IconSearch
-            size={14}
-            strokeWidth={2.4}
-            style={{
-              position: 'absolute',
-              left: 14,
-              top: '50%',
-              transform: 'translateY(-50%)',
-              color: 'var(--text-faint)',
-              pointerEvents: 'none',
-            }}
-          />
-          <input
-            autoFocus
-            className="input input-lg"
-            placeholder="student nickname"
-            value={name}
-            onChange={(e) => {
-              setName(e.target.value);
-              setAmbig(null);
+        {sent ? (
+          <SentBanner sent={sent} onDone={onClose} />
+        ) : mode === 'nickname' ? (
+          <NicknameForm
+            name={name}
+            setName={(v) => {
+              setName(v);
               setErr(null);
             }}
-            style={{ paddingLeft: 38 }}
+            busy={busy}
+            err={err}
+            onSubmit={submitNickname}
+            onSwitchToEmail={() => switchMode('email')}
+            onCancel={onClose}
           />
-        </div>
-
-        {ambig && (
-          <div
-            style={{
-              marginTop: 6,
-              background: 'var(--inset-bg)',
-              border: '1px solid var(--inset-border)',
-              borderRadius: 12,
-              maxHeight: 240,
-              overflow: 'auto',
-            }}
-          >
-            <div
-              style={{
-                padding: '10px 12px',
-                fontSize: 12,
-                color: 'var(--accent)',
-              }}
-            >
-              Multiple users share that nickname — pick the right one:
-            </div>
-            {ambig.candidates.map((c) => (
-              <button
-                key={c.id}
-                type="button"
-                disabled={busy}
-                onClick={() => linkById(c.id)}
-                style={{
-                  width: '100%',
-                  textAlign: 'left',
-                  background: 'transparent',
-                  border: 0,
-                  padding: '10px 12px',
-                  display: 'grid',
-                  gridTemplateColumns: '32px 1fr auto',
-                  gap: 10,
-                  alignItems: 'center',
-                  cursor: 'pointer',
-                  color: 'var(--text)',
-                }}
-              >
-                <Avatar name={c.name} />
-                <div className="mono" style={{ fontSize: 14 }}>{c.name}</div>
-                <span
-                  style={{ fontSize: 11, color: 'var(--text-faint)' }}
-                >
-                  #{c.id}
-                </span>
-              </button>
-            ))}
-          </div>
+        ) : (
+          <EmailForm
+            email={email}
+            setEmail={setEmail}
+            emailName={emailName}
+            setEmailName={setEmailName}
+            busy={busy}
+            err={err}
+            onSubmit={submitEmail}
+            onSwitchToNickname={() => switchMode('nickname')}
+            onCancel={onClose}
+          />
         )}
+      </div>
+    </div>
+  );
+}
 
-        <div
+function NicknameForm({
+  name,
+  setName,
+  busy,
+  err,
+  onSubmit,
+  onSwitchToEmail,
+  onCancel,
+}: {
+  name: string;
+  setName: (v: string) => void;
+  busy: boolean;
+  err: string | null;
+  onSubmit: (e: FormEvent) => void;
+  onSwitchToEmail: () => void;
+  onCancel: () => void;
+}) {
+  return (
+    <form onSubmit={onSubmit} style={{ display: 'flex', flexDirection: 'column' }}>
+      <div
+        style={{
+          color: 'var(--text-dim)',
+          fontSize: 13.5,
+          marginBottom: 18,
+        }}
+      >
+        Type a nickname. If they already use Praxis we'll link them and send a
+        notification email.
+      </div>
+      <div style={{ position: 'relative', marginBottom: 16 }}>
+        <IconSearch
+          size={14}
+          strokeWidth={2.4}
           style={{
-            padding: '10px 12px',
-            borderRadius: 10,
-            background: 'var(--inset-bg)',
-            border: '1px solid var(--inset-border)',
+            position: 'absolute',
+            left: 14,
+            top: '50%',
+            transform: 'translateY(-50%)',
+            color: 'var(--text-faint)',
+            pointerEvents: 'none',
+          }}
+        />
+        <input
+          autoFocus
+          className="input input-lg"
+          placeholder="student nickname"
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          style={{ paddingLeft: 38 }}
+        />
+      </div>
+
+      <div
+        style={{
+          padding: '10px 12px',
+          borderRadius: 10,
+          background: 'var(--inset-bg)',
+          border: '1px solid var(--inset-border)',
+          fontSize: 12,
+          color: 'var(--text-dim)',
+          lineHeight: 1.5,
+          marginTop: 14,
+        }}
+      >
+        Can't find them?{' '}
+        <button
+          type="button"
+          onClick={onSwitchToEmail}
+          className="link"
+          style={{
+            background: 'transparent',
+            border: 0,
+            padding: 0,
+            cursor: 'pointer',
+            font: 'inherit',
+          }}
+        >
+          Invite by email
+        </button>{' '}
+        — they'll get a magic link to claim the nickname.
+      </div>
+
+      {err && (
+        <div style={{ fontSize: 12, color: 'var(--danger)', marginTop: 12 }}>
+          {err}
+        </div>
+      )}
+
+      <div
+        style={{
+          display: 'flex',
+          gap: 10,
+          marginTop: 22,
+          justifyContent: 'flex-end',
+        }}
+      >
+        <Btn variant="ghost" type="button" onClick={onCancel}>
+          Cancel
+        </Btn>
+        <Btn variant="primary" disabled={busy || !name.trim()} type="submit">
+          {busy ? 'Linking…' : 'Send invite'}
+        </Btn>
+      </div>
+    </form>
+  );
+}
+
+function suggestNickFromEmail(email: string): string {
+  const local = email.split('@')[0] ?? '';
+  return local
+    .replace(/[^a-zA-Z0-9_]+/g, '_')
+    .replace(/^_+|_+$/g, '')
+    .slice(0, 24);
+}
+
+function EmailForm({
+  email,
+  setEmail,
+  emailName,
+  setEmailName,
+  busy,
+  err,
+  onSubmit,
+  onSwitchToNickname,
+  onCancel,
+}: {
+  email: string;
+  setEmail: (v: string) => void;
+  emailName: string;
+  setEmailName: (v: string) => void;
+  busy: boolean;
+  err: string | null;
+  onSubmit: (e: FormEvent) => void;
+  onSwitchToNickname: () => void;
+  onCancel: () => void;
+}) {
+  // Track whether the user has typed in the name field themselves. If they
+  // haven't, follow the email-derived suggestion as they type.
+  const nameTouchedRef = useRef(false);
+  const suggestion =
+    email.includes('@') ? suggestNickFromEmail(email) : '';
+
+  function onEmailChange(v: string) {
+    setEmail(v);
+    if (!nameTouchedRef.current) {
+      setEmailName(suggestNickFromEmail(v));
+    }
+  }
+
+  return (
+    <form onSubmit={onSubmit} style={{ display: 'flex', flexDirection: 'column' }}>
+      <div
+        style={{
+          color: 'var(--text-dim)',
+          fontSize: 13.5,
+          marginBottom: 18,
+        }}
+      >
+        Enter the student's email. They'll get a magic link to create their
+        account; once they accept, they'll be linked to you as a student.
+      </div>
+
+      <label
+        style={{
+          fontSize: 12,
+          fontWeight: 500,
+          color: 'var(--text-dim)',
+          marginBottom: 6,
+        }}
+      >
+        Email
+      </label>
+      <input
+        autoFocus
+        className="input input-lg"
+        type="email"
+        placeholder="student@example.com"
+        value={email}
+        onChange={(e) => onEmailChange(e.target.value)}
+        style={{ marginBottom: 14 }}
+      />
+
+      <label
+        style={{
+          fontSize: 12,
+          fontWeight: 500,
+          color: 'var(--text-dim)',
+          marginBottom: 6,
+          display: 'flex',
+          gap: 6,
+          alignItems: 'baseline',
+        }}
+      >
+        Suggested nickname
+        <span style={{ color: 'var(--text-faint)', fontWeight: 400 }}>
+          (we'll suggest this if they don't pick their own)
+        </span>
+      </label>
+      <input
+        className="input"
+        placeholder={suggestion || 'how to greet them in the email'}
+        value={emailName}
+        onChange={(e) => {
+          nameTouchedRef.current = true;
+          setEmailName(e.target.value);
+        }}
+      />
+      {suggestion && emailName !== suggestion && (
+        <button
+          type="button"
+          onClick={() => {
+            nameTouchedRef.current = false;
+            setEmailName(suggestion);
+          }}
+          className="link"
+          style={{
+            background: 'transparent',
+            border: 0,
+            padding: 0,
+            cursor: 'pointer',
             fontSize: 12,
-            color: 'var(--text-dim)',
-            lineHeight: 1.5,
-            marginTop: 14,
+            marginTop: 6,
+            alignSelf: 'flex-start',
           }}
         >
-          Can't find them?{' '}
-          <a href="#" className="link">
-            Invite by email
-          </a>{' '}
-          — they'll get a magic link to claim the nickname.
+          Use suggestion: <span className="mono">{suggestion}</span>
+        </button>
+      )}
+
+      {err && (
+        <div style={{ fontSize: 12, color: 'var(--danger)', marginTop: 12 }}>
+          {err}
         </div>
+      )}
 
-        {err && (
-          <div
-            style={{ fontSize: 12, color: 'var(--danger)', marginTop: 12 }}
-          >
-            {err}
-          </div>
-        )}
-
-        <div
+      <div
+        style={{
+          display: 'flex',
+          gap: 10,
+          marginTop: 22,
+          justifyContent: 'space-between',
+          alignItems: 'center',
+        }}
+      >
+        <button
+          type="button"
+          onClick={onSwitchToNickname}
           style={{
-            display: 'flex',
-            gap: 10,
-            marginTop: 22,
-            justifyContent: 'flex-end',
+            background: 'transparent',
+            border: 0,
+            padding: 0,
+            cursor: 'pointer',
+            color: 'var(--text-dim)',
+            fontSize: 13,
           }}
         >
-          <Btn variant="ghost" type="button" onClick={onClose}>
+          ← Search by nickname instead
+        </button>
+        <div style={{ display: 'flex', gap: 10 }}>
+          <Btn variant="ghost" type="button" onClick={onCancel}>
             Cancel
           </Btn>
           <Btn
             variant="primary"
-            disabled={busy || !name.trim()}
+            disabled={busy || !email.includes('@')}
             type="submit"
           >
-            {busy ? 'Linking…' : 'Send invite'}
+            {busy ? 'Sending…' : 'Send invite'}
           </Btn>
         </div>
-      </form>
+      </div>
+    </form>
+  );
+}
+
+function SentBanner({
+  sent,
+  onDone,
+}: {
+  sent: { kind: 'invited'; email: string } | { kind: 'linked'; name: string };
+  onDone: () => void;
+}) {
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 14, marginTop: 8 }}>
+      <div
+        style={{
+          display: 'flex',
+          gap: 12,
+          alignItems: 'flex-start',
+          padding: '14px 16px',
+          borderRadius: 10,
+          background: 'var(--success-bg)',
+          boxShadow: 'inset 0 0 0 1px rgba(52,211,153,0.30)',
+          color: 'var(--text)',
+          fontSize: 13.5,
+        }}
+      >
+        <div
+          style={{
+            width: 28,
+            height: 28,
+            borderRadius: 999,
+            background: 'rgba(52,211,153,0.18)',
+            color: 'var(--success)',
+            display: 'inline-flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            flexShrink: 0,
+          }}
+        >
+          <IconCheck size={16} strokeWidth={2.6} />
+        </div>
+        <div>
+          {sent.kind === 'invited' ? (
+            <>
+              Magic-link invite sent to <strong>{sent.email}</strong>. They'll
+              show up in your roster once they accept it (valid for 14 days).
+            </>
+          ) : (
+            <>
+              <strong>{sent.name}</strong> already had a Praxis account. They've
+              been linked as your student.
+            </>
+          )}
+        </div>
+      </div>
+      <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+        <Btn variant="primary" onClick={onDone}>
+          Done
+        </Btn>
+      </div>
     </div>
   );
 }

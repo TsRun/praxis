@@ -42,6 +42,13 @@ export const auth = {
       inviteToken ? { 'X-Invite-Token': inviteToken } : undefined),
   signout: () => api.post<{ ok: true }>('/api/auth/signout'),
   setRoles: (roles: Role[]) => api.put<CurrentUser>('/api/auth/roles', { roles }),
+  updateProfile: (patch: { name?: string; email?: string }) =>
+    api.put<CurrentUser>('/api/auth/profile', patch),
+  updatePassword: (current_password: string, new_password: string) =>
+    api.put<{ ok: true }>('/api/auth/password', {
+      current_password,
+      new_password,
+    }),
 };
 
 export interface InviteInfo {
@@ -83,28 +90,27 @@ export interface StudentDetail {
   }[];
 }
 
-export interface LinkCandidate {
-  id: number;
-  name: string;
-}
-
 export const trainer = {
   /**
    * Link an existing signed-in user as your student by nickname (case-
-   * insensitive exact match). If multiple users share that nickname the
-   * server returns 409 with a `candidates` list and the caller should
-   * retry passing one of those user_ids.
+   * insensitive exact match). On 409 the server reports an ambiguous
+   * nickname; the caller should advise the student to pick a unique one.
    */
   link: (name: string) =>
     api.post<{ ok: true; mode: 'linked-existing'; student_user_id: number }>(
       '/api/trainer/invites',
       { name },
     ),
-  linkById: (user_id: number) =>
-    api.post<{ ok: true; mode: 'linked-existing'; student_user_id: number }>(
-      '/api/trainer/invites',
-      { user_id },
-    ),
+  /**
+   * Send a magic-link email invite when the student doesn't yet have an
+   * account. If a user already exists with this email, the server links
+   * them directly and reports `mode: 'linked-existing'` instead.
+   */
+  inviteByEmail: (email: string, name?: string) =>
+    api.post<
+      | { ok: true; mode: 'invited'; token: string }
+      | { ok: true; mode: 'linked-existing'; student_user_id: number }
+    >('/api/trainer/invites/email', { email, name }),
   students: () => api.get<StudentRow[]>('/api/trainer/students'),
 };
 

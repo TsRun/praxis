@@ -59,6 +59,37 @@ function subtreeSize(nodes: OpeningNode[], id: number): number {
   return 1 + kids.reduce((s, k) => s + subtreeSize(nodes, k.id), 0);
 }
 
+/**
+ * The chapter that "owns" a node. A chapter is a subpart of the study: it
+ * starts at its `node_id` and covers every descendant until a deeper
+ * descendant starts its own chapter. The active chapter for a node is the
+ * nearest ancestor (inclusive) that has a chapter assignment.
+ *
+ * Use `makeChapterLookup(study)` when calling this inside a render loop so
+ * the parent/chapter maps are built once instead of per-node.
+ */
+type ChapterLookup = (nodeId: number) =>
+  | { node: OpeningNode; chapter: OpeningChapter }
+  | null;
+
+function makeChapterLookup(study: OpeningStudyFull): ChapterLookup {
+  const byId = new Map(study.nodes.map((n) => [n.id, n] as const));
+  const chapByNode = new Map(
+    study.chapters.map((c) => [c.node_id, c] as const),
+  );
+  return (nodeId: number) => {
+    let cursor: number | null = nodeId;
+    while (cursor != null) {
+      const node = byId.get(cursor);
+      if (!node) break;
+      const chap = chapByNode.get(cursor);
+      if (chap?.title) return { node, chapter: chap };
+      cursor = node.parent_id;
+    }
+    return null;
+  };
+}
+
 /** Count chapters in the subtree rooted at `id` (including `id` itself). */
 function chaptersInSubtree(
   nodes: OpeningNode[],
@@ -127,6 +158,11 @@ export function OpeningStudyEditor() {
 
   const path = pathToNode(study.nodes, currentNodeId);
   const chaptersSet = new Set(study.chapters.map((c) => c.node_id));
+  const transpositions = currentNode
+    ? study.nodes.filter(
+        (n) => n.id !== currentNode.id && n.fen === currentNode.fen,
+      )
+    : [];
 
   async function onAddChild(
     parentNode: OpeningNode | null,
@@ -359,6 +395,14 @@ export function OpeningStudyEditor() {
         </div>
       </div>
 
+      {transpositions.length > 0 && (
+        <TranspositionBar
+          study={study}
+          matches={transpositions}
+          onSelect={setCurrentNodeId}
+        />
+      )}
+
       {mode === 'tree' ? (
         <div
           style={{
@@ -401,54 +445,15 @@ export function OpeningStudyEditor() {
             />
 
             {currentNode && (
-              <Card
-                style={{
-                  padding: '14px 16px',
-                  display: 'flex',
-                  gap: 14,
-                  alignItems: 'flex-start',
-                  borderLeft: currentChapter
-                    ? '3px solid var(--success)'
-                    : '3px solid transparent',
-                }}
-              >
-                <span
-                  className={currentChapter ? 'dot-chapter' : ''}
-                  style={{ marginTop: 8 }}
-                />
-                <input
-                  key={currentNode.id}
-                  className="font-mono"
-                  placeholder="untitled chapter"
-                  defaultValue={currentChapter?.title ?? ''}
-                  onBlur={(e) => {
-                    const v = e.target.value.trim();
-                    if (v !== (currentChapter?.title ?? '')) {
-                      saveTitle(v);
-                    }
-                  }}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') (e.target as HTMLInputElement).blur();
-                  }}
-                  style={{
-                    flex: 1,
-                    background: 'transparent',
-                    border: 0,
-                    color: 'var(--text)',
-                    fontSize: 17,
-                    fontWeight: 600,
-                    letterSpacing: '-0.01em',
-                    outline: 'none',
-                    padding: 0,
-                    fontFamily: 'var(--font-sans)',
-                  }}
-                />
-                {busy && (
-                  <span className="meta" style={{ fontSize: 11 }}>
-                    Saving…
-                  </span>
-                )}
-              </Card>
+              <ChapterCard
+                key={currentNode.id}
+                study={study}
+                currentNode={currentNode}
+                ownChapter={currentChapter}
+                busy={busy}
+                onSaveTitle={saveTitle}
+                onJumpTo={setCurrentNodeId}
+              />
             )}
           </div>
 
@@ -579,6 +584,8 @@ function BoardWithBuild({
       mv = null;
     }
     if (!mv) return;
+
+    // Existing direct child for this SAN — common case, reuse it.
     const existing = findChildBySan(
       study.nodes,
       currentNode?.id ?? null,
@@ -588,6 +595,19 @@ function BoardWithBuild({
       onSelectExisting(existing.id);
       return;
     }
+
+    // Transposition: the resulting FEN already exists elsewhere in the tree
+    // (different move order). Jump to the canonical node instead of creating
+    // a duplicate. Prefer mainline matches when there's more than one.
+    const targetFen = chess.fen().split(' ').slice(0, 4).join(' ');
+    const fenMatches = study.nodes.filter((n) => n.fen === targetFen);
+    if (fenMatches.length > 0) {
+      const pick =
+        fenMatches.find((n) => n.is_main) ?? fenMatches[0];
+      onSelectExisting(pick.id);
+      return;
+    }
+
     await onAddChild(currentNode, currentFen, {
       from,
       to,
@@ -677,9 +697,7 @@ function CandidatesCard({
     (s, n) => s + subtreeSize(study.nodes, n.id),
     0,
   );
-  const titleByNode = new Map(
-    study.chapters.map((c) => [c.node_id, c.title] as const),
-  );
+  const chapterLookup = useMemo(() => makeChapterLookup(study), [study]);
 
   return (
     <Card style={{ padding: '16px 18px' }}>
@@ -727,8 +745,13 @@ function CandidatesCard({
             const share = totalSub
               ? Math.round((subtreeSize(study.nodes, c.id) / totalSub) * 100)
               : 0;
-            const chap = titleByNode.get(c.id) ?? null;
-            const chapsBelow = chaptersInSubtree(study.nodes, chaptersSet, c.id);
+            const active = chapterLookup(c.id);
+            const startsChapter = active?.node.id === c.id;
+            const subChapters = Math.max(
+              0,
+              chaptersInSubtree(study.nodes, chaptersSet, c.id) -
+                (startsChapter ? 1 : 0),
+            );
             const isMain = c.is_main;
             return (
               <button
@@ -778,7 +801,7 @@ function CandidatesCard({
                     minWidth: 0,
                   }}
                 >
-                  {chap && (
+                  {active ? (
                     <div
                       style={{
                         fontSize: 13.5,
@@ -787,9 +810,42 @@ function CandidatesCard({
                         whiteSpace: 'nowrap',
                         overflow: 'hidden',
                         textOverflow: 'ellipsis',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 6,
                       }}
                     >
-                      {chap}
+                      <span className="dot-chapter" />
+                      <span
+                        style={{
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                        }}
+                      >
+                        {active.chapter.title}
+                      </span>
+                      {!startsChapter && (
+                        <span
+                          style={{
+                            fontSize: 11,
+                            color: 'var(--text-faint)',
+                            fontWeight: 400,
+                            flexShrink: 0,
+                          }}
+                        >
+                          (inherited)
+                        </span>
+                      )}
+                    </div>
+                  ) : (
+                    <div
+                      style={{
+                        fontSize: 13.5,
+                        color: 'var(--text-faint)',
+                        fontWeight: 500,
+                      }}
+                    >
+                      not part of any chapter
                     </div>
                   )}
                   <div
@@ -801,25 +857,20 @@ function CandidatesCard({
                       gap: 6,
                     }}
                   >
-                    {chapsBelow === 0 ? (
-                      <span style={{ color: 'var(--text-faint)' }}>
-                        no chapters in this line
-                      </span>
-                    ) : (
+                    {subChapters > 0 && (
                       <>
-                        <span className="dot-chapter" />
                         <span>
                           <strong
                             className="mono"
                             style={{ color: 'var(--text)' }}
                           >
-                            {chapsBelow}
+                            {subChapters}
                           </strong>{' '}
-                          {chapsBelow === 1 ? 'chapter' : 'chapters'} in this line
+                          sub-{subChapters === 1 ? 'chapter' : 'chapters'} below
                         </span>
+                        <span style={{ color: 'var(--text-mute)' }}>·</span>
                       </>
                     )}
-                    <span style={{ color: 'var(--text-mute)' }}>·</span>
                     <span>
                       {sub} {sub === 1 ? 'position' : 'positions'} below
                     </span>
@@ -1251,6 +1302,208 @@ function ReadOnlyBoard({
   }, [fen, lastMove, flip]);
 
   return <div ref={ref} style={{ width: 520, height: 520 }} />;
+}
+
+/* ────────────────────────── Chapter card (under board) ─────────────────── */
+
+function ChapterCard({
+  study,
+  currentNode,
+  ownChapter,
+  busy,
+  onSaveTitle,
+  onJumpTo,
+}: {
+  study: OpeningStudyFull;
+  currentNode: OpeningNode;
+  ownChapter: OpeningChapter | null;
+  busy: boolean;
+  onSaveTitle: (value: string) => void;
+  onJumpTo: (id: number) => void;
+}) {
+  const owns = ownChapter != null;
+  // Look upstream from the parent so we only ever describe the chapter we
+  // inherit — if this node already owns one, the inherited copy is itself.
+  const inherited =
+    !owns && currentNode.parent_id != null
+      ? makeChapterLookup(study)(currentNode.parent_id)
+      : null;
+
+  return (
+    <Card
+      style={{
+        padding: '14px 16px',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: 10,
+        borderLeft: owns
+          ? '3px solid var(--success)'
+          : inherited
+            ? '3px solid var(--accent-ring)'
+            : '3px solid transparent',
+      }}
+    >
+      {inherited && (
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 8,
+            fontSize: 12,
+            color: 'var(--text-dim)',
+          }}
+        >
+          <span className="dot-chapter" />
+          In chapter
+          <button
+            type="button"
+            onClick={() => onJumpTo(inherited.node.id)}
+            className="link"
+            style={{
+              background: 'transparent',
+              border: 0,
+              padding: 0,
+              cursor: 'pointer',
+              fontWeight: 500,
+            }}
+          >
+            {inherited.chapter.title}
+          </button>
+          <span className="meta" style={{ fontSize: 11 }}>
+            (starts at {plyLabel(inherited.node.ply)} {inherited.node.san})
+          </span>
+        </div>
+      )}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+        <input
+          className="font-mono"
+          placeholder={
+            inherited
+              ? 'Start a new chapter at this position…'
+              : 'untitled chapter'
+          }
+          defaultValue={ownChapter?.title ?? ''}
+          onBlur={(e) => {
+            const v = e.target.value.trim();
+            if (v !== (ownChapter?.title ?? '')) onSaveTitle(v);
+          }}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') (e.target as HTMLInputElement).blur();
+          }}
+          style={{
+            flex: 1,
+            background: 'transparent',
+            border: 0,
+            color: 'var(--text)',
+            fontSize: 17,
+            fontWeight: 600,
+            letterSpacing: '-0.01em',
+            outline: 'none',
+            padding: 0,
+            fontFamily: 'var(--font-sans)',
+          }}
+        />
+        {busy && (
+          <span className="meta" style={{ fontSize: 11 }}>
+            Saving…
+          </span>
+        )}
+      </div>
+    </Card>
+  );
+}
+
+/* ────────────────────────── Transposition bar ───────────────────────────── */
+
+function TranspositionBar({
+  study,
+  matches,
+  onSelect,
+}: {
+  study: OpeningStudyFull;
+  matches: OpeningNode[];
+  onSelect: (id: number) => void;
+}) {
+  const visible = matches.slice(0, 3);
+  const hidden = matches.length - visible.length;
+  const titleByNode = new Map(
+    study.chapters.map((c) => [c.node_id, c.title] as const),
+  );
+
+  function shortLine(nodeId: number): string {
+    const full = pathToNode(study.nodes, nodeId);
+    // last 5 plies (or full line if short) gives enough context without bloat
+    const tail = full.length > 5 ? full.slice(-5) : full;
+    const prefix = full.length > 5 ? '… ' : '';
+    return (
+      prefix +
+      tail
+        .map((n) =>
+          n.ply % 2 === 1 ? `${Math.ceil(n.ply / 2)}.${n.san}` : n.san,
+        )
+        .join(' ')
+    );
+  }
+
+  return (
+    <div
+      className="inset"
+      style={{
+        padding: '10px 14px',
+        display: 'flex',
+        alignItems: 'center',
+        gap: 12,
+        flexWrap: 'wrap',
+      }}
+    >
+      <span
+        style={{
+          display: 'inline-flex',
+          alignItems: 'center',
+          gap: 6,
+          color: 'var(--accent)',
+          fontSize: 12.5,
+          fontWeight: 500,
+        }}
+      >
+        <span style={{ fontSize: 14 }}>↻</span>
+        Transposition · also reached via {matches.length} other{' '}
+        {matches.length === 1 ? 'line' : 'lines'}
+      </span>
+      <div
+        style={{
+          display: 'flex',
+          gap: 6,
+          flexWrap: 'wrap',
+          alignItems: 'center',
+        }}
+      >
+        {visible.map((n) => {
+          const title = titleByNode.get(n.id);
+          return (
+            <button
+              key={n.id}
+              type="button"
+              onClick={() => onSelect(n.id)}
+              title={title ? `Chapter: ${title}` : undefined}
+              className="movechip minor"
+              style={{
+                fontFamily: 'var(--font-mono)',
+                whiteSpace: 'nowrap',
+              }}
+            >
+              <span className="san">{shortLine(n.id)}</span>
+            </button>
+          );
+        })}
+        {hidden > 0 && (
+          <span className="meta" style={{ fontSize: 12 }}>
+            +{hidden} more
+          </span>
+        )}
+      </div>
+    </div>
+  );
 }
 
 /* unused exports kept for direct prop typing */
