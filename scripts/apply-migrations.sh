@@ -15,6 +15,22 @@ CONTAINER="${CONTAINER:-openings-db}"
 PG_USER="${PGUSER:-openings}"
 PG_DB="${PGDATABASE:-openings}"
 
+# Wait for the container's healthcheck. The CI runner may invoke this
+# right after Docker Desktop wakes from idle, so allow up to a minute.
+echo "waiting for $CONTAINER healthcheck…"
+for i in $(seq 1 30); do
+  status=$(docker inspect -f '{{.State.Health.Status}}' "$CONTAINER" 2>/dev/null || echo "missing")
+  if [ "$status" = "healthy" ]; then
+    echo "  $CONTAINER healthy after ${i}s"
+    break
+  fi
+  sleep 2
+done
+if [ "$status" != "healthy" ]; then
+  echo "$CONTAINER never became healthy (status=$status)" >&2
+  exit 1
+fi
+
 PSQL=(docker exec -i "$CONTAINER" psql -U "$PG_USER" -d "$PG_DB" -v ON_ERROR_STOP=1)
 
 "${PSQL[@]}" <<'SQL'
