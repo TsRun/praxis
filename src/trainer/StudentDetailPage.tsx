@@ -64,7 +64,7 @@ export function StudentDetailPage() {
       >
         <Avatar name={detail.name} size="xl" />
         <div style={{ flex: 1 }}>
-          <h1 className="h-1" style={{ margin: 0 }}>{detail.name}</h1>
+          <h1 className="t-h1" style={{ margin: 0 }}>{detail.name}</h1>
           <div className="meta" style={{ marginTop: 6 }}>{detail.email}</div>
         </div>
         <div style={{ display: 'flex', gap: 10 }}>
@@ -74,7 +74,7 @@ export function StudentDetailPage() {
       </Card>
 
       <section>
-        <h2 className="h-2" style={{ margin: '0 0 12px' }}>
+        <h2 className="t-h2" style={{ margin: '0 0 12px' }}>
           Assigned studies
         </h2>
         {detail.assignments.length === 0 ? (
@@ -119,7 +119,7 @@ export function StudentDetailPage() {
       </section>
 
       <section>
-        <h2 className="h-2" style={{ margin: '0 0 12px' }}>
+        <h2 className="t-h2" style={{ margin: '0 0 12px' }}>
           Assign new
         </h2>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>

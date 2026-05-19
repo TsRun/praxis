@@ -300,7 +300,7 @@ function DrillView({
   if (card === null) {
     return (
       <Card style={{ padding: 32, textAlign: 'center' }}>
-        <h2 className="h-2" style={{ margin: '0 0 8px' }}>
+        <h2 className="t-h2" style={{ margin: '0 0 8px' }}>
           ✓ All caught up.
         </h2>
         <p className="meta">
@@ -581,7 +581,7 @@ function DrillView({
               marginBottom: 14,
             }}
           >
-            <h2 className="h-2" style={{ margin: 0 }}>Up next</h2>
+            <h2 className="t-h2" style={{ margin: 0 }}>Up next</h2>
             <span className="meta">in this session</span>
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
@@ -802,7 +802,7 @@ function TreeMode({
               marginBottom: 12,
             }}
           >
-            <h2 className="h-2" style={{ margin: 0 }}>Replies from this position</h2>
+            <h2 className="t-h2" style={{ margin: 0 }}>Replies from this position</h2>
             <span className="meta">read-only</span>
           </div>
           {candidates.length === 0 ? (
@@ -888,7 +888,7 @@ function TreeMode({
               alignItems: 'baseline',
             }}
           >
-            <h2 className="h-2" style={{ margin: 0 }}>Path</h2>
+            <h2 className="t-h2" style={{ margin: 0 }}>Path</h2>
             <span className="meta">click any chip to jump</span>
           </div>
           <div className="crumbs">
@@ -1016,7 +1016,7 @@ function ChaptersView({
       }}
     >
       <Card style={{ padding: '14px 18px' }}>
-        <h2 className="h-2" style={{ margin: '4px 0 12px' }}>
+        <h2 className="t-h2" style={{ margin: '4px 0 12px' }}>
           Chapters · {chapters.length}
         </h2>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>

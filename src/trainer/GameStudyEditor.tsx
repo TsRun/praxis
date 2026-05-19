@@ -86,7 +86,7 @@ export function GameStudyEditor() {
     >
       <div style={{ display: 'flex', alignItems: 'flex-start', gap: 24 }}>
         <div>
-          <h1 className="h-1" style={{ margin: 0 }}>{study.name}</h1>
+          <h1 className="t-h1" style={{ margin: 0 }}>{study.name}</h1>
           <div
             style={{
               display: 'flex',

@@ -47,7 +47,7 @@ export function InvitePage() {
     return (
       <div style={PAGE_STYLE}>
         <Card style={{ padding: 32, width: 380, display: 'flex', flexDirection: 'column', gap: 14 }}>
-          <h2 className="h-2" style={{ margin: 0 }}>
+          <h2 className="t-h2" style={{ margin: 0 }}>
             <span style={{ color: 'var(--accent)' }}>{info.trainer_name}</span> invited you
           </h2>
           <p className="meta">
@@ -87,7 +87,7 @@ export function InvitePage() {
           textAlign: 'center',
         }}
       >
-        <h2 className="h-2" style={{ margin: 0 }}>
+        <h2 className="t-h2" style={{ margin: 0 }}>
           <span style={{ color: 'var(--accent)' }}>{info.trainer_name}</span> invited you to Praxis
         </h2>
         <p className="meta">

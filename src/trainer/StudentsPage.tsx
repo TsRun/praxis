@@ -40,7 +40,7 @@ export function StudentsPage() {
       {/* page head */}
       <div style={{ display: 'flex', alignItems: 'flex-end', gap: 24, paddingBottom: 24 }}>
         <div style={{ flex: 1 }}>
-          <h1 className="h-1">Students</h1>
+          <h1 className="t-h1">Students</h1>
           <div className="meta" style={{ marginTop: 6 }}>
             Send invites and track per-student progress. Linked students are
             signed in — invited ones receive an email when you assign a study.
