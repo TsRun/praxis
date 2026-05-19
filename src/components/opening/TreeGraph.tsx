@@ -1,4 +1,3 @@
-import { Fragment } from 'react';
 import type { TreeNode } from '../../lib/opening-tree';
 
 export interface TreeGraphProps {
@@ -12,9 +11,10 @@ export interface TreeGraphProps {
 }
 
 /**
- * Horizontal opening-tree diagram.
- * Renders linear chains on one row and stacks branching children to the right,
- * connected by left borders. Scrolls horizontally for deep trees.
+ * Vertical opening-tree outline.
+ * Mainline flows top-to-bottom at the same depth. Variations (non-mainline
+ * children) appear as indented sub-trees, interleaved at the position where
+ * they branch off — the same convention used in PGN notation.
  */
 export function TreeGraph(props: TreeGraphProps) {
   if (props.tree.length === 0) {
@@ -26,71 +26,65 @@ export function TreeGraph(props: TreeGraphProps) {
   }
 
   return (
-    <div className="overflow-auto">
-      <div className="flex flex-col gap-2 min-w-max py-1">
-        {props.tree.map((root) => (
-          <Chain key={root.id} root={root} {...props} />
-        ))}
-      </div>
+    <div className="flex flex-col gap-0.5">
+      {props.tree.map((root) => (
+        <Subtree key={root.id} root={root} depth={0} {...props} />
+      ))}
     </div>
   );
 }
 
-interface ChainProps extends Omit<TreeGraphProps, 'tree'> {
+interface SubtreeProps extends Omit<TreeGraphProps, 'tree'> {
   root: TreeNode;
+  depth: number;
 }
 
-function Chain({ root, currentNodeId, chaptersSet, onSelect, onDelete, onToggleMain }: ChainProps) {
-  // Walk down through single-child nodes to collapse linear chains onto one row.
-  const chain: TreeNode[] = [];
+/**
+ * Emit `root` and walk the mainline (children[0]) downward at the same depth.
+ * Variation children (children[1..]) emit as indented sub-trees interleaved
+ * right after their parent move.
+ */
+function Subtree({ root, depth, currentNodeId, chaptersSet, onSelect, onDelete, onToggleMain }: SubtreeProps) {
+  const rows: JSX.Element[] = [];
   let cur: TreeNode | undefined = root;
-  while (cur && cur.children.length === 1) {
-    chain.push(cur);
+  while (cur) {
+    rows.push(
+      <NodeRow
+        key={cur.id}
+        node={cur}
+        depth={depth}
+        isCurrent={cur.id === currentNodeId}
+        hasChapter={chaptersSet.has(cur.id)}
+        onSelect={onSelect}
+        onDelete={onDelete}
+        onToggleMain={onToggleMain}
+      />,
+    );
+    // Emit variation children (index 1+) BEFORE walking to the mainline child.
+    if (cur.children.length > 1) {
+      for (let i = 1; i < cur.children.length; i++) {
+        rows.push(
+          <Subtree
+            key={`var-${cur.children[i].id}`}
+            root={cur.children[i]}
+            depth={depth + 1}
+            currentNodeId={currentNodeId}
+            chaptersSet={chaptersSet}
+            onSelect={onSelect}
+            onDelete={onDelete}
+            onToggleMain={onToggleMain}
+          />,
+        );
+      }
+    }
     cur = cur.children[0];
   }
-  if (cur) chain.push(cur);
-  const branches = cur ? cur.children : [];
-
-  return (
-    <div className="flex items-start gap-1">
-      <div className="flex items-center gap-0.5 shrink-0">
-        {chain.map((n, i) => (
-          <Fragment key={n.id}>
-            {i > 0 && <span className="text-zinc-700 select-none">·</span>}
-            <NodeChip
-              node={n}
-              isCurrent={n.id === currentNodeId}
-              hasChapter={chaptersSet.has(n.id)}
-              onSelect={onSelect}
-              onDelete={onDelete}
-              onToggleMain={onToggleMain}
-            />
-          </Fragment>
-        ))}
-      </div>
-      {branches.length > 1 && (
-        <div className="flex flex-col gap-1 pl-2 border-l border-zinc-700 shrink-0">
-          {branches.map((c) => (
-            <div key={c.id} className="flex items-start">
-              <span className="text-zinc-700 mr-1 select-none">─</span>
-              <Chain
-                root={c}
-                currentNodeId={currentNodeId}
-                chaptersSet={chaptersSet}
-                onSelect={onSelect}
-                onDelete={onDelete}
-                onToggleMain={onToggleMain}
-              />
-            </div>
-          ))}
-        </div>
-      )}
-    </div>
-  );
+  return <>{rows}</>;
 }
 
-function NodeChip({
+function NodeRow({
   node,
+  depth,
   isCurrent,
   hasChapter,
   onSelect,
@@ -98,6 +92,7 @@ function NodeChip({
   onToggleMain,
 }: {
   node: TreeNode;
+  depth: number;
   isCurrent: boolean;
   hasChapter: boolean;
   onSelect: (id: number) => void;
@@ -107,10 +102,16 @@ function NodeChip({
   const moveNum = node.ply % 2 === 1 ? `${Math.ceil(node.ply / 2)}.` : '';
   const trainer = onDelete != null || onToggleMain != null;
   return (
-    <span className="group relative inline-flex items-center">
+    <div
+      className="group flex items-center gap-1"
+      style={{ paddingLeft: depth * 14 }}
+    >
+      {depth > 0 && (
+        <span className="text-zinc-700 text-[10px] select-none -ml-2.5 w-2.5">└</span>
+      )}
       <button
         onClick={() => onSelect(node.id)}
-        className={`text-xs font-mono px-1.5 py-0.5 rounded border ${
+        className={`flex-1 text-left text-xs font-mono px-1.5 py-0.5 rounded border ${
           isCurrent
             ? 'bg-amber-400/20 text-amber-200 border-amber-400/40'
             : 'bg-zinc-900/60 border-zinc-700/60 text-zinc-200 hover:bg-amber-400/10 hover:border-amber-400/30'
@@ -122,7 +123,7 @@ function NodeChip({
         {hasChapter && <span className="ml-1 text-emerald-400">●</span>}
       </button>
       {trainer && (
-        <span className="ml-0.5 hidden group-hover:inline-flex gap-0.5">
+        <span className="hidden group-hover:inline-flex gap-0.5 shrink-0">
           {onToggleMain && (
             <button
               onClick={() => onToggleMain(node)}
@@ -143,6 +144,6 @@ function NodeChip({
           )}
         </span>
       )}
-    </span>
+    </div>
   );
 }
