@@ -19,7 +19,7 @@ export function TrainerLayout() {
           <Route path="studies" element={<StudiesPage />} />
           <Route path="studies/opening/:id" element={<OpeningStudyEditor />} />
           <Route path="studies/game/:id" element={<GameStudyEditor />} />
-          <Route path="*" element={<Navigate to="students" replace />} />
+          <Route path="*" element={<Navigate to="studies" replace />} />
         </Routes>
       </main>
     </div>
