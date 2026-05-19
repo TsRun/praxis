@@ -137,13 +137,15 @@ export function GameStudyEditor() {
       >
         <ChessBoard />
         <Card style={{ padding: 16, overflow: 'auto', maxHeight: '80vh' }}>
-          <h2 className="overline" style={{ marginBottom: 10 }}>
+          <h2 className="t-h3" style={{ margin: '0 0 10px' }}>
             Move list
           </h2>
           <PlyList study={study} currentPly={currentPly} onJump={goToPly} />
         </Card>
         <Card style={{ padding: 16, display: 'flex', flexDirection: 'column', gap: 12 }}>
-          <div className="overline">Annotation at ply {currentPly || 0}</div>
+          <h3 className="t-h3" style={{ margin: 0 }}>
+            Annotation at ply {currentPly || 0}
+          </h3>
           {currentPly === 0 ? (
             <p className="meta">
               Move to a ply via the move list or → to annotate it.

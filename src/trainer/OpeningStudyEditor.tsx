@@ -59,6 +59,20 @@ function subtreeSize(nodes: OpeningNode[], id: number): number {
   return 1 + kids.reduce((s, k) => s + subtreeSize(nodes, k.id), 0);
 }
 
+/** Count chapters in the subtree rooted at `id` (including `id` itself). */
+function chaptersInSubtree(
+  nodes: OpeningNode[],
+  chaptersSet: Set<number>,
+  id: number,
+): number {
+  let count = chaptersSet.has(id) ? 1 : 0;
+  for (const kid of nodes) {
+    if (kid.parent_id === id)
+      count += chaptersInSubtree(nodes, chaptersSet, kid.id);
+  }
+  return count;
+}
+
 export function OpeningStudyEditor() {
   const { id } = useParams();
   const numId = Number(id);
@@ -315,7 +329,7 @@ export function OpeningStudyEditor() {
             }}
           >
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <span className="overline">
+              <span className="meta-strong" style={{ fontFamily: 'var(--font-mono)' }}>
                 {currentNode
                   ? `After ${plyLabel(currentNode.ply)} ${currentNode.san}`
                   : 'Start position'}
@@ -664,6 +678,7 @@ function CandidatesCard({
               ? Math.round((subtreeSize(study.nodes, c.id) / totalSub) * 100)
               : 0;
             const chap = titleByNode.get(c.id) ?? null;
+            const chapsBelow = chaptersInSubtree(study.nodes, chaptersSet, c.id);
             const isMain = c.is_main;
             return (
               <button
@@ -713,21 +728,51 @@ function CandidatesCard({
                     minWidth: 0,
                   }}
                 >
+                  {chap && (
+                    <div
+                      style={{
+                        fontSize: 13.5,
+                        color: 'var(--text)',
+                        fontWeight: 500,
+                        whiteSpace: 'nowrap',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                      }}
+                    >
+                      {chap}
+                    </div>
+                  )}
                   <div
                     style={{
-                      fontSize: 13.5,
-                      color: 'var(--text)',
-                      fontWeight: 500,
-                      whiteSpace: 'nowrap',
-                      overflow: 'hidden',
-                      textOverflow: 'ellipsis',
+                      fontSize: 12,
+                      color: 'var(--text-dim)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 6,
                     }}
                   >
-                    {chap ?? 'No chapter on this move'}
-                  </div>
-                  <div style={{ fontSize: 12, color: 'var(--text-dim)' }}>
-                    {sub} {sub === 1 ? 'reply' : 'replies'} below
-                    {chaptersSet.has(c.id) ? ' · chapter set' : ''}
+                    {chapsBelow === 0 ? (
+                      <span style={{ color: 'var(--text-faint)' }}>
+                        no chapters in this line
+                      </span>
+                    ) : (
+                      <>
+                        <span className="dot-chapter" />
+                        <span>
+                          <strong
+                            className="mono"
+                            style={{ color: 'var(--text)' }}
+                          >
+                            {chapsBelow}
+                          </strong>{' '}
+                          {chapsBelow === 1 ? 'chapter' : 'chapters'} in this line
+                        </span>
+                      </>
+                    )}
+                    <span style={{ color: 'var(--text-mute)' }}>·</span>
+                    <span>
+                      {sub} {sub === 1 ? 'position' : 'positions'} below
+                    </span>
                   </div>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -1055,7 +1100,10 @@ function ChaptersMode({
         }}
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <span className="overline" style={{ flex: 1 }}>
+          <span
+            className="meta-strong"
+            style={{ flex: 1, fontFamily: 'var(--font-mono)' }}
+          >
             {selectedNode
               ? `${plyLabel(selectedNode.ply)} ${selectedNode.san}`
               : 'Start position'}

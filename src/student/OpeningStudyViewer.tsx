@@ -757,7 +757,10 @@ function TreeMode({
     >
       <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <span className="overline" style={{ flex: 1 }}>
+          <span
+            className="meta-strong"
+            style={{ flex: 1, fontFamily: 'var(--font-mono)' }}
+          >
             {currentNode
               ? `After ${plyLabel(currentNode.ply)} ${currentNode.san}`
               : 'Start position'}
@@ -1073,7 +1076,10 @@ function ChaptersView({
         }}
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <span className="overline" style={{ flex: 1 }}>
+          <span
+            className="meta-strong"
+            style={{ flex: 1, fontSize: 14, letterSpacing: '-0.005em' }}
+          >
             {selChap?.title ?? 'No chapter selected'}
           </span>
           <Btn variant="ghost" size="sm" onClick={() => setFlip(!flip)}>

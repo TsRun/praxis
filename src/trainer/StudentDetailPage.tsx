@@ -124,7 +124,7 @@ export function StudentDetailPage() {
         </h2>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
           <Card style={{ padding: 14 }}>
-            <h3 className="overline" style={{ marginBottom: 10 }}>Opening studies</h3>
+            <h3 className="t-h3" style={{ margin: '0 0 10px' }}>Opening studies</h3>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
               {opens.length === 0 && (
                 <div className="meta" style={{ padding: 10 }}>
@@ -161,7 +161,7 @@ export function StudentDetailPage() {
             </div>
           </Card>
           <Card style={{ padding: 14 }}>
-            <h3 className="overline" style={{ marginBottom: 10 }}>Game studies</h3>
+            <h3 className="t-h3" style={{ margin: '0 0 10px' }}>Game studies</h3>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
               {games.length === 0 && (
                 <div className="meta" style={{ padding: 10 }}>
