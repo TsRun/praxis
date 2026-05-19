@@ -456,11 +456,9 @@ function ChapterPanel({
   onSave: (title: string | null, body: string) => Promise<void>;
 }) {
   const [title, setTitle] = useState<string>(chapter?.title ?? '');
-  const [body, setBody] = useState<string>(chapter?.body_md ?? '');
 
   useEffect(() => {
     setTitle(chapter?.title ?? '');
-    setBody(chapter?.body_md ?? '');
   }, [chapter, node?.id]);
 
   if (!node) {
@@ -468,8 +466,8 @@ function ChapterPanel({
       <aside className="panel p-3 flex flex-col gap-3 w-[380px] shrink-0">
         <div className="text-xs uppercase tracking-wider text-zinc-500">Chapter</div>
         <p className="text-sm text-zinc-500">
-          Select a position from the tree (or play a move on the board) to attach a
-          chapter — title plus markdown notes.
+          Select a position from the tree (or play a move on the board) to label it
+          with a chapter title.
         </p>
         <p className="text-xs text-zinc-600">
           Study root: {study.name} · plays {study.side === 'w' ? 'white' : 'black'}
@@ -485,21 +483,14 @@ function ChapterPanel({
       </div>
       <input
         className="border border-zinc-700 bg-zinc-900 rounded px-2 py-1.5 text-sm"
-        placeholder="chapter title (optional)"
+        placeholder="chapter title"
         value={title}
         onChange={(e) => setTitle(e.target.value)}
-      />
-      <textarea
-        rows={10}
-        className="bg-zinc-950/60 border border-zinc-800 rounded px-2 py-1.5 text-sm"
-        placeholder="notes…"
-        value={body}
-        onChange={(e) => setBody(e.target.value)}
       />
       <div className="flex justify-end">
         <button
           disabled={busy}
-          onClick={() => onSave(title || null, body)}
+          onClick={() => onSave(title || null, '')}
           className="bg-amber-500 hover:bg-amber-400 text-zinc-950 text-sm px-3 py-1 rounded font-medium disabled:opacity-50"
         >
           {busy ? 'Saving…' : 'Save'}

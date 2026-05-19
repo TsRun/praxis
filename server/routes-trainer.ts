@@ -587,29 +587,11 @@ async function importChapter(
         firstNewMainlineNodeId = nodeId;
       }
     }
-    if (node.comment) {
-      const exists = await client.query(
-        `SELECT 1 FROM opening_chapter WHERE node_id = $1`,
-        [nodeId],
-      );
-      if (exists.rowCount === 0) {
-        await client.query(
-          `INSERT INTO opening_chapter (node_id, title, body_md) VALUES ($1, NULL, $2)`,
-          [nodeId, node.comment],
-        );
-      } else {
-        skipped.push({
-          kind: 'chapter-exists',
-          name: node.san,
-          reason: `node ${nodeId} already has a trainer note`,
-        });
-      }
-    }
+    void wasCreated;
     for (let i = 0; i < node.children.length; i++) {
       const child = node.children[i];
       await visit(nodeId, node.fen, child, isMain && i === 0);
     }
-    void wasCreated;
   }
 
   if (ch.root) {
