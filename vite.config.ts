@@ -4,6 +4,10 @@ import react from '@vitejs/plugin-react';
 
 export default defineConfig({
   plugins: [react()],
+  // Railpack mounts node_modules as a BuildKit cache volume, which makes the
+  // default node_modules/.vite cache un-removable during `npm ci`. Park it
+  // outside node_modules instead.
+  cacheDir: '.vite-cache',
   server: {
     proxy: {
       '/api/openings': {
