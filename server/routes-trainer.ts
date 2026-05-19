@@ -1,7 +1,6 @@
 import type { FastifyInstance } from 'fastify';
 import type { Pool } from 'pg';
-import { newToken } from './auth.js';
-import { sendInviteEmail, sendAssignmentEmail } from './email.js';
+import { sendStudentLinkedEmail, sendAssignmentEmail } from './email.js';
 import { requireTrainer, requireAuthor, requireUser } from './auth-guards.js';
 import {
   parsePgnWithVariations,
@@ -10,55 +9,82 @@ import {
 } from './pgn-tree.js';
 import { parsePgn } from './pgn.js';
 
-const INVITE_DAYS = 14;
 
 export async function trainerRoutes(app: FastifyInstance, opts: { pool: Pool }) {
   const { pool } = opts;
 
   // ─── Roster ──────────────────────────────────────────────────────────────
-  app.post<{ Body: { email: string; name: string } }>(
+  // Link by nickname: the student must already be signed up. We look up
+  // app_user rows by case-insensitive exact name match, link the trainer to
+  // them, and send a notification email to their stored address. If multiple
+  // users share the nickname, return 409 with the candidate ids so the UI can
+  // disambiguate.
+  app.post<{ Body: { name?: string; user_id?: number } }>(
     '/api/trainer/invites',
     { preHandler: requireTrainer },
     async (req, reply) => {
       const trainerId = req.user!.id;
-      const { email, name } = req.body ?? ({} as never);
-      if (!email || !name) return reply.code(400).send({ error: 'missing fields' });
-      const lower = email.toLowerCase().trim();
+      const name = (req.body?.name ?? '').trim();
+      const explicitId = req.body?.user_id;
+      if (!name && !explicitId) return reply.code(400).send({ error: 'nickname or user_id required' });
 
-      // If the invitee already has an app_user account, just create the mentor
-      // link directly and notify — no token round-trip needed.
-      const { rows: existing } = await pool.query<{ id: number }>(
-        'SELECT id FROM app_user WHERE email = $1',
-        [lower],
-      );
-      if (existing[0]) {
-        await pool.query(
-          `INSERT INTO mentor (trainer_user_id, student_user_id) VALUES ($1, $2)
-             ON CONFLICT DO NOTHING`,
-          [trainerId, existing[0].id],
+      let candidate: { id: number; name: string; email: string } | null = null;
+      if (explicitId) {
+        const r = await pool.query<{ id: number; name: string; email: string }>(
+          'SELECT id, name, email FROM app_user WHERE id = $1',
+          [explicitId],
         );
-        await pool.query(
-          `UPDATE app_user SET roles = ARRAY(SELECT DISTINCT unnest(roles || ARRAY['student'])) WHERE id = $1`,
-          [existing[0].id],
+        candidate = r.rows[0] ?? null;
+      } else {
+        const r = await pool.query<{ id: number; name: string; email: string }>(
+          `SELECT id, name, email FROM app_user
+            WHERE LOWER(name) = LOWER($1) AND id <> $2
+            ORDER BY id ASC LIMIT 5`,
+          [name, trainerId],
         );
-        return { ok: true, student_user_id: existing[0].id, mode: 'linked-existing' };
+        if (r.rows.length === 0) {
+          return reply.code(404).send({
+            error: `no signed-in user with nickname "${name}"`,
+          });
+        }
+        if (r.rows.length > 1) {
+          return reply.code(409).send({
+            error: `multiple users share that nickname`,
+            candidates: r.rows.map((u) => ({ id: u.id, name: u.name })),
+          });
+        }
+        candidate = r.rows[0];
       }
+      if (!candidate) return reply.code(404).send({ error: 'user not found' });
 
-      // Otherwise mint a token; user picks up via email link → signs up with token.
-      const token = newToken();
       await pool.query(
-        `INSERT INTO invite (token, trainer_user_id, student_email, student_name, expires_at)
-           VALUES ($1, $2, $3, $4, NOW() + ($5 * INTERVAL '1 day'))`,
-        [token, trainerId, lower, name, INVITE_DAYS],
+        `INSERT INTO mentor (trainer_user_id, student_user_id) VALUES ($1, $2)
+           ON CONFLICT DO NOTHING`,
+        [trainerId, candidate.id],
       );
-      const tr = await pool.query<{ name: string }>('SELECT name FROM app_user WHERE id = $1', [trainerId]);
-      await sendInviteEmail({
-        to: lower,
-        trainerName: tr.rows[0].name,
-        studentName: name,
-        token,
-      });
-      return { ok: true, mode: 'invited' };
+      await pool.query(
+        `UPDATE app_user SET roles = ARRAY(SELECT DISTINCT unnest(roles || ARRAY['student'])) WHERE id = $1`,
+        [candidate.id],
+      );
+
+      const tr = await pool.query<{ name: string }>(
+        'SELECT name FROM app_user WHERE id = $1',
+        [trainerId],
+      );
+      try {
+        await sendStudentLinkedEmail({
+          to: candidate.email,
+          trainerName: tr.rows[0]?.name ?? 'A trainer',
+          studentName: candidate.name,
+        });
+      } catch (e) {
+        console.warn('[invite/link] email failed:', (e as Error).message);
+      }
+      return {
+        ok: true,
+        mode: 'linked-existing',
+        student_user_id: candidate.id,
+      };
     },
   );
 
