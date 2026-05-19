@@ -134,20 +134,46 @@ export function OpeningStudyEditor() {
     mv: { from: Key; to: Key; san: string; promotion?: string },
   ) {
     if (!study) return;
+    const trimmedParentFen = parentFen.split(' ').slice(0, 4).join(' ');
+    const newFen = (() => {
+      const c = new Chess(parentFen);
+      c.move({ from: mv.from, to: mv.to, promotion: 'q' });
+      return c.fen().split(' ').slice(0, 4).join(' ');
+    })();
+    const ply = (parentNode?.ply ?? 0) + 1;
+    const uci = `${mv.from}${mv.to}${mv.promotion ?? ''}`;
     const { id: newId } = await trainerStudies.upsertNode(study.id, {
       parent_id: parentNode?.id ?? null,
-      parent_fen: parentFen.split(' ').slice(0, 4).join(' '),
+      parent_fen: trimmedParentFen,
       san: mv.san,
-      uci: `${mv.from}${mv.to}${mv.promotion ?? ''}`,
-      fen: (() => {
-        const c = new Chess(parentFen);
-        c.move({ from: mv.from, to: mv.to, promotion: 'q' });
-        return c.fen().split(' ').slice(0, 4).join(' ');
-      })(),
-      ply: (parentNode?.ply ?? 0) + 1,
+      uci,
+      fen: newFen,
+      ply,
     });
-    const refreshed = await trainerStudies.get(study.id);
-    setStudy(refreshed);
+    // Optimistic append — skip the full-study GET refetch (slow on large
+    // studies). The new node is fully determined by the data we just sent.
+    setStudy((prev) =>
+      prev
+        ? {
+            ...prev,
+            nodes: prev.nodes.some((n) => n.id === newId)
+              ? prev.nodes
+              : [
+                  ...prev.nodes,
+                  {
+                    id: newId,
+                    parent_id: parentNode?.id ?? null,
+                    parent_fen: trimmedParentFen,
+                    san: mv.san,
+                    uci,
+                    fen: newFen,
+                    ply,
+                    is_main: false,
+                  },
+                ],
+          }
+        : prev,
+    );
     setCurrentNodeId(newId);
   }
 
@@ -156,14 +182,20 @@ export function OpeningStudyEditor() {
     if (!s || !currentNode) return;
     setBusy(true);
     try {
-      await trainerStudies.saveChapter(
-        s.id,
-        currentNode.id,
-        value || null,
-        currentChapter?.body_md ?? '',
-      );
-      const refreshed = await trainerStudies.get(s.id);
-      setStudy(refreshed);
+      const title = value || null;
+      const body_md = currentChapter?.body_md ?? '';
+      await trainerStudies.saveChapter(s.id, currentNode.id, title, body_md);
+      const nodeId = currentNode.id;
+      setStudy((prev) => {
+        if (!prev) return prev;
+        const others = prev.chapters.filter((c) => c.node_id !== nodeId);
+        return {
+          ...prev,
+          chapters: title
+            ? [...others, { node_id: nodeId, title, body_md }]
+            : others,
+        };
+      });
     } finally {
       setBusy(false);
     }
@@ -172,9 +204,27 @@ export function OpeningStudyEditor() {
   async function toggleMain(n: OpeningNode) {
     const s = study;
     if (!s) return;
-    await trainerStudies.setIsMain(s.id, n.id, !n.is_main);
-    const refreshed = await trainerStudies.get(s.id);
-    setStudy(refreshed);
+    const next = !n.is_main;
+    await trainerStudies.setIsMain(s.id, n.id, next);
+    // Optimistic flip. When promoting a node to mainline, clear is_main
+    // on its siblings so we don't end up with two main lines from one parent.
+    setStudy((prev) =>
+      prev
+        ? {
+            ...prev,
+            nodes: prev.nodes.map((node) => {
+              if (node.id === n.id) return { ...node, is_main: next };
+              if (
+                next &&
+                node.parent_id === n.parent_id &&
+                node.is_main
+              )
+                return { ...node, is_main: false };
+              return node;
+            }),
+          }
+        : prev,
+    );
   }
 
   return (
