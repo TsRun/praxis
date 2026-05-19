@@ -92,86 +92,76 @@ export function OpeningStudyEditor() {
           plays {study.side === 'w' ? 'white' : 'black'} · {study.nodes.length} positions ·{' '}
           {study.chapters.length} chapters
         </div>
-        <div className="ml-auto flex items-center gap-2">
+        <div className="ml-auto inline-flex bg-zinc-900/60 ring-1 ring-zinc-800 rounded-lg overflow-hidden text-xs">
           <button
-            onClick={() => setShowImport(true)}
-            className="text-xs text-zinc-400 hover:text-amber-300 px-3 py-1 rounded ring-1 ring-zinc-800 hover:ring-amber-400/40"
+            onClick={() => setMode('tree')}
+            className={`px-3 py-1 ${
+              mode === 'tree'
+                ? 'bg-amber-400/15 text-amber-200'
+                : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/60'
+            }`}
           >
-            Import from Lichess
+            Tree
           </button>
-          <div className="inline-flex bg-zinc-900/60 ring-1 ring-zinc-800 rounded-lg overflow-hidden text-xs">
-            <button
-              onClick={() => setMode('tree')}
-              className={`px-3 py-1 ${
-                mode === 'tree'
-                  ? 'bg-amber-400/15 text-amber-200'
-                  : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/60'
-              }`}
-            >
-              Tree
-            </button>
-            <button
-              onClick={() => setMode('chapters')}
-              className={`px-3 py-1 ${
-                mode === 'chapters'
-                  ? 'bg-amber-400/15 text-amber-200'
-                  : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/60'
-              }`}
-            >
-              Chapters
-            </button>
-          </div>
+          <button
+            onClick={() => setMode('chapters')}
+            className={`px-3 py-1 ${
+              mode === 'chapters'
+                ? 'bg-amber-400/15 text-amber-200'
+                : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/60'
+            }`}
+          >
+            Chapters
+          </button>
         </div>
       </header>
 
       {mode === 'tree' ? (
-        <>
-          <div className="flex flex-wrap items-start gap-4">
-            <div className="flex flex-col gap-3">
-              <BoardWithBuild
-                study={study}
-                currentNode={currentNode}
-                currentFen={currentFen}
-                onAddChild={onAddChild}
-                onSelectExisting={setCurrentNodeId}
-              />
-              <div className="panel p-3 text-xs text-zinc-400 font-mono leading-6 max-w-[440px]">
-                {path.length === 0 ? (
+        <div className="grid grid-cols-[auto_1fr] gap-4 items-start">
+          <div className="flex flex-col gap-3">
+            <BoardWithBuild
+              study={study}
+              currentNode={currentNode}
+              currentFen={currentFen}
+              onAddChild={onAddChild}
+              onSelectExisting={setCurrentNodeId}
+            />
+            <div className="panel p-3 text-xs text-zinc-400 font-mono leading-6 max-w-[440px]">
+              {path.length === 0 ? (
+                <button
+                  onClick={() => setCurrentNodeId(null)}
+                  className="text-zinc-600 hover:text-amber-300"
+                >
+                  ★ root position — drag a piece to start
+                </button>
+              ) : (
+                <>
                   <button
                     onClick={() => setCurrentNodeId(null)}
-                    className="text-zinc-600 hover:text-amber-300"
+                    className={`px-1 rounded ${
+                      currentNodeId == null
+                        ? 'bg-amber-400/15 text-amber-200'
+                        : 'text-zinc-500 hover:bg-amber-400/10'
+                    }`}
                   >
-                    ★ root position — drag a piece to start
+                    ★
                   </button>
-                ) : (
-                  <>
+                  {path.map((n) => (
                     <button
-                      onClick={() => setCurrentNodeId(null)}
+                      key={n.id}
+                      onClick={() => setCurrentNodeId(n.id)}
                       className={`px-1 rounded ${
-                        currentNodeId == null
+                        n.id === currentNodeId
                           ? 'bg-amber-400/15 text-amber-200'
-                          : 'text-zinc-500 hover:bg-amber-400/10'
+                          : 'text-zinc-300 hover:bg-amber-400/10'
                       }`}
                     >
-                      ★
+                      {n.ply % 2 === 1 ? `${Math.ceil(n.ply / 2)}.` : ''}
+                      {n.san}
                     </button>
-                    {path.map((n) => (
-                      <button
-                        key={n.id}
-                        onClick={() => setCurrentNodeId(n.id)}
-                        className={`px-1 rounded ${
-                          n.id === currentNodeId
-                            ? 'bg-amber-400/15 text-amber-200'
-                            : 'text-zinc-300 hover:bg-amber-400/10'
-                        }`}
-                      >
-                        {n.ply % 2 === 1 ? `${Math.ceil(n.ply / 2)}.` : ''}
-                        {n.san}
-                      </button>
-                    ))}
-                  </>
-                )}
-              </div>
+                  ))}
+                </>
+              )}
             </div>
 
             <ChapterPanel
@@ -192,15 +182,22 @@ export function OpeningStudyEditor() {
                 }
               }}
             />
+
+            <button
+              onClick={() => setShowImport(true)}
+              className="text-xs text-zinc-400 hover:text-amber-300 px-3 py-1.5 rounded ring-1 ring-zinc-800 hover:ring-amber-400/40 self-stretch"
+            >
+              Import from Lichess
+            </button>
           </div>
 
-          <section className="panel p-3">
+          <section className="panel p-3 self-start sticky top-4 max-h-[90vh] overflow-auto">
             <div className="flex items-center mb-2">
               <h2 className="text-xs uppercase tracking-wider text-zinc-500">Opening tree</h2>
               <div className="ml-auto flex items-center gap-3 text-[10px] text-zinc-500">
                 <span><span className="text-amber-400">★</span> main line</span>
                 <span><span className="text-emerald-400">●</span> has chapter</span>
-                <span className="text-zinc-600">hover a node for ✕ / ★ actions</span>
+                <span className="text-zinc-600">hover for ✕ / ★</span>
               </div>
             </div>
             <TreeGraph
@@ -216,7 +213,7 @@ export function OpeningStudyEditor() {
               }}
             />
           </section>
-        </>
+        </div>
       ) : (
         <div className="flex items-start gap-4">
           <aside className="panel p-3 max-h-[80vh] overflow-auto w-[340px] shrink-0">
