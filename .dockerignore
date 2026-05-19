@@ -7,7 +7,17 @@ dist
 .claude
 test-results
 playwright-report
+.playwright-mcp
 data
 *.pgn
 *.zip
 *.log
+
+# Secrets / credentials — never bake into image layers.
+.env
+.env.*
+*.pem
+*.key
+*.crt
+.npmrc
+.aws

@@ -15,47 +15,36 @@ export async function trainerRoutes(app: FastifyInstance, opts: { pool: Pool }) 
 
   // ─── Roster ──────────────────────────────────────────────────────────────
   // Link by nickname: the student must already be signed up. We look up
-  // app_user rows by case-insensitive exact name match, link the trainer to
-  // them, and send a notification email to their stored address. If multiple
-  // users share the nickname, return 409 with the candidate ids so the UI can
-  // disambiguate.
-  app.post<{ Body: { name?: string; user_id?: number } }>(
+  // app_user rows by case-insensitive exact name match and link the trainer to
+  // them. On ambiguous nickname we 409 without disclosing the candidate set
+  // (knowing other users' ids/names was a bulk-enumeration vector). The
+  // `user_id` form is rejected — trainers must use the nickname their student
+  // actually picked.
+  app.post<{ Body: { name?: string } }>(
     '/api/trainer/invites',
     { preHandler: requireTrainer },
     async (req, reply) => {
       const trainerId = req.user!.id;
       const name = (req.body?.name ?? '').trim();
-      const explicitId = req.body?.user_id;
-      if (!name && !explicitId) return reply.code(400).send({ error: 'nickname or user_id required' });
+      if (!name) return reply.code(400).send({ error: 'nickname required' });
 
-      let candidate: { id: number; name: string; email: string } | null = null;
-      if (explicitId) {
-        const r = await pool.query<{ id: number; name: string; email: string }>(
-          'SELECT id, name, email FROM app_user WHERE id = $1',
-          [explicitId],
-        );
-        candidate = r.rows[0] ?? null;
-      } else {
-        const r = await pool.query<{ id: number; name: string; email: string }>(
-          `SELECT id, name, email FROM app_user
-            WHERE LOWER(name) = LOWER($1) AND id <> $2
-            ORDER BY id ASC LIMIT 5`,
-          [name, trainerId],
-        );
-        if (r.rows.length === 0) {
-          return reply.code(404).send({
-            error: `no signed-in user with nickname "${name}"`,
-          });
-        }
-        if (r.rows.length > 1) {
-          return reply.code(409).send({
-            error: `multiple users share that nickname`,
-            candidates: r.rows.map((u) => ({ id: u.id, name: u.name })),
-          });
-        }
-        candidate = r.rows[0];
+      const r = await pool.query<{ id: number; name: string; email: string }>(
+        `SELECT id, name, email FROM app_user
+          WHERE LOWER(name) = LOWER($1) AND id <> $2
+          ORDER BY id ASC LIMIT 2`,
+        [name, trainerId],
+      );
+      if (r.rows.length === 0) {
+        return reply.code(404).send({
+          error: `no signed-in user with nickname "${name}"`,
+        });
       }
-      if (!candidate) return reply.code(404).send({ error: 'user not found' });
+      if (r.rows.length > 1) {
+        return reply.code(409).send({
+          error: `multiple users share that nickname — ask your student to set a unique one`,
+        });
+      }
+      const candidate = r.rows[0];
 
       await pool.query(
         `INSERT INTO mentor (trainer_user_id, student_user_id) VALUES ($1, $2)
@@ -307,6 +296,13 @@ export async function trainerRoutes(app: FastifyInstance, opts: { pool: Pool }) 
     if (!san || !uci || !parent_fen || !fen || ply == null) {
       return reply.code(400).send({ error: 'missing fields' });
     }
+    if (parent_id != null) {
+      const p = await pool.query(
+        `SELECT 1 FROM opening_node WHERE id = $1 AND study_id = $2`,
+        [parent_id, id],
+      );
+      if (!p.rowCount) return reply.code(400).send({ error: 'parent_id not in this study' });
+    }
     const existing = await pool.query<{ id: number }>(
       `SELECT id FROM opening_node
         WHERE study_id = $1
@@ -370,10 +366,10 @@ export async function trainerRoutes(app: FastifyInstance, opts: { pool: Pool }) 
             );
           }
         }
-        await client.query(`UPDATE opening_node SET is_main = $1 WHERE id = $2`, [
-          req.body.is_main,
-          nid,
-        ]);
+        await client.query(
+          `UPDATE opening_node SET is_main = $1 WHERE id = $2 AND study_id = $3`,
+          [req.body.is_main, nid, id],
+        );
         await client.query('COMMIT');
       } catch (e) {
         await client.query('ROLLBACK');
@@ -513,14 +509,16 @@ export async function trainerRoutes(app: FastifyInstance, opts: { pool: Pool }) 
     '/api/trainer/studies/opening/:id/import-preview',
     { preHandler: requireAuthor },
     async (req, reply) => {
+      const uid = req.user!.id;
       const studyId = Number(req.params.id);
       const pgn = (req.body?.pgn ?? '').trim();
       if (!pgn) return reply.code(400).send({ error: 'pgn is required' });
       const { rows } = await pool.query<{ root_fen: string }>(
-        `SELECT root_fen FROM opening_study WHERE id = $1`,
-        [studyId],
+        `SELECT root_fen FROM opening_study WHERE id = $1 AND owner_id = $2`,
+        [studyId, uid],
       );
-      const studyRoot = rows[0]?.root_fen?.split(' ').slice(0, 4).join(' ') ?? '';
+      if (!rows[0]) return reply.code(404).send({ error: 'not found' });
+      const studyRoot = rows[0].root_fen?.split(' ').slice(0, 4).join(' ') ?? '';
       let chapters: PgnChapter[];
       try {
         chapters = parsePgnWithVariations(pgn);
@@ -546,6 +544,7 @@ export async function trainerRoutes(app: FastifyInstance, opts: { pool: Pool }) 
     '/api/trainer/studies/opening/:id/import',
     { preHandler: requireAuthor },
     async (req, reply) => {
+      const uid = req.user!.id;
       const studyId = Number(req.params.id);
       const pgn = (req.body?.pgn ?? '').trim();
       const picks = new Set(req.body?.chapter_indexes ?? []);
@@ -553,10 +552,11 @@ export async function trainerRoutes(app: FastifyInstance, opts: { pool: Pool }) 
       if (picks.size === 0) return reply.code(400).send({ error: 'chapter_indexes empty' });
 
       const { rows } = await pool.query<{ root_fen: string }>(
-        `SELECT root_fen FROM opening_study WHERE id = $1`,
-        [studyId],
+        `SELECT root_fen FROM opening_study WHERE id = $1 AND owner_id = $2`,
+        [studyId, uid],
       );
-      const studyRoot = rows[0]?.root_fen?.split(' ').slice(0, 4).join(' ') ?? '';
+      if (!rows[0]) return reply.code(404).send({ error: 'not found' });
+      const studyRoot = rows[0].root_fen?.split(' ').slice(0, 4).join(' ') ?? '';
 
       const chapters = parsePgnWithVariations(pgn);
       let imported_chapters = 0;

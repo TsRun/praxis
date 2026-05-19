@@ -5,8 +5,11 @@ import type { Pool } from 'pg';
 export type Role = 'trainer' | 'student' | 'self';
 export const ALL_ROLES: Role[] = ['trainer', 'student', 'self'];
 
+// OWASP (2023+) recommends cost ≥ 12 for bcrypt on modern hardware.
+const BCRYPT_ROUNDS = 12;
+
 export async function hashPassword(plain: string): Promise<string> {
-  return bcrypt.hash(plain, 10);
+  return bcrypt.hash(plain, BCRYPT_ROUNDS);
 }
 
 export async function verifyPassword(plain: string, hash: string): Promise<boolean> {
@@ -17,7 +20,7 @@ export function newToken(): string {
   return randomBytes(32).toString('hex');
 }
 
-const SESSION_DAYS = 30;
+const SESSION_DAYS = 14;
 
 export async function createSession(
   pool: Pool,

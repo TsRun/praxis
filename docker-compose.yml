@@ -3,15 +3,18 @@ services:
     image: postgres:16-alpine
     container_name: openings-db
     environment:
-      POSTGRES_USER: openings
-      POSTGRES_PASSWORD: openings
-      POSTGRES_DB: openings
+      POSTGRES_USER: ${POSTGRES_USER:-openings}
+      # Require the password to be supplied via env (or .env file). The `:?`
+      # form aborts startup if unset, so we never silently boot a publicly-
+      # reachable DB with default creds.
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
+      POSTGRES_DB: ${POSTGRES_DB:-openings}
     ports:
       - "127.0.0.1:5432:5432"
     volumes:
       - openings-pgdata:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U openings -d openings"]
+      test: ["CMD-SHELL", "pg_isready -U \"${POSTGRES_USER:-openings}\" -d \"${POSTGRES_DB:-openings}\""]
       interval: 2s
       timeout: 2s
       retries: 60

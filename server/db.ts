@@ -21,7 +21,18 @@ export const DEFAULT_DATABASE_URL =
   process.env.DATABASE_URL ?? 'postgres://localhost:5432/openings';
 
 export function makePool(connectionString = DEFAULT_DATABASE_URL): pg.Pool {
-  return new pg.Pool({ connectionString, max: 10 });
+  // Enable TLS for any non-local Postgres. `pg` only negotiates TLS if either
+  // the connection string sets `sslmode=require` OR we pass an `ssl` option.
+  // Without this, a connection string that omits `sslmode` (the default for
+  // Railway's internal-network URL) sends the password and every query in
+  // plaintext if the host is ever reachable off-loopback.
+  const isLocal = /(?:^|@)(localhost|127\.0\.0\.1|::1)[:/]/.test(connectionString);
+  const wantsSsl = process.env.PGSSL === '1'
+    || (!isLocal && process.env.PGSSL !== '0');
+  const sslOpt = wantsSsl
+    ? { rejectUnauthorized: process.env.PGSSL_REJECT_UNAUTHORIZED !== '0' }
+    : false;
+  return new pg.Pool({ connectionString, max: 10, ssl: sslOpt });
 }
 
 export async function ensureSchema(pool: pg.Pool): Promise<void> {

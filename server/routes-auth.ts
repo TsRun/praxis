@@ -3,14 +3,36 @@ import type { Pool } from 'pg';
 import { createSession, deleteSession, hashPassword, normalizeRoles, verifyPassword } from './auth.js';
 
 const COOKIE_NAME = 'sid';
+const NAME_MAX_LEN = 60;
+
+/** Reject control chars + cap length. The name flows into outbound emails
+ *  (subject + body) under our verified sender, so even though Resend's
+ *  structured API blocks header injection, we still don't want users planting
+ *  fake "Subject:" lines or multi-paragraph phishing in the displayed body. */
+export function sanitizeName(raw: string): string | null {
+  const trimmed = raw.trim();
+  if (!trimmed) return null;
+  if (trimmed.length > NAME_MAX_LEN) return null;
+  for (let i = 0; i < trimmed.length; i++) {
+    const c = trimmed.charCodeAt(i);
+    if (c < 0x20 || c === 0x7f) return null;
+  }
+  return trimmed;
+}
+
+// Default `secure: true`. Only opt out in local dev where the cookie would
+// never round-trip over http otherwise. Tying this to NODE_ENV alone is
+// fragile — any deploy where NODE_ENV is unset would issue a plaintext cookie.
+const COOKIE_SECURE = process.env.ALLOW_INSECURE_COOKIE === '1' ? false : true;
 
 function setCookie(reply: FastifyReply, sid: string, expiresAt: Date) {
   reply.setCookie(COOKIE_NAME, sid, {
     httpOnly: true,
     sameSite: 'lax',
-    secure: process.env.NODE_ENV === 'production',
+    secure: COOKIE_SECURE,
     path: '/',
     expires: expiresAt,
+    signed: true,
   });
 }
 
@@ -20,16 +42,25 @@ export async function authRoutes(app: FastifyInstance, opts: { pool: Pool }) {
   app.post<{ Body: { email: string; password: string; name: string; roles?: string[] } }>(
     '/api/auth/signup',
     async (req, reply) => {
-      const { email, password, name } = req.body ?? ({} as never);
+      const { email, password } = req.body ?? ({} as never);
+      const rawName = req.body?.name ?? '';
       const roles = normalizeRoles(req.body?.roles);
-      if (!email || !password || !name)
+      if (!email || !password || !rawName)
         return reply.code(400).send({ error: 'missing fields' });
       if (password.length < 8) return reply.code(400).send({ error: 'password too short' });
+      // Reject CR/LF/control chars — these end up unescaped in email subject
+      // and body (sent via Resend), and would allow an attacker to plant
+      // multi-line phishing content under our verified sender domain.
+      const name = sanitizeName(rawName);
+      if (!name) return reply.code(400).send({ error: 'invalid name' });
       if (roles.length === 0)
         return reply.code(400).send({ error: 'pick at least one role' });
       const lower = email.toLowerCase().trim();
       const exists = await pool.query('SELECT 1 FROM app_user WHERE email = $1', [lower]);
-      if (exists.rowCount) return reply.code(409).send({ error: 'email already in use' });
+      if (exists.rowCount) {
+        // Generic message — don't reveal which emails are registered.
+        return reply.code(400).send({ error: 'could not create account' });
+      }
       const hash = await hashPassword(password);
       const { rows } = await pool.query<{ id: number }>(
         `INSERT INTO app_user (email, password_hash, name, roles)
@@ -72,7 +103,13 @@ export async function authRoutes(app: FastifyInstance, opts: { pool: Pool }) {
   );
 
   app.post('/api/auth/signout', async (req, reply) => {
-    await deleteSession(pool, req.cookies?.sid);
+    const raw = req.cookies?.sid;
+    if (raw) {
+      const unsigned = req.unsignCookie(raw);
+      if (unsigned.valid && unsigned.value) {
+        await deleteSession(pool, unsigned.value);
+      }
+    }
     reply.clearCookie('sid', { path: '/' });
     return { ok: true };
   });
