@@ -3,6 +3,11 @@ import type { Pool } from 'pg';
 import { newToken } from './auth.js';
 import { sendInviteEmail } from './email.js';
 import { requireTrainer, requireAuthor, requireUser } from './auth-guards.js';
+import {
+  parsePgnWithVariations,
+  type PgnNode,
+  type PgnChapter,
+} from './pgn-tree.js';
 import { parsePgn } from './pgn.js';
 
 const INVITE_DAYS = 14;
@@ -434,6 +439,199 @@ export async function trainerRoutes(app: FastifyInstance, opts: { pool: Pool }) 
       return { ok: true, count: list.length };
     },
   );
+
+  // ── Lichess study import (paste-PGN) ──────────────────────────────────────
+
+  app.post<{ Params: { id: string }; Body: { pgn?: string } }>(
+    '/api/trainer/studies/opening/:id/import-preview',
+    { preHandler: requireAuthor },
+    async (req, reply) => {
+      const studyId = Number(req.params.id);
+      const pgn = (req.body?.pgn ?? '').trim();
+      if (!pgn) return reply.code(400).send({ error: 'pgn is required' });
+      const { rows } = await pool.query<{ root_fen: string }>(
+        `SELECT root_fen FROM opening_study WHERE id = $1`,
+        [studyId],
+      );
+      const studyRoot = rows[0]?.root_fen?.split(' ').slice(0, 4).join(' ') ?? '';
+      let chapters: PgnChapter[];
+      try {
+        chapters = parsePgnWithVariations(pgn);
+      } catch (e) {
+        return reply.code(400).send({ error: `parse failed: ${(e as Error).message}` });
+      }
+      return {
+        chapters: chapters.map((c) => ({
+          index: c.index,
+          name: c.headers.Event ?? c.headers.Site ?? `Chapter ${c.index + 1}`,
+          mainline_move_count: countMainline(c.root),
+          root_fen: c.root_fen,
+          matches_study_root: c.root_fen === studyRoot,
+        })),
+      };
+    },
+  );
+
+  app.post<{
+    Params: { id: string };
+    Body: { pgn?: string; chapter_indexes?: number[] };
+  }>(
+    '/api/trainer/studies/opening/:id/import',
+    { preHandler: requireAuthor },
+    async (req, reply) => {
+      const studyId = Number(req.params.id);
+      const pgn = (req.body?.pgn ?? '').trim();
+      const picks = new Set(req.body?.chapter_indexes ?? []);
+      if (!pgn) return reply.code(400).send({ error: 'pgn is required' });
+      if (picks.size === 0) return reply.code(400).send({ error: 'chapter_indexes empty' });
+
+      const { rows } = await pool.query<{ root_fen: string }>(
+        `SELECT root_fen FROM opening_study WHERE id = $1`,
+        [studyId],
+      );
+      const studyRoot = rows[0]?.root_fen?.split(' ').slice(0, 4).join(' ') ?? '';
+
+      const chapters = parsePgnWithVariations(pgn);
+      let imported_chapters = 0;
+      let imported_nodes = 0;
+      let reused_nodes = 0;
+      const skipped: { kind: string; name?: string; reason: string }[] = [];
+
+      for (const ch of chapters) {
+        if (!picks.has(ch.index)) continue;
+        if (ch.root_fen !== studyRoot) {
+          skipped.push({
+            kind: 'fen-mismatch',
+            name: ch.headers.Event ?? `Chapter ${ch.index + 1}`,
+            reason: `starts from ${ch.root_fen}`,
+          });
+          continue;
+        }
+        const client = await pool.connect();
+        try {
+          await client.query('BEGIN');
+          const result = await importChapter(client, studyId, ch, skipped);
+          imported_chapters++;
+          imported_nodes += result.created;
+          reused_nodes += result.reused;
+          await client.query('COMMIT');
+        } catch (e) {
+          await client.query('ROLLBACK');
+          skipped.push({
+            kind: 'parse-error',
+            name: ch.headers.Event ?? `Chapter ${ch.index + 1}`,
+            reason: (e as Error).message,
+          });
+        } finally {
+          client.release();
+        }
+      }
+
+      await pool.query(`UPDATE opening_study SET updated_at = NOW() WHERE id = $1`, [studyId]);
+      return { imported_chapters, imported_nodes, reused_nodes, skipped };
+    },
+  );
+}
+
+function countMainline(node: PgnNode | null): number {
+  let n = 0;
+  let cur: PgnNode | null = node;
+  while (cur) { n++; cur = cur.children[0] ?? null; }
+  return n;
+}
+
+async function importChapter(
+  client: import('pg').PoolClient,
+  studyId: number,
+  ch: PgnChapter,
+  skipped: { kind: string; name?: string; reason: string }[],
+): Promise<{ created: number; reused: number }> {
+  let created = 0;
+  let reused = 0;
+  let firstNewMainlineNodeId: number | null = null;
+
+  async function visit(
+    parentNodeId: number | null,
+    parentFen: string,
+    node: PgnNode,
+    onMainlineSoFar: boolean,
+  ): Promise<void> {
+    const isMain = onMainlineSoFar && node.is_main;
+    const { rows: existing } = await client.query<{ id: number; is_main: boolean }>(
+      `SELECT id, is_main FROM opening_node
+        WHERE study_id = $1
+          AND parent_id IS NOT DISTINCT FROM $2
+          AND san = $3`,
+      [studyId, parentNodeId, node.san],
+    );
+    let nodeId: number;
+    let wasCreated: boolean;
+    if (existing.length > 0) {
+      nodeId = existing[0].id;
+      wasCreated = false;
+      reused++;
+      if (isMain && !existing[0].is_main) {
+        await client.query(`UPDATE opening_node SET is_main = true WHERE id = $1`, [nodeId]);
+      }
+    } else {
+      const ins = await client.query<{ id: number }>(
+        `INSERT INTO opening_node (study_id, parent_id, parent_fen, san, uci, fen, ply, is_main)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+         RETURNING id`,
+        [studyId, parentNodeId, parentFen, node.san, node.uci, node.fen, node.ply, isMain],
+      );
+      nodeId = ins.rows[0].id;
+      wasCreated = true;
+      created++;
+      if (isMain && firstNewMainlineNodeId === null) {
+        firstNewMainlineNodeId = nodeId;
+      }
+    }
+    if (node.comment) {
+      const exists = await client.query(
+        `SELECT 1 FROM opening_chapter WHERE node_id = $1`,
+        [nodeId],
+      );
+      if (exists.rowCount === 0) {
+        await client.query(
+          `INSERT INTO opening_chapter (node_id, title, body_md) VALUES ($1, NULL, $2)`,
+          [nodeId, node.comment],
+        );
+      } else {
+        skipped.push({
+          kind: 'chapter-exists',
+          name: node.san,
+          reason: `node ${nodeId} already has a trainer note`,
+        });
+      }
+    }
+    for (let i = 0; i < node.children.length; i++) {
+      const child = node.children[i];
+      await visit(nodeId, node.fen, child, isMain && i === 0);
+    }
+    void wasCreated;
+  }
+
+  if (ch.root) {
+    await visit(null, ch.root_fen, ch.root, true);
+  }
+
+  if (firstNewMainlineNodeId !== null) {
+    const title = ch.headers.Event ?? ch.headers.Site ?? null;
+    if (title) {
+      const exists = await client.query(
+        `SELECT 1 FROM opening_chapter WHERE node_id = $1`,
+        [firstNewMainlineNodeId],
+      );
+      if (exists.rowCount === 0) {
+        await client.query(
+          `INSERT INTO opening_chapter (node_id, title, body_md) VALUES ($1, $2, '')`,
+          [firstNewMainlineNodeId, title],
+        );
+      }
+    }
+  }
+  return { created, reused };
 }
 
 export { requireUser };
