@@ -3,9 +3,7 @@
 # the built SPA from dist/ (single-origin deployment).
 [build]
 builder = "RAILPACK"
-# Wipe cached vite dir first — Railpack's node_modules cache mount sometimes
-# holds /app/node_modules/.vite open during npm ci, causing EBUSY rmdir.
-buildCommand = "rm -rf node_modules/.vite && npm ci && npm run build"
+buildCommand = "npm ci && npm run build"
 
 [deploy]
 startCommand = "npm start"
