@@ -1,6 +1,7 @@
 import { Navigate, Route, Routes } from 'react-router-dom';
 import { LandingPage } from './auth/LandingPage';
 import { InvitePage } from './auth/InvitePage';
+import { RolePicker } from './auth/RolePicker';
 import { SettingsPage } from './auth/SettingsPage';
 import { RequireRole } from './auth/RequireRole';
 import { TrainerLayout } from './trainer/TrainerLayout';
@@ -11,6 +12,7 @@ export default function App() {
   return (
     <Routes>
       <Route path="/" element={<LandingPage />} />
+      <Route path="/role-picker" element={<RolePicker />} />
       <Route path="/tour" element={<TourPage />} />
       <Route path="/invite/:token" element={<InvitePage />} />
       <Route

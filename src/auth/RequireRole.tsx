@@ -15,6 +15,9 @@ export function RequireRole({ anyOf, children }: Props) {
   const loc = useLocation();
   if (loading) return <div className="p-8 text-zinc-500">Loading…</div>;
   if (!user) return <Navigate to="/" state={{ from: loc.pathname }} replace />;
+  // First-time OAuth users land here with empty roles[] — send them to the
+  // picker before they can use any role-gated area.
+  if (user.roles.length === 0) return <Navigate to="/role-picker" replace />;
   const ok = anyOf.some((r) => user.roles.includes(r));
   if (!ok) return <Navigate to={defaultLandingForRoles(user.roles)} replace />;
   return <>{children}</>;

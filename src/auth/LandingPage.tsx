@@ -11,6 +11,9 @@ const START_FEN = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1';
 export function LandingPage() {
   const { user, loading } = useAuth();
   if (loading) return <div style={{ padding: 32, color: 'var(--text-faint)' }}>Loading…</div>;
+  // A first-time OAuth user lands here signed-in but with no roles yet —
+  // send them to the role picker before they can use the rest of the app.
+  if (user && user.roles.length === 0) return <Navigate to="/role-picker" replace />;
   if (user) return <Navigate to={defaultLandingForRoles(user.roles)} replace />;
 
   return (
