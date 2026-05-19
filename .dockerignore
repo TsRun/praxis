@@ -1,0 +1,13 @@
+node_modules
+dist
+.vite-cache
+.vite
+.git
+.github
+.claude
+test-results
+playwright-report
+data
+*.pgn
+*.zip
+*.log
