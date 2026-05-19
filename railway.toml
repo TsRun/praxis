@@ -1,11 +1,10 @@
 # Railway build + run config.
-# Overrides Railpack's auto-detection so the Fastify backend runs and serves
-# the built SPA from dist/ (single-origin deployment).
+# Use the Dockerfile in repo root — Railpack's cache mounts kept clashing with
+# `npm ci` (EBUSY on node_modules/.vite). Dockerfile gives us a clean build.
 [build]
-builder = "RAILPACK"
-buildCommand = "npm ci && npm run build"
+builder = "DOCKERFILE"
+dockerfilePath = "Dockerfile"
 
 [deploy]
-startCommand = "npm start"
 restartPolicyType = "ON_FAILURE"
 restartPolicyMaxRetries = 3
