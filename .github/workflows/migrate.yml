@@ -20,26 +20,33 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # `shell: bash` on this Windows runner resolved to WSL's bash.exe, which
+      # can't see the runner's _work\_temp Windows paths. Custom shell paths
+      # with a drive letter are rejected by the runner's parser. So we use
+      # PowerShell as the wrapper and invoke git-bash explicitly per step.
+
       - name: Confirm Docker postgres is up
-        shell: 'C:/Program Files/Git/bin/bash.exe --noprofile --norc -eo pipefail {0}'
+        shell: pwsh
         run: |
-          for i in $(seq 1 30); do
-            status=$(docker inspect -f '{{.State.Health.Status}}' openings-db 2>/dev/null || echo "missing")
-            if [ "$status" = "healthy" ]; then
-              echo "openings-db healthy"
-              exit 0
-            fi
-            sleep 2
-          done
-          echo "openings-db not healthy (status=$status)" >&2
-          exit 1
+          & "C:\Program Files\Git\bin\bash.exe" -lc @'
+            for i in $(seq 1 30); do
+              status=$(docker inspect -f '{{.State.Health.Status}}' openings-db 2>/dev/null || echo "missing")
+              if [ "$status" = "healthy" ]; then
+                echo "openings-db healthy"
+                exit 0
+              fi
+              sleep 2
+            done
+            echo "openings-db not healthy (status=$status)" >&2
+            exit 1
+          '@
 
       - name: Apply pending migrations
-        shell: 'C:/Program Files/Git/bin/bash.exe --noprofile --norc -eo pipefail {0}'
-        run: ./scripts/apply-migrations.sh
+        shell: pwsh
+        run: |
+          & "C:\Program Files\Git\bin\bash.exe" -lc "./scripts/apply-migrations.sh"
 
       - name: Report state
-        shell: 'C:/Program Files/Git/bin/bash.exe --noprofile --norc -eo pipefail {0}'
+        shell: pwsh
         run: |
-          docker exec openings-db psql -U openings -d openings -c \
-            "SELECT filename, applied_at FROM schema_migrations ORDER BY applied_at DESC LIMIT 20;"
+          docker exec openings-db psql -U openings -d openings -c "SELECT filename, applied_at FROM schema_migrations ORDER BY applied_at DESC LIMIT 20;"
