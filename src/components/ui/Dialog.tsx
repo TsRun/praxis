@@ -59,7 +59,7 @@ export function Dialog({
               justifyContent: 'space-between',
             }}
           >
-            <h2 className="h-2" style={{ margin: 0 }}>{title}</h2>
+            <h2 className="t-h2" style={{ margin: 0 }}>{title}</h2>
             <Btn variant="ghost" size="sm" onClick={onClose} type="button">
               <IconX size={14} strokeWidth={2.4} />
             </Btn>

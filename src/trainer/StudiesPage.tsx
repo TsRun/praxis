@@ -89,7 +89,7 @@ export function StudiesPage() {
       {/* page head */}
       <div style={{ display: 'flex', alignItems: 'flex-end', gap: 24, paddingBottom: 24 }}>
         <div style={{ flex: 1 }}>
-          <h1 className="h-1">Studies</h1>
+          <h1 className="t-h1">Studies</h1>
           <div className="meta" style={{ marginTop: 6 }}>
             Author opening repertoires and annotated games. Assign them to students by nickname.
           </div>
@@ -475,7 +475,7 @@ function Section({
         }}
       >
         <div style={{ display: 'flex', gap: 8, alignItems: 'baseline' }}>
-          <h2 className="h-2" style={{ margin: 0 }}>{title}</h2>
+          <h2 className="t-h2" style={{ margin: 0 }}>{title}</h2>
           <span
             className="mono"
             style={{ color: 'var(--text-faint)', fontSize: 13, marginLeft: 8 }}

@@ -76,7 +76,7 @@ export function DashboardPage() {
         }}
       >
         <div style={{ flex: 1 }}>
-          <h1 className="h-1" style={{ margin: '0 0 6px' }}>
+          <h1 className="t-h1" style={{ margin: '0 0 6px' }}>
             {greet()},{' '}
             <span style={{ color: 'var(--accent)' }}>{user?.name ?? '—'}</span>
           </h1>
@@ -253,7 +253,7 @@ export function DashboardPage() {
             </Card>
           ) : (
             <Card style={{ padding: 32, textAlign: 'center' }}>
-              <h2 className="h-2" style={{ margin: 0 }}>No active assignments</h2>
+              <h2 className="t-h2" style={{ margin: 0 }}>No active assignments</h2>
               <p className="meta" style={{ marginTop: 8 }}>
                 When a coach assigns a study, it'll show up here.
               </p>
@@ -271,7 +271,7 @@ export function DashboardPage() {
               }}
             >
               <div style={{ display: 'flex', gap: 8, alignItems: 'baseline' }}>
-                <h2 className="h-2" style={{ margin: 0 }}>
+                <h2 className="t-h2" style={{ margin: 0 }}>
                   All assignments
                 </h2>
                 <span
@@ -337,7 +337,7 @@ export function DashboardPage() {
                 marginBottom: 14,
               }}
             >
-              <h2 className="h-2" style={{ margin: 0 }}>Today</h2>
+              <h2 className="t-h2" style={{ margin: 0 }}>Today</h2>
               <span className="meta">
                 {Math.round(
                   rows.reduce((s, a) => s + a.progress_pct, 0) /
@@ -360,7 +360,7 @@ export function DashboardPage() {
           </Card>
 
           <Card style={{ padding: 18 }}>
-            <h2 className="h-2" style={{ margin: '0 0 12px' }}>
+            <h2 className="t-h2" style={{ margin: '0 0 12px' }}>
               Activity
             </h2>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>

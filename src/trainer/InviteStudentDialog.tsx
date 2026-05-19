@@ -81,7 +81,7 @@ export function InviteStudentDialog({ onClose }: { onClose: () => void }) {
             marginBottom: 4,
           }}
         >
-          <h2 className="h-2" style={{ margin: 0 }}>Invite a student</h2>
+          <h2 className="t-h2" style={{ margin: 0 }}>Invite a student</h2>
           <Btn variant="ghost" size="sm" type="button" onClick={onClose}>
             <IconX size={14} strokeWidth={2.4} />
           </Btn>

@@ -113,7 +113,7 @@ export function TacticalStudyEditor() {
           <IconBolt size={26} strokeWidth={2.2} />
         </div>
         <div>
-          <h1 className="h-1" style={{ margin: 0 }}>
+          <h1 className="t-h1" style={{ margin: 0 }}>
             Mate in two — weekly set
           </h1>
           <div

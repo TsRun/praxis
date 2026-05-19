@@ -101,7 +101,7 @@ export function GameStudyViewer() {
       }}
     >
       <div>
-        <h1 className="h-1" style={{ margin: 0 }}>{study.name}</h1>
+        <h1 className="t-h1" style={{ margin: 0 }}>{study.name}</h1>
         <div
           style={{
             display: 'flex',
@@ -301,7 +301,7 @@ function QuizPrompt({ onGuess }: { onGuess: (san: string) => void }) {
           gap: 10,
         }}
       >
-        <div className="h-3">What would you play?</div>
+        <div className="t-h3">What would you play?</div>
         <input
           className="input font-mono"
           value={guess}

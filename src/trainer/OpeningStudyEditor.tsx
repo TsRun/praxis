@@ -184,7 +184,7 @@ export function OpeningStudyEditor() {
         }}
       >
         <div>
-          <h1 className="h-1" style={{ margin: 0 }}>{study.name}</h1>
+          <h1 className="t-h1" style={{ margin: 0 }}>{study.name}</h1>
           <div
             style={{
               display: 'flex',
@@ -628,7 +628,7 @@ function CandidatesCard({
         }}
       >
         <div>
-          <h2 className="h-2" style={{ margin: 0 }}>
+          <h2 className="t-h2" style={{ margin: 0 }}>
             Candidate replies
           </h2>
           <div className="meta">
@@ -833,7 +833,7 @@ function LineSiblingsCard({
           marginBottom: 14,
         }}
       >
-        <h2 className="h-2" style={{ margin: 0 }}>
+        <h2 className="t-h2" style={{ margin: 0 }}>
           Line · siblings at each ply
         </h2>
         <span className="meta">click any chip to jump</span>
@@ -965,7 +965,7 @@ function ChaptersMode({
           }}
         >
           <div>
-            <h2 className="h-2" style={{ margin: 0 }}>Chapters</h2>
+            <h2 className="t-h2" style={{ margin: 0 }}>Chapters</h2>
             <div className="meta">{chapters.length} chapters</div>
           </div>
         </div>
