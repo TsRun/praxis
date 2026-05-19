@@ -11,8 +11,11 @@ declare module 'fastify' {
 
 export function makeAuthHook(pool: Pool) {
   return async function attachUser(req: FastifyRequest) {
-    const sid = req.cookies?.sid;
-    const u = await lookupUserBySession(pool, sid);
+    const raw = req.cookies?.sid;
+    if (!raw) return;
+    const unsigned = req.unsignCookie(raw);
+    if (!unsigned.valid || !unsigned.value) return;
+    const u = await lookupUserBySession(pool, unsigned.value);
     if (u) req.user = u;
   };
 }

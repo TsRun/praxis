@@ -126,6 +126,16 @@ export async function studentRoutes(app: FastifyInstance, opts: { pool: Pool }) 
     async (req, reply) => {
       const uid = req.user!.id;
       const id = Number(req.params.id);
+      // Access predicate: study owner OR has an assignment for it.
+      const access = await pool.query(
+        `SELECT 1 FROM opening_study os
+          WHERE os.id = $1
+            AND (os.owner_id = $2
+                 OR EXISTS(SELECT 1 FROM assignment a
+                            WHERE a.assignee_id = $2 AND a.study_kind = 'opening' AND a.study_id = $1))`,
+        [id, uid],
+      );
+      if (!access.rowCount) return reply.code(404).send({ error: 'not assigned' });
       const { rows: s } = await pool.query<{ side: 'w' | 'b'; root_fen: string }>(
         `SELECT side, root_fen FROM opening_study WHERE id = $1`,
         [id],
@@ -199,6 +209,18 @@ export async function studentRoutes(app: FastifyInstance, opts: { pool: Pool }) 
     const id = Number(req.params.id);
     const { node_id, attempted_san } = req.body ?? ({} as never);
     if (!node_id || !attempted_san) return reply.code(400).send({ error: 'missing fields' });
+    // Access predicate: owner OR assignment. Without this, any signed-in user
+    // can submit attempts against arbitrary studies and read back expected_san
+    // + the trainer's chapter body_md.
+    const access = await pool.query(
+      `SELECT 1 FROM opening_study os
+        WHERE os.id = $1
+          AND (os.owner_id = $2
+               OR EXISTS(SELECT 1 FROM assignment a
+                          WHERE a.assignee_id = $2 AND a.study_kind = 'opening' AND a.study_id = $1))`,
+      [id, uid],
+    );
+    if (!access.rowCount) return reply.code(404).send({ error: 'not assigned' });
     const { rows: n } = await pool.query<{ san: string; study_id: number }>(
       `SELECT san, study_id FROM opening_node WHERE id = $1`,
       [node_id],
