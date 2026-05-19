@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { Dialog } from '../components/ui/Dialog';
 import {
   trainerStudies,
@@ -22,14 +22,29 @@ type Stage =
 export function ImportLichessDialog({ open, studyId, onClose, onImported }: Props) {
   const [stage, setStage] = useState<Stage>({ kind: 'paste' });
   const [pgn, setPgn] = useState('');
+  const [filename, setFilename] = useState<string | null>(null);
   const [err, setErr] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   function reset() {
     setStage({ kind: 'paste' });
     setPgn('');
+    setFilename(null);
     setErr(null);
     setBusy(false);
+    if (fileInputRef.current) fileInputRef.current.value = '';
+  }
+
+  async function onPickFile(file: File) {
+    setErr(null);
+    try {
+      const text = await file.text();
+      setPgn(text);
+      setFilename(file.name);
+    } catch (e) {
+      setErr(`Could not read file: ${(e as Error).message}`);
+    }
   }
 
   async function onParse() {
@@ -77,16 +92,61 @@ export function ImportLichessDialog({ open, studyId, onClose, onImported }: Prop
       {stage.kind === 'paste' && (
         <div className="flex flex-col gap-3">
           <p className="text-xs text-zinc-500">
-            On Lichess: <em>Share &amp; export → PGN</em>. Paste the multi-chapter
-            PGN below.
+            On Lichess: <em>Share &amp; export → PGN</em>. Paste below, or upload
+            the <code className="text-zinc-400">.pgn</code> file you downloaded.
           </p>
+          <div className="flex items-center gap-2 text-xs">
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              className="px-2 py-1 rounded ring-1 ring-zinc-700 text-zinc-300 hover:ring-amber-400/40 hover:text-amber-300"
+            >
+              Choose .pgn file
+            </button>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept=".pgn,text/plain,application/x-chess-pgn"
+              className="hidden"
+              onChange={(e) => {
+                const f = e.target.files?.[0];
+                if (f) void onPickFile(f);
+              }}
+            />
+            {filename && (
+              <span className="text-zinc-500">
+                loaded <span className="text-zinc-300 font-mono">{filename}</span>
+              </span>
+            )}
+            {pgn && !filename && (
+              <span className="text-zinc-500">
+                {pgn.length.toLocaleString()} chars pasted
+              </span>
+            )}
+            {pgn && (
+              <button
+                type="button"
+                onClick={() => {
+                  setPgn('');
+                  setFilename(null);
+                  if (fileInputRef.current) fileInputRef.current.value = '';
+                }}
+                className="ml-auto text-zinc-500 hover:text-red-400"
+              >
+                clear
+              </button>
+            )}
+          </div>
           <textarea
-            rows={14}
+            rows={12}
             autoFocus
             className="bg-zinc-950/60 border border-zinc-800 rounded px-2 py-1.5 font-mono text-xs"
             placeholder={'[Event "Najdorf 6.Be3"]\n\n1. e4 c5 2. Nf3 d6 …'}
             value={pgn}
-            onChange={(e) => setPgn(e.target.value)}
+            onChange={(e) => {
+              setPgn(e.target.value);
+              if (filename) setFilename(null);
+            }}
           />
           {err && <span className="text-xs text-red-400">{err}</span>}
           <div className="flex gap-2 justify-end">
