@@ -17,6 +17,7 @@ import { MovesView } from '../components/opening/MovesView';
 import { ChaptersOutline } from '../components/opening/ChaptersOutline';
 import { useOpeningTreeNav } from '../hooks/useOpeningTreeNav';
 import { ImportLichessDialog } from './ImportLichessDialog';
+import { AssignStudyDialog } from './AssignStudyDialog';
 
 type ViewMode = 'tree' | 'chapters';
 type RightView = 'moves' | 'tree';
@@ -31,6 +32,7 @@ export function OpeningStudyEditor() {
   const [mode, setMode] = useState<ViewMode>('tree');
   const [rightView, setRightView] = useState<RightView>('moves');
   const [showImport, setShowImport] = useState(false);
+  const [showAssign, setShowAssign] = useState(false);
 
   useEffect(() => {
     trainerStudies.get(numId).then((s) => {
@@ -191,6 +193,12 @@ export function OpeningStudyEditor() {
             >
               Import from Lichess
             </button>
+            <button
+              onClick={() => setShowAssign(true)}
+              className="text-sm bg-amber-500 hover:bg-amber-400 text-zinc-950 px-3 py-1.5 rounded font-medium self-stretch"
+            >
+              Assign to student
+            </button>
           </div>
 
           <section className="panel p-3 self-start sticky top-4 max-h-[90vh] overflow-auto">
@@ -285,6 +293,14 @@ export function OpeningStudyEditor() {
           const refreshed = await trainerStudies.get(study.id);
           setStudy(refreshed);
         }}
+      />
+
+      <AssignStudyDialog
+        open={showAssign}
+        onClose={() => setShowAssign(false)}
+        studyKind="opening"
+        studyId={study.id}
+        studyName={study.name}
       />
 
       <ConfirmDialog

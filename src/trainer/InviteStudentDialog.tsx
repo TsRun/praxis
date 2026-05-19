@@ -32,15 +32,21 @@ export function InviteStudentDialog({ onClose }: { onClose: () => void }) {
         className="panel p-6 w-96 flex flex-col gap-3"
       >
         <h3 className="font-semibold tracking-tight">Invite a student</h3>
+        <p className="text-xs text-zinc-500 -mt-1">
+          Pick a nickname you'll see them by. We'll email them the invite link.
+        </p>
         <input
+          autoFocus
           className="border border-zinc-700 bg-zinc-900 rounded px-2 py-1.5"
-          placeholder="student name"
+          placeholder="student nickname"
           value={name}
           onChange={(e) => setName(e.target.value)}
         />
         <input
           className="border border-zinc-700 bg-zinc-900 rounded px-2 py-1.5"
           placeholder="student email"
+          type="email"
+          autoComplete="email"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
         />

@@ -34,8 +34,7 @@ export function StudentsPage() {
         <table className="w-full text-sm">
           <thead className="text-xs uppercase tracking-wider text-zinc-500">
             <tr className="text-left">
-              <th className="py-2">Name</th>
-              <th>Email</th>
+              <th className="py-2">Nickname</th>
               <th>Linked</th>
               <th className="text-right">Assignments</th>
             </tr>
@@ -46,9 +45,9 @@ export function StudentsPage() {
                 key={s.id}
                 onClick={() => nav(`/trainer/students/${s.id}`)}
                 className="border-t border-zinc-800/60 cursor-pointer hover:bg-amber-400/[0.04]"
+                title={s.email}
               >
                 <td className="py-2">{s.name}</td>
-                <td className="text-zinc-400">{s.email}</td>
                 <td className="text-zinc-400 text-xs">
                   {new Date(s.linked_at).toLocaleDateString()}
                 </td>

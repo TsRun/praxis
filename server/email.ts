@@ -29,4 +29,35 @@ export async function sendInviteEmail({ to, trainerName, studentName, token }: I
   await client.emails.send({ from: fromAddr, to, subject, text });
 }
 
+export interface AssignmentEmail {
+  to: string;
+  studentName: string;
+  trainerName: string;
+  studyName: string;
+  studyKind: 'opening' | 'game';
+  studyId: number;
+}
+
+export async function sendAssignmentEmail({
+  to,
+  studentName,
+  trainerName,
+  studyName,
+  studyKind,
+  studyId,
+}: AssignmentEmail): Promise<void> {
+  const url = `${baseUrl}/student/studies/${studyKind}/${studyId}`;
+  const subject = `${trainerName} assigned you a new study: ${studyName}`;
+  const text =
+    `Hi ${studentName},\n\n` +
+    `${trainerName} has assigned a new ${studyKind} study to you on Praxis:\n  ${studyName}\n\n` +
+    `Open it here: ${url}\n`;
+
+  if (!client) {
+    console.log(`[email/dev] would send to ${to}: ${subject}\n  ${url}`);
+    return;
+  }
+  await client.emails.send({ from: fromAddr, to, subject, text });
+}
+
 export { baseUrl };

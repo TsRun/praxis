@@ -4,6 +4,7 @@ import { Chess } from 'chess.js';
 import { ChessBoard } from '../components/board/ChessBoard';
 import { trainerGames, type GameStudyFull, type GameAnnotation } from '../lib/api';
 import { useGameStore } from '../store/gameStore';
+import { AssignStudyDialog } from './AssignStudyDialog';
 
 export function GameStudyEditor() {
   const { id } = useParams();
@@ -11,6 +12,7 @@ export function GameStudyEditor() {
   const [study, setStudy] = useState<GameStudyFull | null>(null);
   const [busy, setBusy] = useState(false);
   const [savedAt, setSavedAt] = useState<string | null>(null);
+  const [showAssign, setShowAssign] = useState(false);
   const currentPly = useGameStore((s) => s.currentPly);
   const goToPly = useGameStore((s) => s.goToPly);
   const loadLine = useGameStore((s) => s.loadLine);
@@ -109,7 +111,20 @@ export function GameStudyEditor() {
           {busy ? 'Saving…' : 'Save all annotations'}
         </button>
         {savedAt && <span className="text-xs text-emerald-400">Saved at {savedAt}</span>}
+        <button
+          onClick={() => setShowAssign(true)}
+          className="text-xs text-zinc-400 hover:text-amber-300 px-3 py-1.5 rounded ring-1 ring-zinc-800 hover:ring-amber-400/40"
+        >
+          Assign to student
+        </button>
       </aside>
+      <AssignStudyDialog
+        open={showAssign}
+        onClose={() => setShowAssign(false)}
+        studyKind="game"
+        studyId={study.id}
+        studyName={study.name}
+      />
     </div>
   );
 }
