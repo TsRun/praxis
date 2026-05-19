@@ -174,14 +174,14 @@ function TreeMode({ study }: { study: OpeningStudyForStudent }) {
         </div>
 
         <aside className="panel p-3 overflow-auto w-[380px] shrink-0">
-          <div className="text-xs uppercase tracking-wider text-zinc-500 mb-2">
-            {currentChapter ? currentChapter.title ?? "Trainer's note" : 'No chapter here'}
-          </div>
+          <div className="text-xs uppercase tracking-wider text-zinc-500 mb-2">Chapter</div>
           {currentChapter ? (
-            <div className="text-sm text-zinc-200 whitespace-pre-wrap">{currentChapter.body_md}</div>
+            <p className="text-base text-amber-200">
+              {currentChapter.title ?? <em className="text-zinc-500">(untitled)</em>}
+            </p>
           ) : (
             <p className="text-zinc-500 text-sm">
-              Click a node in the tree below — chapters appear on annotated positions.
+              No chapter on this position. Pick a different move on the right.
             </p>
           )}
         </aside>
@@ -262,9 +262,11 @@ function ChaptersMode({ study }: { study: OpeningStudyForStudent }) {
         {currentChapter ? (
           <>
             <div className="text-xs uppercase tracking-wider text-zinc-500 mb-2">
-              {currentChapter.title ?? "Trainer's note"}
+              Chapter
             </div>
-            <div className="text-sm text-zinc-200 whitespace-pre-wrap">{currentChapter.body_md}</div>
+            <p className="text-lg text-amber-200">
+              {currentChapter.title ?? <em className="text-zinc-500">(untitled)</em>}
+            </p>
           </>
         ) : (
           <p className="text-sm text-zinc-500">
@@ -420,14 +422,9 @@ function QuizMode({
             >
               {revealed.correct ? '✓ Correct' : `✗ Played: ${revealed.expected}`}
             </div>
-            {revealed.chapter && (
-              <div className="panel p-3">
-                {revealed.chapter.title && (
-                  <div className="text-sm font-medium text-zinc-100 mb-1">
-                    {revealed.chapter.title}
-                  </div>
-                )}
-                <div className="text-sm text-zinc-200 whitespace-pre-wrap">{revealed.chapter.body_md}</div>
+            {revealed.chapter?.title && (
+              <div className="panel p-3 text-sm font-medium text-amber-200">
+                {revealed.chapter.title}
               </div>
             )}
             <button
