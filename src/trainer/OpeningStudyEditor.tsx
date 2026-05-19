@@ -442,19 +442,21 @@ function ChapterPanel({
         onChange={(e) => setTitle(e.target.value)}
       />
       <textarea
-        rows={14}
+        rows={10}
         className="bg-zinc-950/60 border border-zinc-800 rounded px-2 py-1.5 font-mono text-sm"
         placeholder="markdown body…"
         value={body}
         onChange={(e) => setBody(e.target.value)}
       />
-      <button
-        disabled={busy}
-        onClick={() => onSave(title || null, body)}
-        className="bg-amber-500 hover:bg-amber-400 text-zinc-950 px-3 py-1.5 rounded font-medium disabled:opacity-50"
-      >
-        {busy ? 'Saving…' : 'Save chapter'}
-      </button>
+      <div className="flex justify-end">
+        <button
+          disabled={busy}
+          onClick={() => onSave(title || null, body)}
+          className="bg-amber-500 hover:bg-amber-400 text-zinc-950 text-sm px-3 py-1 rounded font-medium disabled:opacity-50"
+        >
+          {busy ? 'Saving…' : 'Save'}
+        </button>
+      </div>
     </aside>
   );
 }
