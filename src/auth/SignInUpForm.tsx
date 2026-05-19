@@ -92,10 +92,10 @@ export function SignInUpForm({ inviteToken, inviteEmail, inviteName }: Props) {
       {mode === 'up' && (
         <input
           className="border border-zinc-700 bg-zinc-900 rounded px-2 py-1.5"
-          placeholder="your name"
+          placeholder="your nickname"
           value={name}
           onChange={(e) => setName(e.target.value)}
-          autoComplete="name"
+          autoComplete="nickname"
         />
       )}
 

@@ -1,7 +1,7 @@
 import type { FastifyInstance } from 'fastify';
 import type { Pool } from 'pg';
 import { newToken } from './auth.js';
-import { sendInviteEmail } from './email.js';
+import { sendInviteEmail, sendAssignmentEmail } from './email.js';
 import { requireTrainer, requireAuthor, requireUser } from './auth-guards.js';
 import {
   parsePgnWithVariations,
@@ -133,11 +133,52 @@ export async function trainerRoutes(app: FastifyInstance, opts: { pool: Pool }) 
         [study_id, trainerId],
       );
       if (!ownStudy.rowCount) return reply.code(404).send({ error: 'study not found' });
-      await pool.query(
+      const ins = await pool.query<{ id: number }>(
         `INSERT INTO assignment (assignee_id, study_kind, study_id) VALUES ($1, $2, $3)
-           ON CONFLICT (assignee_id, study_kind, study_id) DO NOTHING`,
+           ON CONFLICT (assignee_id, study_kind, study_id) DO NOTHING
+         RETURNING id`,
         [studentId, study_kind, study_id],
       );
+      if (ins.rowCount === 0) {
+        // Already assigned — don't spam an email.
+        return { ok: true, already_assigned: true };
+      }
+
+      // Fetch trainer/student names + study name + student email for the
+      // notification. Best effort — log and continue if the send fails.
+      try {
+        const meta = await pool.query<{
+          student_name: string;
+          student_email: string;
+          trainer_name: string;
+          study_name: string;
+        }>(
+          `SELECT s.name AS student_name,
+                  s.email AS student_email,
+                  t.name AS trainer_name,
+                  ${study_kind === 'opening' ? 'os.name' : 'gs.name'} AS study_name
+             FROM app_user s,
+                  app_user t,
+                  ${study_kind === 'opening' ? 'opening_study os' : 'game_study gs'}
+            WHERE s.id = $1
+              AND t.id = $2
+              AND ${study_kind === 'opening' ? 'os.id' : 'gs.id'} = $3`,
+          [studentId, trainerId, study_id],
+        );
+        const row = meta.rows[0];
+        if (row) {
+          await sendAssignmentEmail({
+            to: row.student_email,
+            studentName: row.student_name,
+            trainerName: row.trainer_name,
+            studyName: row.study_name,
+            studyKind: study_kind,
+            studyId: study_id,
+          });
+        }
+      } catch (e) {
+        console.warn('[assign] notification email failed:', (e as Error).message);
+      }
       return { ok: true };
     },
   );
