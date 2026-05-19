@@ -10,14 +10,16 @@ import {
   type OpeningNode,
   type OpeningChapter,
 } from '../lib/api';
-import { buildTree, pathToNode, findChildBySan, type TreeNode } from '../lib/opening-tree';
+import { pathToNode, findChildBySan } from '../lib/opening-tree';
 import { ConfirmDialog } from '../components/ui/ConfirmDialog';
 import { TreeGraph } from '../components/opening/TreeGraph';
+import { MovesView } from '../components/opening/MovesView';
 import { ChaptersOutline } from '../components/opening/ChaptersOutline';
 import { useOpeningTreeNav } from '../hooks/useOpeningTreeNav';
 import { ImportLichessDialog } from './ImportLichessDialog';
 
 type ViewMode = 'tree' | 'chapters';
+type RightView = 'moves' | 'tree';
 
 export function OpeningStudyEditor() {
   const { id } = useParams();
@@ -25,8 +27,9 @@ export function OpeningStudyEditor() {
   const [study, setStudy] = useState<OpeningStudyFull | null>(null);
   const [currentNodeId, setCurrentNodeId] = useState<number | null>(null);
   const [busy, setBusy] = useState(false);
-  const [confirmDeleteNode, setConfirmDeleteNode] = useState<TreeNode | null>(null);
+  const [confirmDeleteNode, setConfirmDeleteNode] = useState<OpeningNode | null>(null);
   const [mode, setMode] = useState<ViewMode>('tree');
+  const [rightView, setRightView] = useState<RightView>('moves');
   const [showImport, setShowImport] = useState(false);
 
   useEffect(() => {
@@ -62,7 +65,6 @@ export function OpeningStudyEditor() {
   if (!study) return <p className="text-zinc-500">Loading…</p>;
 
   const path = pathToNode(study.nodes, currentNodeId);
-  const tree = buildTree(study.nodes);
   const chaptersSet = new Set(study.chapters.map((c) => c.node_id));
 
   async function onAddChild(parentNode: OpeningNode | null, parentFen: string, mv: { from: Key; to: Key; san: string; promotion?: string }) {
@@ -192,26 +194,55 @@ export function OpeningStudyEditor() {
           </div>
 
           <section className="panel p-3 self-start sticky top-4 max-h-[90vh] overflow-auto">
-            <div className="flex items-center mb-2">
-              <h2 className="text-xs uppercase tracking-wider text-zinc-500">Opening tree</h2>
+            <div className="flex items-center gap-2 mb-3">
+              <div className="inline-flex bg-zinc-900/60 ring-1 ring-zinc-800 rounded-lg overflow-hidden text-xs">
+                <button
+                  onClick={() => setRightView('moves')}
+                  className={`px-3 py-1 ${
+                    rightView === 'moves'
+                      ? 'bg-amber-400/15 text-amber-200'
+                      : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/60'
+                  }`}
+                >
+                  Moves
+                </button>
+                <button
+                  onClick={() => setRightView('tree')}
+                  className={`px-3 py-1 ${
+                    rightView === 'tree'
+                      ? 'bg-amber-400/15 text-amber-200'
+                      : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/60'
+                  }`}
+                >
+                  Tree
+                </button>
+              </div>
               <div className="ml-auto flex items-center gap-3 text-[10px] text-zinc-500">
                 <span><span className="text-amber-400">★</span> main line</span>
-                <span><span className="text-emerald-400">●</span> has chapter</span>
-                <span className="text-zinc-600">hover for ✕ / ★</span>
+                <span><span className="text-emerald-400">●</span> chapter</span>
               </div>
             </div>
-            <TreeGraph
-              tree={tree}
-              currentNodeId={currentNodeId}
-              chaptersSet={chaptersSet}
-              onSelect={setCurrentNodeId}
-              onDelete={(n) => setConfirmDeleteNode(n)}
-              onToggleMain={async (n) => {
-                await trainerStudies.setIsMain(study.id, n.id, !n.is_main);
-                const refreshed = await trainerStudies.get(study.id);
-                setStudy(refreshed);
-              }}
-            />
+            {rightView === 'moves' ? (
+              <MovesView
+                nodes={study.nodes}
+                currentNodeId={currentNodeId}
+                chaptersSet={chaptersSet}
+                onSelect={setCurrentNodeId}
+              />
+            ) : (
+              <TreeGraph
+                nodes={study.nodes}
+                currentNodeId={currentNodeId}
+                chaptersSet={chaptersSet}
+                onSelect={setCurrentNodeId}
+                onDelete={(n) => setConfirmDeleteNode(n)}
+                onToggleMain={async (n) => {
+                  await trainerStudies.setIsMain(study.id, n.id, !n.is_main);
+                  const refreshed = await trainerStudies.get(study.id);
+                  setStudy(refreshed);
+                }}
+              />
+            )}
           </section>
         </div>
       ) : (
@@ -460,8 +491,8 @@ function ChapterPanel({
       />
       <textarea
         rows={10}
-        className="bg-zinc-950/60 border border-zinc-800 rounded px-2 py-1.5 font-mono text-sm"
-        placeholder="markdown body…"
+        className="bg-zinc-950/60 border border-zinc-800 rounded px-2 py-1.5 text-sm"
+        placeholder="notes…"
         value={body}
         onChange={(e) => setBody(e.target.value)}
       />
