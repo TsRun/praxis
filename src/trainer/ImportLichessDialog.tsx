@@ -5,6 +5,8 @@ import {
   type LichessChapterPreview,
   type ImportResult,
 } from '../lib/api';
+import { Btn } from '../components/ui/atoms';
+import { IconCheck } from '../components/ui/Icons';
 
 interface Props {
   open: boolean;
@@ -15,11 +17,21 @@ interface Props {
 
 type Stage =
   | { kind: 'paste' }
-  | { kind: 'picking'; pgn: string; chapters: LichessChapterPreview[]; picked: Set<number> }
+  | {
+      kind: 'picking';
+      pgn: string;
+      chapters: LichessChapterPreview[];
+      picked: Set<number>;
+    }
   | { kind: 'importing' }
   | { kind: 'done'; result: ImportResult };
 
-export function ImportLichessDialog({ open, studyId, onClose, onImported }: Props) {
+export function ImportLichessDialog({
+  open,
+  studyId,
+  onClose,
+  onImported,
+}: Props) {
   const [stage, setStage] = useState<Stage>({ kind: 'paste' });
   const [pgn, setPgn] = useState('');
   const [filename, setFilename] = useState<string | null>(null);
@@ -71,7 +83,11 @@ export function ImportLichessDialog({ open, studyId, onClose, onImported }: Prop
     const stashed = stage;
     setStage({ kind: 'importing' });
     try {
-      const result = await trainerStudies.importLichess(studyId, stashed.pgn, picks);
+      const result = await trainerStudies.importLichess(
+        studyId,
+        stashed.pgn,
+        picks,
+      );
       setStage({ kind: 'done', result });
       onImported();
     } catch (e) {
@@ -85,108 +101,171 @@ export function ImportLichessDialog({ open, studyId, onClose, onImported }: Prop
   return (
     <Dialog
       open={open}
-      onClose={busy ? () => {} : () => { reset(); onClose(); }}
+      onClose={
+        busy
+          ? () => {}
+          : () => {
+              reset();
+              onClose();
+            }
+      }
       title="Import from Lichess"
-      width="w-[36rem]"
+      width={580}
     >
       {stage.kind === 'paste' && (
-        <div className="flex flex-col gap-3">
-          <p className="text-xs text-zinc-500">
-            On Lichess: <em>Share &amp; export → PGN</em>. Paste below, or upload
-            the <code className="text-zinc-400">.pgn</code> file you downloaded.
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+          <p className="meta">
+            On Lichess: <em>Share &amp; export → PGN</em>. Paste below, or
+            upload the <code style={{ color: 'var(--text-dim)' }}>.pgn</code>{' '}
+            file you downloaded.
           </p>
-          <div className="flex items-center gap-2 text-xs">
-            <button
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 10,
+              fontSize: 12,
+            }}
+          >
+            <Btn
+              variant="secondary"
+              size="sm"
               type="button"
               onClick={() => fileInputRef.current?.click()}
-              className="px-2 py-1 rounded ring-1 ring-zinc-700 text-zinc-300 hover:ring-amber-400/40 hover:text-amber-300"
             >
               Choose .pgn file
-            </button>
+            </Btn>
             <input
               ref={fileInputRef}
               type="file"
               accept=".pgn,text/plain,application/x-chess-pgn"
-              className="hidden"
+              style={{ display: 'none' }}
               onChange={(e) => {
                 const f = e.target.files?.[0];
                 if (f) void onPickFile(f);
               }}
             />
             {filename && (
-              <span className="text-zinc-500">
-                loaded <span className="text-zinc-300 font-mono">{filename}</span>
+              <span className="meta">
+                loaded{' '}
+                <span style={{ color: 'var(--text)', fontFamily: 'var(--font-mono)' }}>
+                  {filename}
+                </span>
               </span>
             )}
             {pgn && !filename && (
-              <span className="text-zinc-500">
-                {pgn.length.toLocaleString()} chars pasted
-              </span>
+              <span className="meta">{pgn.length.toLocaleString()} chars pasted</span>
             )}
             {pgn && (
-              <button
-                type="button"
+              <Btn
+                variant="ghost"
+                size="sm"
+                style={{ marginLeft: 'auto' }}
                 onClick={() => {
                   setPgn('');
                   setFilename(null);
                   if (fileInputRef.current) fileInputRef.current.value = '';
                 }}
-                className="ml-auto text-zinc-500 hover:text-red-400"
               >
-                clear
-              </button>
+                Clear
+              </Btn>
             )}
           </div>
           <textarea
             rows={12}
             autoFocus
-            className="bg-zinc-950/60 border border-zinc-800 rounded px-2 py-1.5 font-mono text-xs"
+            className="font-mono"
             placeholder={'[Event "Najdorf 6.Be3"]\n\n1. e4 c5 2. Nf3 d6 …'}
             value={pgn}
             onChange={(e) => {
               setPgn(e.target.value);
               if (filename) setFilename(null);
             }}
+            style={{
+              background: 'var(--inset-bg)',
+              border: '1px solid var(--inset-border)',
+              borderRadius: 10,
+              padding: '10px 12px',
+              fontSize: 12,
+              color: 'var(--text)',
+              outline: 'none',
+              resize: 'vertical',
+            }}
           />
-          {err && <span className="text-xs text-red-400">{err}</span>}
-          <div className="flex gap-2 justify-end">
-            <button
-              onClick={() => { reset(); onClose(); }}
+          {err && (
+            <span style={{ fontSize: 12, color: 'var(--danger)' }}>{err}</span>
+          )}
+          <div
+            style={{
+              display: 'flex',
+              gap: 10,
+              justifyContent: 'flex-end',
+            }}
+          >
+            <Btn
+              variant="ghost"
+              type="button"
+              onClick={() => {
+                reset();
+                onClose();
+              }}
               disabled={busy}
-              className="text-zinc-400 px-3 py-1.5 disabled:opacity-50"
             >
               Cancel
-            </button>
-            <button
+            </Btn>
+            <Btn
+              variant="primary"
+              type="button"
               onClick={onParse}
               disabled={busy || !pgn.trim()}
-              className="bg-amber-500 hover:bg-amber-400 text-zinc-950 px-3 py-1.5 rounded font-medium disabled:opacity-50"
             >
               {busy ? 'Parsing…' : 'Parse PGN'}
-            </button>
+            </Btn>
           </div>
         </div>
       )}
 
       {stage.kind === 'picking' && (
-        <div className="flex flex-col gap-3">
-          <p className="text-xs text-zinc-500">
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+          <p className="meta">
             {stage.chapters.length} chapters found. Chapters that start from a
             different position can't be merged into this study.
           </p>
-          <div className="max-h-[50vh] overflow-auto flex flex-col gap-0.5">
+          <div
+            className="scroll-thin"
+            style={{
+              maxHeight: '50vh',
+              overflow: 'auto',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: 2,
+              border: '1px solid var(--inset-border)',
+              borderRadius: 10,
+              padding: 4,
+            }}
+          >
             {stage.chapters.map((c) => {
               const disabled = !c.matches_study_root;
               const checked = stage.picked.has(c.index);
               return (
                 <label
                   key={c.index}
-                  className={`flex items-center gap-2 text-sm px-2 py-1.5 rounded ${
-                    disabled
-                      ? 'opacity-50 cursor-not-allowed'
-                      : 'hover:bg-zinc-800/60 cursor-pointer'
-                  }`}
-                  title={disabled ? `Starts from ${c.root_fen}` : undefined}
+                  title={
+                    disabled ? `Starts from ${c.root_fen}` : undefined
+                  }
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 10,
+                    fontSize: 13,
+                    padding: '8px 10px',
+                    borderRadius: 8,
+                    cursor: disabled ? 'not-allowed' : 'pointer',
+                    opacity: disabled ? 0.5 : 1,
+                    background: checked && !disabled
+                      ? 'var(--accent-soft)'
+                      : 'transparent',
+                  }}
                 >
                   <input
                     type="checkbox"
@@ -199,51 +278,101 @@ export function ImportLichessDialog({ open, studyId, onClose, onImported }: Prop
                       setStage({ ...stage, picked: next });
                     }}
                   />
-                  <span className="flex-1 truncate">{c.name}</span>
-                  <span className="text-xs text-zinc-500">
+                  <span
+                    style={{
+                      flex: 1,
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                      whiteSpace: 'nowrap',
+                    }}
+                  >
+                    {c.name}
+                  </span>
+                  <span className="meta" style={{ fontSize: 11.5 }}>
                     {c.mainline_move_count} moves
                   </span>
                   {disabled && (
-                    <span className="text-xs text-amber-400">⚠ different start</span>
+                    <span
+                      style={{ fontSize: 11, color: 'var(--accent)' }}
+                    >
+                      ⚠ different start
+                    </span>
                   )}
                 </label>
               );
             })}
           </div>
-          {err && <span className="text-xs text-red-400">{err}</span>}
-          <div className="flex gap-2 justify-end">
-            <button
+          {err && (
+            <span style={{ fontSize: 12, color: 'var(--danger)' }}>{err}</span>
+          )}
+          <div
+            style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}
+          >
+            <Btn
+              variant="ghost"
+              type="button"
               onClick={() => setStage({ kind: 'paste' })}
               disabled={busy}
-              className="text-zinc-400 px-3 py-1.5 disabled:opacity-50"
             >
               Back
-            </button>
-            <button
+            </Btn>
+            <Btn
+              variant="primary"
+              type="button"
               onClick={onImport}
               disabled={busy || stage.picked.size === 0}
-              className="bg-amber-500 hover:bg-amber-400 text-zinc-950 px-3 py-1.5 rounded font-medium disabled:opacity-50"
             >
               Import {stage.picked.size}
-            </button>
+            </Btn>
           </div>
         </div>
       )}
 
       {stage.kind === 'importing' && (
-        <p className="text-sm text-zinc-400 text-center py-8">Importing…</p>
+        <div className="meta" style={{ textAlign: 'center', padding: '32px 0' }}>
+          Importing…
+        </div>
       )}
 
       {stage.kind === 'done' && (
-        <div className="flex flex-col gap-3">
-          <p className="text-sm text-emerald-400">
-            ✓ {stage.result.imported_chapters} chapters · {stage.result.imported_nodes} new
-            positions · {stage.result.reused_nodes} already in study
-          </p>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'flex-start',
+              gap: 12,
+              padding: '12px 14px',
+              borderRadius: 10,
+              background: 'var(--success-bg)',
+              boxShadow: 'inset 0 0 0 1px rgba(52,211,153,0.30)',
+              color: 'var(--text)',
+              fontSize: 13.5,
+            }}
+          >
+            <div
+              style={{
+                width: 28,
+                height: 28,
+                borderRadius: 999,
+                background: 'rgba(52,211,153,0.18)',
+                color: 'var(--success)',
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                flexShrink: 0,
+              }}
+            >
+              <IconCheck size={16} strokeWidth={2.6} />
+            </div>
+            <div>
+              {stage.result.imported_chapters} chapters · {stage.result.imported_nodes} new
+              positions · {stage.result.reused_nodes} already in study
+            </div>
+          </div>
           {stage.result.skipped.length > 0 && (
-            <details className="text-xs text-zinc-500">
+            <details className="meta" style={{ fontSize: 12 }}>
               <summary>{stage.result.skipped.length} skipped</summary>
-              <ul className="ml-4 mt-1 list-disc">
+              <ul style={{ marginLeft: 16, marginTop: 6, listStyle: 'disc' }}>
                 {stage.result.skipped.map((s, i) => (
                   <li key={i}>
                     <strong>{s.kind}</strong>
@@ -253,16 +382,16 @@ export function ImportLichessDialog({ open, studyId, onClose, onImported }: Prop
               </ul>
             </details>
           )}
-          <div className="flex justify-end">
-            <button
+          <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+            <Btn
+              variant="primary"
               onClick={() => {
                 reset();
                 onClose();
               }}
-              className="bg-amber-500 hover:bg-amber-400 text-zinc-950 px-3 py-1.5 rounded font-medium"
             >
               Done
-            </button>
+            </Btn>
           </div>
         </div>
       )}

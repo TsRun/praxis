@@ -1,5 +1,7 @@
 import { useState, type FormEvent } from 'react';
 import { trainer, type LinkCandidate } from '../lib/api';
+import { Btn, Avatar } from '../components/ui/atoms';
+import { IconSearch, IconX } from '../components/ui/Icons';
 
 type Ambig = { kind: 'ambiguous'; candidates: LinkCandidate[] };
 
@@ -20,8 +22,6 @@ export function InviteStudentDialog({ onClose }: { onClose: () => void }) {
       onClose();
     } catch (e) {
       const msg = (e as Error).message ?? '';
-      // The api helper throws `${method} ${path} → 409` for non-2xx;
-      // try to fetch raw to parse the candidates list.
       try {
         const res = await fetch('/api/trainer/invites', {
           method: 'POST',
@@ -59,61 +59,169 @@ export function InviteStudentDialog({ onClose }: { onClose: () => void }) {
   }
 
   return (
-    <div
-      className="fixed inset-0 bg-black/60 grid place-items-center z-40"
-      onClick={onClose}
-    >
+    <div className="modal-backdrop" onClick={onClose}>
       <form
         onSubmit={submit}
         onClick={(e) => e.stopPropagation()}
-        className="panel p-6 w-96 flex flex-col gap-3"
+        style={{
+          width: 520,
+          padding: 24,
+          background: 'var(--card-bg)',
+          borderRadius: 16,
+          boxShadow: 'var(--card-shadow), 0 30px 80px -20px rgba(0,0,0,0.6)',
+          display: 'flex',
+          flexDirection: 'column',
+        }}
       >
-        <h3 className="font-semibold tracking-tight">Add a student</h3>
-        <p className="text-xs text-zinc-500 -mt-1">
-          The student must already be signed up on Praxis. Type their nickname —
-          we'll link them and send a notification email.
-        </p>
-        <input
-          autoFocus
-          className="border border-zinc-700 bg-zinc-900 rounded px-2 py-1.5"
-          placeholder="student nickname"
-          value={name}
-          onChange={(e) => {
-            setName(e.target.value);
-            setAmbig(null);
-            setErr(null);
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            marginBottom: 4,
           }}
-        />
+        >
+          <h2 className="h-2" style={{ margin: 0 }}>Invite a student</h2>
+          <Btn variant="ghost" size="sm" type="button" onClick={onClose}>
+            <IconX size={14} strokeWidth={2.4} />
+          </Btn>
+        </div>
+        <div
+          style={{
+            color: 'var(--text-dim)',
+            fontSize: 13.5,
+            marginBottom: 18,
+          }}
+        >
+          Type a nickname. If they already use Praxis we'll link them and send
+          a notification email.
+        </div>
+
+        <div style={{ position: 'relative', marginBottom: 16 }}>
+          <IconSearch
+            size={14}
+            strokeWidth={2.4}
+            style={{
+              position: 'absolute',
+              left: 14,
+              top: '50%',
+              transform: 'translateY(-50%)',
+              color: 'var(--text-faint)',
+              pointerEvents: 'none',
+            }}
+          />
+          <input
+            autoFocus
+            className="input input-lg"
+            placeholder="student nickname"
+            value={name}
+            onChange={(e) => {
+              setName(e.target.value);
+              setAmbig(null);
+              setErr(null);
+            }}
+            style={{ paddingLeft: 38 }}
+          />
+        </div>
+
         {ambig && (
-          <div className="flex flex-col gap-1 text-sm">
-            <p className="text-xs text-amber-300">
+          <div
+            style={{
+              marginTop: 6,
+              background: 'var(--inset-bg)',
+              border: '1px solid var(--inset-border)',
+              borderRadius: 12,
+              maxHeight: 240,
+              overflow: 'auto',
+            }}
+          >
+            <div
+              style={{
+                padding: '10px 12px',
+                fontSize: 12,
+                color: 'var(--accent)',
+              }}
+            >
               Multiple users share that nickname — pick the right one:
-            </p>
+            </div>
             {ambig.candidates.map((c) => (
               <button
-                type="button"
                 key={c.id}
+                type="button"
                 disabled={busy}
                 onClick={() => linkById(c.id)}
-                className="text-left px-2 py-1.5 rounded hover:bg-amber-400/10 ring-1 ring-zinc-800 hover:ring-amber-400/30"
+                style={{
+                  width: '100%',
+                  textAlign: 'left',
+                  background: 'transparent',
+                  border: 0,
+                  padding: '10px 12px',
+                  display: 'grid',
+                  gridTemplateColumns: '32px 1fr auto',
+                  gap: 10,
+                  alignItems: 'center',
+                  cursor: 'pointer',
+                  color: 'var(--text)',
+                }}
               >
-                {c.name} <span className="text-xs text-zinc-500">#{c.id}</span>
+                <Avatar name={c.name} />
+                <div className="mono" style={{ fontSize: 14 }}>{c.name}</div>
+                <span
+                  style={{ fontSize: 11, color: 'var(--text-faint)' }}
+                >
+                  #{c.id}
+                </span>
               </button>
             ))}
           </div>
         )}
-        <div className="flex gap-2 justify-end">
-          <button type="button" onClick={onClose} className="text-zinc-400 px-3 py-1.5">
-            Cancel
-          </button>
-          <button
-            disabled={busy || !name.trim()}
-            className="bg-amber-500 hover:bg-amber-400 text-zinc-950 px-3 py-1.5 rounded font-medium disabled:opacity-50"
-          >
-            {busy ? 'Linking…' : 'Add'}
-          </button>
+
+        <div
+          style={{
+            padding: '10px 12px',
+            borderRadius: 10,
+            background: 'var(--inset-bg)',
+            border: '1px solid var(--inset-border)',
+            fontSize: 12,
+            color: 'var(--text-dim)',
+            lineHeight: 1.5,
+            marginTop: 14,
+          }}
+        >
+          Can't find them?{' '}
+          <a href="#" className="link">
+            Invite by email
+          </a>{' '}
+          — they'll get a magic link to claim the nickname.
         </div>
-        {err && <span className="text-xs text-red-400">{err}</span>}
+
+        {err && (
+          <div
+            style={{ fontSize: 12, color: 'var(--danger)', marginTop: 12 }}
+          >
+            {err}
+          </div>
+        )}
+
+        <div
+          style={{
+            display: 'flex',
+            gap: 10,
+            marginTop: 22,
+            justifyContent: 'flex-end',
+          }}
+        >
+          <Btn variant="ghost" type="button" onClick={onClose}>
+            Cancel
+          </Btn>
+          <Btn
+            variant="primary"
+            disabled={busy || !name.trim()}
+            type="submit"
+          >
+            {busy ? 'Linking…' : 'Send invite'}
+          </Btn>
+        </div>
       </form>
     </div>
   );

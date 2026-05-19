@@ -5,10 +5,18 @@ import { ChessBoard } from '../components/board/ChessBoard';
 import { MoveList } from '../components/board/MoveList';
 import { useGameStore } from '../store/gameStore';
 import { student, type GameStudyForStudent } from '../lib/api';
+import { Card, Btn, Chip } from '../components/ui/atoms';
+import { IconCheck, IconAlert } from '../components/ui/Icons';
 
 type QuizState =
   | { ply: number; phase: 'asking' }
-  | { ply: number; phase: 'revealed'; correct: boolean; expected: string; comment: string | null }
+  | {
+      ply: number;
+      phase: 'revealed';
+      correct: boolean;
+      expected: string;
+      comment: string | null;
+    }
   | null;
 
 export function GameStudyViewer() {
@@ -62,74 +70,210 @@ export function GameStudyViewer() {
             ...prev,
             attempts: [
               ...prev.attempts.filter((a) => a.ply !== quizState.ply),
-              { ply: quizState.ply, attempted_san: attemptedSan, correct: res.correct },
+              {
+                ply: quizState.ply,
+                attempted_san: attemptedSan,
+                correct: res.correct,
+              },
             ],
           }
         : prev,
     );
   }
 
-  if (!study) return <p className="text-zinc-500">Loading…</p>;
-  const noteByPly = new Map(study.annotations.map((a) => [a.ply, a] as const));
+  if (!study)
+    return (
+      <div style={{ padding: 28, color: 'var(--text-faint)' }}>Loading…</div>
+    );
+  const noteByPly = new Map(
+    study.annotations.map((a) => [a.ply, a] as const),
+  );
 
   return (
-    <div className="grid grid-cols-[auto_1fr_360px] gap-5">
-      <div className="rounded-xl p-1 panel relative">
-        <ChessBoard />
-        {quizState?.phase === 'asking' && <QuizPrompt onGuess={submitGuess} />}
+    <div
+      style={{
+        maxWidth: 1400,
+        margin: '0 auto',
+        padding: '24px 28px 80px',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: 18,
+      }}
+    >
+      <div>
+        <h1 className="h-1" style={{ margin: 0 }}>{study.name}</h1>
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 10,
+            flexWrap: 'wrap',
+            marginTop: 8,
+          }}
+        >
+          <Chip variant="mono">PGN</Chip>
+          <Chip>{study.headers_json?.White ?? '—'}</Chip>
+          <span className="meta">vs</span>
+          <Chip>{study.headers_json?.Black ?? '—'}</Chip>
+        </div>
       </div>
-      <div className="panel p-3 flex flex-col gap-2 overflow-auto">
-        <div className="flex items-center justify-between">
-          <h2 className="font-semibold">{study.name}</h2>
-          <label className="text-xs text-zinc-500 flex items-center gap-2">
-            <input
-              type="checkbox"
-              checked={showComments}
-              onChange={(e) => setShowComments(e.target.checked)}
-            />
-            comments
-          </label>
+      <div
+        style={{
+          display: 'grid',
+          gridTemplateColumns: 'auto 1fr 360px',
+          gap: 20,
+          alignItems: 'start',
+        }}
+      >
+        <div style={{ position: 'relative' }}>
+          <ChessBoard />
+          {quizState?.phase === 'asking' && (
+            <QuizPrompt onGuess={submitGuess} />
+          )}
         </div>
-        <div className="text-xs text-zinc-500">
-          {study.headers_json.White} vs {study.headers_json.Black}
-        </div>
-        <MoveList />
-        {showComments && noteByPly.get(currentPly)?.comment_md && (
-          <div className="mt-2 panel p-3">
-            <div className="text-sm text-zinc-200 whitespace-pre-wrap">{noteByPly.get(currentPly)!.comment_md!}</div>
-          </div>
-        )}
-      </div>
-      <aside className="panel p-3 flex flex-col gap-3 overflow-auto">
-        <div className="text-xs uppercase tracking-wider text-zinc-500">Progress</div>
-        <div className="text-sm">
-          {study.attempts.filter((a) => a.correct).length} /{' '}
-          {study.annotations.filter((a) => a.is_quiz).length} quizzes correct
-        </div>
-        {quizState?.phase === 'revealed' && (
+        <Card style={{ padding: 16, overflow: 'auto', maxHeight: '80vh' }}>
           <div
-            className={`panel p-3 ${
-              quizState.correct ? 'border-emerald-500/50' : 'border-red-500/50'
-            }`}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              marginBottom: 10,
+            }}
           >
-            <p className={quizState.correct ? 'text-emerald-400' : 'text-red-400'}>
-              {quizState.correct ? '✓ Correct' : `✗ Played: ${quizState.expected}`}
-            </p>
-            {quizState.comment && (
-              <div className="text-sm text-zinc-200 whitespace-pre-wrap">{quizState.comment}</div>
-            )}
-            <button
-              onClick={() => {
-                goToPly(quizState.ply);
-                setQuizState(null);
+            <h2 className="overline">Move list</h2>
+            <label
+              style={{
+                fontSize: 12,
+                color: 'var(--text-dim)',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 8,
               }}
-              className="mt-2 text-xs text-amber-400"
             >
-              Continue →
-            </button>
+              <input
+                type="checkbox"
+                checked={showComments}
+                onChange={(e) => setShowComments(e.target.checked)}
+              />
+              comments
+            </label>
           </div>
-        )}
-      </aside>
+          <MoveList />
+          {showComments && noteByPly.get(currentPly)?.comment_md && (
+            <Card
+              style={{
+                marginTop: 12,
+                padding: 12,
+                background: 'var(--inset-bg)',
+                border: '1px solid var(--inset-border)',
+              }}
+            >
+              <div
+                style={{
+                  fontSize: 13.5,
+                  color: 'var(--text)',
+                  whiteSpace: 'pre-wrap',
+                }}
+              >
+                {noteByPly.get(currentPly)!.comment_md!}
+              </div>
+            </Card>
+          )}
+        </Card>
+        <Card
+          style={{
+            padding: 16,
+            display: 'flex',
+            flexDirection: 'column',
+            gap: 12,
+          }}
+        >
+          <div className="overline">Progress</div>
+          <div style={{ fontSize: 14 }}>
+            <strong className="mono">
+              {study.attempts.filter((a) => a.correct).length}
+            </strong>{' '}
+            /{' '}
+            <span className="mono">
+              {study.annotations.filter((a) => a.is_quiz).length}
+            </span>{' '}
+            quizzes correct
+          </div>
+          {quizState?.phase === 'revealed' && (
+            <Card
+              style={{
+                padding: 14,
+                display: 'flex',
+                gap: 12,
+                alignItems: 'flex-start',
+                background: quizState.correct
+                  ? 'var(--success-bg)'
+                  : 'var(--danger-bg)',
+                boxShadow: `inset 0 0 0 1px ${
+                  quizState.correct
+                    ? 'rgba(52,211,153,0.30)'
+                    : 'rgba(248,113,113,0.30)'
+                }`,
+              }}
+            >
+              <div
+                style={{
+                  width: 28,
+                  height: 28,
+                  borderRadius: 999,
+                  background: quizState.correct
+                    ? 'rgba(52,211,153,0.18)'
+                    : 'rgba(248,113,113,0.18)',
+                  color: quizState.correct
+                    ? 'var(--success)'
+                    : 'var(--danger)',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  flexShrink: 0,
+                }}
+              >
+                {quizState.correct ? (
+                  <IconCheck size={16} strokeWidth={2.6} />
+                ) : (
+                  <IconAlert size={16} strokeWidth={2.6} />
+                )}
+              </div>
+              <div style={{ flex: 1 }}>
+                <div style={{ fontWeight: 600, fontSize: 14 }}>
+                  {quizState.correct
+                    ? 'Correct'
+                    : `Played: ${quizState.expected}`}
+                </div>
+                {quizState.comment && (
+                  <div
+                    style={{
+                      fontSize: 13,
+                      color: 'var(--text-dim)',
+                      whiteSpace: 'pre-wrap',
+                      marginTop: 4,
+                    }}
+                  >
+                    {quizState.comment}
+                  </div>
+                )}
+                <div style={{ marginTop: 10 }}>
+                  <Btn
+                    variant="primary"
+                    size="sm"
+                    onClick={() => {
+                      goToPly(quizState.ply);
+                      setQuizState(null);
+                    }}
+                  >
+                    Continue →
+                  </Btn>
+                </div>
+              </div>
+            </Card>
+          )}
+        </Card>
+      </div>
     </div>
   );
 }
@@ -137,11 +281,29 @@ export function GameStudyViewer() {
 function QuizPrompt({ onGuess }: { onGuess: (san: string) => void }) {
   const [guess, setGuess] = useState('');
   return (
-    <div className="absolute inset-0 grid place-items-center bg-black/40 backdrop-blur-sm">
-      <div className="panel p-4 flex flex-col gap-2 w-72">
-        <strong>What would you play?</strong>
+    <div
+      style={{
+        position: 'absolute',
+        inset: 0,
+        display: 'grid',
+        placeItems: 'center',
+        background: 'rgba(0,0,0,0.4)',
+        backdropFilter: 'blur(4px)',
+        borderRadius: 10,
+      }}
+    >
+      <Card
+        style={{
+          padding: 18,
+          width: 280,
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 10,
+        }}
+      >
+        <div className="h-3">What would you play?</div>
         <input
-          className="border border-zinc-700 bg-zinc-900 rounded px-2 py-1.5 font-mono"
+          className="input font-mono"
           value={guess}
           onChange={(e) => setGuess(e.target.value)}
           placeholder="enter SAN (e.g. Nf3)"
@@ -150,14 +312,14 @@ function QuizPrompt({ onGuess }: { onGuess: (san: string) => void }) {
             if (e.key === 'Enter' && guess.trim()) onGuess(guess.trim());
           }}
         />
-        <button
+        <Btn
+          variant="primary"
           disabled={!guess.trim()}
           onClick={() => onGuess(guess.trim())}
-          className="bg-amber-500 hover:bg-amber-400 text-zinc-950 px-3 py-1.5 rounded font-medium disabled:opacity-50"
         >
           Submit
-        </button>
-      </div>
+        </Btn>
+      </Card>
     </div>
   );
 }

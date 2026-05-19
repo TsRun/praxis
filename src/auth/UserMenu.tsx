@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
 import { useAuth } from './AuthContext';
 import { ALL_ROLES, type Role } from '../lib/api';
+import { Avatar, Btn, Chip } from '../components/ui/atoms';
+import { IconChevDown, IconLogout } from '../components/ui/Icons';
 
 const ROLE_LABEL: Record<Role, string> = {
   trainer: 'Trainer',
@@ -14,7 +16,6 @@ export function UserMenu() {
   const [editing, setEditing] = useState(false);
   const ref = useRef<HTMLDivElement | null>(null);
 
-  // Close when clicking outside
   useEffect(() => {
     if (!open) return;
     function onDoc(e: MouseEvent) {
@@ -28,68 +29,107 @@ export function UserMenu() {
   }, [open]);
 
   if (!user) return null;
-  const initials = user.name
-    .split(/\s+/)
-    .map((s) => s.charAt(0))
-    .slice(0, 2)
-    .join('')
-    .toUpperCase();
 
   return (
-    <div className="relative" ref={ref}>
+    <div ref={ref} style={{ position: 'relative' }}>
       <button
+        type="button"
         onClick={() => setOpen((v) => !v)}
         aria-haspopup="menu"
         aria-expanded={open}
-        className="flex items-center gap-2 px-2 py-1 rounded-lg hover:bg-zinc-800/60"
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: 8,
+          padding: '4px 8px',
+          background: 'transparent',
+          border: 0,
+          borderRadius: 8,
+          color: 'inherit',
+          cursor: 'pointer',
+        }}
+        onMouseOver={(e) =>
+          (e.currentTarget.style.background = 'var(--inset-bg)')
+        }
+        onMouseOut={(e) =>
+          (e.currentTarget.style.background = 'transparent')
+        }
       >
-        <div className="w-7 h-7 rounded-full bg-amber-400/15 text-amber-200 ring-1 ring-amber-400/30 grid place-items-center text-[11px] font-semibold">
-          {initials || '?'}
-        </div>
-        <span className="text-sm text-zinc-200">{user.name}</span>
-        <span className="text-zinc-500 text-[10px]" aria-hidden>
-          ▾
+        <Avatar name={user.name} />
+        <span className="meta-strong" style={{ fontSize: 13 }}>
+          {user.name}
         </span>
+        <IconChevDown size={11} strokeWidth={2.4} style={{ color: 'var(--text-faint)' }} />
       </button>
 
       {open && (
         <div
           role="menu"
-          className="absolute right-0 mt-2 w-72 panel p-3 z-40 flex flex-col gap-3"
+          style={{
+            position: 'absolute',
+            right: 0,
+            marginTop: 8,
+            width: 300,
+            background: 'var(--card-bg)',
+            borderRadius: 12,
+            boxShadow: 'var(--card-shadow), 0 24px 60px -20px rgba(0,0,0,0.6)',
+            padding: 14,
+            zIndex: 40,
+            display: 'flex',
+            flexDirection: 'column',
+            gap: 12,
+          }}
         >
-          <div className="flex flex-col gap-0.5">
-            <div className="text-sm font-medium text-zinc-100">{user.name}</div>
-            <div className="text-xs text-zinc-500">{user.email}</div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+            <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text)' }}>
+              {user.name}
+            </div>
+            <div className="meta" style={{ fontSize: 12 }}>{user.email}</div>
           </div>
 
           {!editing ? (
             <>
-              <div className="flex flex-wrap gap-1">
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
                 {user.roles.map((r) => (
-                  <span
-                    key={r}
-                    className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-amber-400/15 text-amber-200 ring-1 ring-amber-400/30"
-                  >
+                  <Chip key={r} variant="accent">
                     {ROLE_LABEL[r]}
-                  </span>
+                  </Chip>
                 ))}
               </div>
               <button
+                type="button"
                 onClick={() => setEditing(true)}
-                className="text-left text-xs text-zinc-300 hover:text-amber-300"
+                style={{
+                  textAlign: 'left',
+                  background: 'transparent',
+                  border: 0,
+                  color: 'var(--text-dim)',
+                  fontSize: 12,
+                  cursor: 'pointer',
+                  padding: 0,
+                }}
               >
                 Manage roles →
               </button>
-              <div className="border-t border-zinc-800/70 pt-2">
-                <button
+              <div
+                style={{
+                  borderTop: '1px solid var(--hairline)',
+                  paddingTop: 10,
+                  display: 'flex',
+                }}
+              >
+                <Btn
+                  variant="ghost"
+                  size="sm"
                   onClick={async () => {
                     setOpen(false);
                     await signout();
                   }}
-                  className="text-left text-xs text-zinc-400 hover:text-red-400"
+                  style={{ color: 'var(--text-dim)' }}
                 >
+                  <IconLogout size={12} strokeWidth={2.4} />
                   Sign out
-                </button>
+                </Btn>
               </div>
             </>
           ) : (
@@ -131,10 +171,19 @@ function RolesEditor({
   }
 
   return (
-    <div className="flex flex-col gap-2">
-      <div className="text-xs uppercase tracking-wider text-zinc-500">Your roles</div>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+      <div className="overline">Your roles</div>
       {ALL_ROLES.map((r) => (
-        <label key={r} className="flex items-center gap-2 text-sm cursor-pointer">
+        <label
+          key={r}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 8,
+            fontSize: 13.5,
+            cursor: 'pointer',
+          }}
+        >
           <input
             type="checkbox"
             checked={picked.has(r)}
@@ -143,12 +192,23 @@ function RolesEditor({
           {ROLE_LABEL[r]}
         </label>
       ))}
-      {err && <div className="text-xs text-red-400">{err}</div>}
-      <div className="flex gap-2 justify-end mt-1">
-        <button onClick={onCancel} className="text-xs text-zinc-400 px-2 py-1">
+      {err && (
+        <span style={{ fontSize: 12, color: 'var(--danger)' }}>{err}</span>
+      )}
+      <div
+        style={{
+          display: 'flex',
+          gap: 8,
+          justifyContent: 'flex-end',
+          marginTop: 4,
+        }}
+      >
+        <Btn variant="ghost" size="sm" onClick={onCancel}>
           Cancel
-        </button>
-        <button
+        </Btn>
+        <Btn
+          variant="primary"
+          size="sm"
           disabled={busy || picked.size === 0}
           onClick={async () => {
             setBusy(true);
@@ -161,10 +221,9 @@ function RolesEditor({
               setBusy(false);
             }
           }}
-          className="text-xs bg-amber-500 hover:bg-amber-400 text-zinc-950 px-2 py-1 rounded font-medium disabled:opacity-50"
         >
           {busy ? 'Saving…' : 'Save'}
-        </button>
+        </Btn>
       </div>
     </div>
   );

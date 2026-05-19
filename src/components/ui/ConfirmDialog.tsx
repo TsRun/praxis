@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Dialog } from './Dialog';
+import { Btn } from './atoms';
 
 interface Props {
   open: boolean;
@@ -26,18 +27,22 @@ export function ConfirmDialog({
   const [busy, setBusy] = useState(false);
   return (
     <Dialog open={open} onClose={busy ? () => {} : onClose} title={title}>
-      {body && <p className="text-sm text-zinc-400">{body}</p>}
-      <div className="flex gap-2 justify-end mt-2">
-        <button
-          type="button"
-          onClick={onClose}
-          disabled={busy}
-          className="text-zinc-400 px-3 py-1.5 disabled:opacity-50"
-        >
+      {body && <p className="meta">{body}</p>}
+      <div
+        style={{
+          display: 'flex',
+          gap: 10,
+          justifyContent: 'flex-end',
+          marginTop: 4,
+        }}
+      >
+        <Btn variant="ghost" type="button" onClick={onClose} disabled={busy}>
           {cancelLabel}
-        </button>
-        <button
+        </Btn>
+        <Btn
+          variant={destructive ? 'danger' : 'primary'}
           type="button"
+          disabled={busy}
           onClick={async () => {
             setBusy(true);
             try {
@@ -47,15 +52,9 @@ export function ConfirmDialog({
               setBusy(false);
             }
           }}
-          disabled={busy}
-          className={`px-3 py-1.5 rounded font-medium disabled:opacity-50 ${
-            destructive
-              ? 'bg-red-500 hover:bg-red-400 text-zinc-950'
-              : 'bg-amber-500 hover:bg-amber-400 text-zinc-950'
-          }`}
         >
           {busy ? '…' : confirmLabel}
-        </button>
+        </Btn>
       </div>
     </Dialog>
   );

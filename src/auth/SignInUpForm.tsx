@@ -1,20 +1,13 @@
 import { useState, type FormEvent } from 'react';
 import { useAuth } from './AuthContext';
 import { ALL_ROLES, type Role } from '../lib/api';
+import { Btn } from '../components/ui/atoms';
+import { IconMortar, IconUser, IconClock } from '../components/ui/Icons';
 
-const ROLE_LABELS: Record<Role, { title: string; desc: string }> = {
-  trainer: {
-    title: 'Trainer',
-    desc: 'I coach others. I want to invite students and build studies for them.',
-  },
-  student: {
-    title: 'Student',
-    desc: 'I learn from a coach. I want to receive studies and work through them.',
-  },
-  self: {
-    title: 'Own trainer',
-    desc: "I'm my own coach. I want to build studies for myself and study solo.",
-  },
+const ROLE_LABELS: Record<Role, { title: string; sub: string; Icon: typeof IconMortar }> = {
+  trainer: { title: 'Trainer',     sub: 'I coach others',     Icon: IconMortar },
+  student: { title: 'Student',     sub: 'A coach assigns me', Icon: IconUser },
+  self:    { title: 'Solo',        sub: 'My own materials',   Icon: IconClock },
 };
 
 interface Props {
@@ -67,96 +60,199 @@ export function SignInUpForm({ inviteToken, inviteEmail, inviteName }: Props) {
   }
 
   return (
-    <form onSubmit={submit} className="flex flex-col gap-4 w-[26rem]">
-      <div className="flex gap-1 mb-1 text-sm bg-zinc-900/60 rounded-lg p-1 ring-1 ring-zinc-800">
+    <form onSubmit={submit} style={{ display: 'flex', flexDirection: 'column' }}>
+      <div
+        style={{
+          display: 'flex',
+          gap: 4,
+          background: 'var(--inset-bg)',
+          border: '1px solid var(--inset-border)',
+          borderRadius: 10,
+          padding: 4,
+          marginBottom: 22,
+        }}
+      >
         <button
           type="button"
           onClick={() => setMode('in')}
-          className={`flex-1 py-1.5 rounded ${
-            mode === 'in' ? 'bg-amber-500 text-zinc-950 font-medium' : 'text-zinc-400'
-          }`}
+          style={{
+            flex: 1,
+            background: mode === 'in' ? 'rgba(255,255,255,0.06)' : 'transparent',
+            border: 0,
+            padding: 8,
+            borderRadius: 7,
+            color: mode === 'in' ? 'var(--text)' : 'var(--text-dim)',
+            cursor: 'pointer',
+            fontSize: 13.5,
+            fontWeight: 500,
+          }}
         >
           Sign in
         </button>
         <button
           type="button"
           onClick={() => setMode('up')}
-          className={`flex-1 py-1.5 rounded ${
-            mode === 'up' ? 'bg-amber-500 text-zinc-950 font-medium' : 'text-zinc-400'
-          }`}
+          style={{
+            flex: 1,
+            background: mode === 'up' ? 'rgba(255,255,255,0.06)' : 'transparent',
+            border: 0,
+            padding: 8,
+            borderRadius: 7,
+            color: mode === 'up' ? 'var(--text)' : 'var(--text-dim)',
+            cursor: 'pointer',
+            fontSize: 13.5,
+            fontWeight: 500,
+          }}
         >
           Create account
         </button>
       </div>
 
-      {mode === 'up' && (
+      <div style={{ marginBottom: 12 }}>
+        <label
+          style={{
+            display: 'block',
+            fontSize: 12,
+            fontWeight: 500,
+            color: 'var(--text-dim)',
+            marginBottom: 6,
+          }}
+        >
+          Email
+        </label>
         <input
-          className="border border-zinc-700 bg-zinc-900 rounded px-2 py-1.5"
-          placeholder="your nickname"
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          autoComplete="nickname"
+          className="input"
+          placeholder="you@studio.club"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          autoComplete="email"
+          readOnly={!!inviteEmail && mode === 'up'}
         />
-      )}
-
-      <input
-        className="border border-zinc-700 bg-zinc-900 rounded px-2 py-1.5"
-        placeholder="email"
-        value={email}
-        onChange={(e) => setEmail(e.target.value)}
-        autoComplete="email"
-        readOnly={!!inviteEmail && mode === 'up'}
-      />
-      <input
-        className="border border-zinc-700 bg-zinc-900 rounded px-2 py-1.5"
-        type="password"
-        placeholder={mode === 'up' ? 'password (8+ chars)' : 'password'}
-        value={password}
-        onChange={(e) => setPassword(e.target.value)}
-        autoComplete={mode === 'up' ? 'new-password' : 'current-password'}
-      />
+      </div>
 
       {mode === 'up' && (
-        <fieldset className="flex flex-col gap-2 panel p-3">
-          <legend className="text-xs uppercase tracking-wider text-zinc-500 px-1">
-            How will you use Praxis?
-          </legend>
-          <p className="text-xs text-zinc-500 -mt-1">Pick one or more. You can change this later.</p>
-          {ALL_ROLES.map((r) => (
-            <label
-              key={r}
-              className={`flex items-start gap-3 p-2 rounded cursor-pointer border ${
-                roles.has(r) ? 'border-amber-400/40 bg-amber-400/[0.04]' : 'border-zinc-800'
-              }`}
-            >
-              <input
-                type="checkbox"
-                checked={roles.has(r)}
-                onChange={() => toggle(r)}
-                className="mt-1"
-              />
-              <div className="flex-1">
-                <div className="text-sm font-medium text-zinc-100">{ROLE_LABELS[r].title}</div>
-                <div className="text-xs text-zinc-400">{ROLE_LABELS[r].desc}</div>
-              </div>
-            </label>
-          ))}
-        </fieldset>
+        <div style={{ marginBottom: 12 }}>
+          <label
+            style={{
+              display: 'block',
+              fontSize: 12,
+              fontWeight: 500,
+              color: 'var(--text-dim)',
+              marginBottom: 6,
+            }}
+          >
+            Nickname{' '}
+            <span style={{ color: 'var(--text-faint)', fontWeight: 400 }}>
+              (how students find you)
+            </span>
+          </label>
+          <input
+            className="input"
+            placeholder="e.g. tactical_torre"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            autoComplete="nickname"
+          />
+        </div>
       )}
 
-      <button
+      <div style={{ marginBottom: mode === 'up' ? 18 : 16 }}>
+        <label
+          style={{
+            display: 'block',
+            fontSize: 12,
+            fontWeight: 500,
+            color: 'var(--text-dim)',
+            marginBottom: 6,
+          }}
+        >
+          Password
+        </label>
+        <input
+          className="input"
+          type="password"
+          placeholder={mode === 'up' ? 'at least 8 characters' : 'password'}
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          autoComplete={mode === 'up' ? 'new-password' : 'current-password'}
+        />
+      </div>
+
+      {mode === 'up' && (
+        <div style={{ marginBottom: 18 }}>
+          <label
+            style={{
+              display: 'block',
+              fontSize: 12,
+              fontWeight: 500,
+              color: 'var(--text-dim)',
+              marginBottom: 6,
+            }}
+          >
+            I am a
+          </label>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8 }}>
+            {ALL_ROLES.map((r) => {
+              const on = roles.has(r);
+              const { Icon, title, sub } = ROLE_LABELS[r];
+              return (
+                <button
+                  key={r}
+                  type="button"
+                  onClick={() => toggle(r)}
+                  style={{
+                    padding: '14px 10px',
+                    borderRadius: 12,
+                    background: on ? 'var(--accent-soft)' : 'var(--inset-bg)',
+                    border: `1px solid ${on ? 'var(--accent-ring)' : 'var(--inset-border)'}`,
+                    cursor: 'pointer',
+                    textAlign: 'center',
+                    color: on ? 'var(--text)' : 'var(--text-dim)',
+                    transition: 'all 120ms ease',
+                  }}
+                >
+                  <Icon size={22} strokeWidth={2} style={{ marginBottom: 8 }} />
+                  <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text)' }}>{title}</div>
+                  <div style={{ fontSize: 11.5, color: 'var(--text-dim)', marginTop: 2, lineHeight: 1.35 }}>
+                    {sub}
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      <Btn
+        type="submit"
+        variant="primary"
+        size="lg"
         disabled={busy}
-        className="bg-amber-500 hover:bg-amber-400 text-zinc-950 rounded px-3 py-1.5 font-medium disabled:opacity-50"
+        style={{ width: '100%', justifyContent: 'center' }}
       >
         {busy
           ? mode === 'in'
             ? 'Signing in…'
             : 'Creating…'
           : mode === 'in'
-            ? 'Sign in'
-            : 'Create account'}
-      </button>
-      {err && <span className="text-xs text-red-400">{err}</span>}
+            ? 'Sign in →'
+            : 'Create account →'}
+      </Btn>
+
+      {err && (
+        <div style={{ fontSize: 12, color: 'var(--danger)', marginTop: 10, textAlign: 'center' }}>
+          {err}
+        </div>
+      )}
+
+      <div
+        className="meta"
+        style={{ textAlign: 'center', marginTop: 14, fontSize: 12 }}
+      >
+        By creating an account you accept our{' '}
+        <a className="link" href="#">terms</a> and{' '}
+        <a className="link" href="#">privacy</a>.
+      </div>
     </form>
   );
 }

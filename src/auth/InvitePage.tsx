@@ -1,14 +1,21 @@
 import { useEffect, useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
 import { invites, type InviteInfo } from '../lib/api';
 import { useAuth } from './AuthContext';
 import { SignInUpForm } from './SignInUpForm';
 import { defaultLandingForRoles } from './routing';
+import { Card, Btn } from '../components/ui/atoms';
+
+const PAGE_STYLE: React.CSSProperties = {
+  minHeight: '100vh',
+  display: 'grid',
+  placeItems: 'center',
+  padding: '48px 24px',
+};
 
 export function InvitePage() {
   const { token } = useParams();
   const { user, loading } = useAuth();
-  const nav = useNavigate();
   const [info, setInfo] = useState<InviteInfo | null>(null);
   const [err, setErr] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -23,31 +30,31 @@ export function InvitePage() {
 
   if (err) {
     return (
-      <div className="min-h-screen grid place-items-center px-6 py-12">
-        <div className="panel p-8 text-red-400 text-sm">{err}</div>
+      <div style={PAGE_STYLE}>
+        <Card style={{ padding: 28, color: 'var(--danger)', fontSize: 14 }}>{err}</Card>
       </div>
     );
   }
   if (!info || loading) {
     return (
-      <div className="min-h-screen grid place-items-center px-6 py-12">
-        <div className="panel p-8 text-zinc-500">Loading invite…</div>
+      <div style={PAGE_STYLE}>
+        <Card style={{ padding: 28, color: 'var(--text-faint)' }}>Loading invite…</Card>
       </div>
     );
   }
 
-  // If the user is already signed in with a matching email, offer one-click link.
   if (user && user.email === info.student_email) {
     return (
-      <div className="min-h-screen grid place-items-center px-6 py-12">
-        <div className="panel p-8 flex flex-col gap-3 w-96">
-          <h2 className="text-lg font-semibold tracking-tight">
-            <span className="text-amber-400">{info.trainer_name}</span> invited you
+      <div style={PAGE_STYLE}>
+        <Card style={{ padding: 32, width: 380, display: 'flex', flexDirection: 'column', gap: 14 }}>
+          <h2 className="h-2" style={{ margin: 0 }}>
+            <span style={{ color: 'var(--accent)' }}>{info.trainer_name}</span> invited you
           </h2>
-          <p className="text-sm text-zinc-400">
+          <p className="meta">
             You're already signed in as {user.email}. Add them as a trainer now?
           </p>
-          <button
+          <Btn
+            variant="primary"
             disabled={busy}
             onClick={async () => {
               setBusy(true);
@@ -59,31 +66,42 @@ export function InvitePage() {
                 setBusy(false);
               }
             }}
-            className="bg-amber-500 hover:bg-amber-400 text-zinc-950 px-3 py-1.5 rounded font-medium disabled:opacity-50"
           >
             {busy ? 'Linking…' : 'Accept'}
-          </button>
-        </div>
+          </Btn>
+        </Card>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen grid place-items-center px-6 py-12">
-      <div className="panel p-8 flex flex-col gap-4 items-center">
-        <h2 className="text-lg font-semibold tracking-tight">
-          <span className="text-amber-400">{info.trainer_name}</span> invited you to Praxis
+    <div style={PAGE_STYLE}>
+      <Card
+        style={{
+          padding: 32,
+          maxWidth: 480,
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 18,
+          alignItems: 'center',
+          textAlign: 'center',
+        }}
+      >
+        <h2 className="h-2" style={{ margin: 0 }}>
+          <span style={{ color: 'var(--accent)' }}>{info.trainer_name}</span> invited you to Praxis
         </h2>
-        <p className="text-sm text-zinc-400 text-center max-w-md">
-          Hi <strong className="text-zinc-200">{info.student_name}</strong>. Create your account
+        <p className="meta">
+          Hi <strong style={{ color: 'var(--text)' }}>{info.student_name}</strong>. Create your account
           to claim the invite. Pick any roles you want; <em>student</em> will be added automatically.
         </p>
-        <SignInUpForm
-          inviteToken={info.token}
-          inviteEmail={info.student_email}
-          inviteName={info.student_name}
-        />
-      </div>
+        <div style={{ width: '100%', textAlign: 'left' }}>
+          <SignInUpForm
+            inviteToken={info.token}
+            inviteEmail={info.student_email}
+            inviteName={info.student_name}
+          />
+        </div>
+      </Card>
     </div>
   );
 }

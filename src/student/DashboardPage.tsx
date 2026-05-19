@@ -1,34 +1,650 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { student, type AssignmentRow } from '../lib/api';
+import { useAuth } from '../auth/AuthContext';
+import {
+  Card,
+  Btn,
+  Chip,
+  Avatar,
+  Segmented,
+  ProgressBar,
+  Kbd,
+} from '../components/ui/atoms';
+import { FenBoard } from '../components/board/FenBoard';
+import {
+  IconCheck,
+  IconLamp,
+  IconClock,
+} from '../components/ui/Icons';
+
+type ActiveFilter = 'active' | 'completed';
+const START_FEN = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1';
+
+function greet() {
+  const h = new Date().getHours();
+  if (h < 6) return 'Late night';
+  if (h < 12) return 'Good morning';
+  if (h < 18) return 'Good afternoon';
+  return 'Good evening';
+}
+
+function relativeDate(iso: string): string {
+  const d = new Date(iso);
+  const diff = (Date.now() - d.getTime()) / 1000;
+  if (diff < 60) return 'just now';
+  if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
+  if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
+  if (diff < 604800) return `${Math.floor(diff / 86400)}d ago`;
+  return d.toLocaleDateString();
+}
 
 export function DashboardPage() {
+  const { user } = useAuth();
   const [rows, setRows] = useState<AssignmentRow[] | null>(null);
+  const [filter, setFilter] = useState<ActiveFilter>('active');
+
   useEffect(() => {
     student.assignments().then(setRows);
   }, []);
-  if (!rows) return <p className="text-zinc-500">Loading…</p>;
+
+  if (!rows)
+    return (
+      <div style={{ padding: 28, color: 'var(--text-faint)' }}>Loading…</div>
+    );
+
+  const active = rows.filter((a) => a.completed_at == null);
+  const done = rows.filter((a) => a.completed_at != null);
+  const visible = filter === 'active' ? active : done;
+  const top = active[0];
+
   return (
-    <div className="flex flex-col gap-4">
-      <h1 className="text-2xl font-semibold tracking-tight">Your studies</h1>
-      {rows.length === 0 && <p className="text-zinc-500">No studies assigned yet.</p>}
-      {rows.map((a) => {
-        const path =
-          a.study_kind === 'opening'
-            ? `/student/study/opening/${a.study_id}`
-            : `/student/study/game/${a.study_id}`;
-        return (
-          <Link key={a.id} to={path} className="panel p-3 hover:bg-amber-400/[0.04]">
-            <div className="flex items-center gap-3">
-              <span className="text-xs font-mono px-1.5 py-0.5 rounded bg-zinc-700/40">
-                {a.study_kind}
-              </span>
-              <strong>{a.name}</strong>
-              <span className="ml-auto text-xs text-zinc-500">{a.progress_pct}%</span>
+    <div
+      style={{
+        maxWidth: 1400,
+        margin: '0 auto',
+        padding: '32px 28px 100px',
+      }}
+    >
+      {/* greeting */}
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'flex-end',
+          gap: 24,
+          marginBottom: 28,
+        }}
+      >
+        <div style={{ flex: 1 }}>
+          <h1 className="h-1" style={{ margin: '0 0 6px' }}>
+            {greet()},{' '}
+            <span style={{ color: 'var(--accent)' }}>{user?.name ?? '—'}</span>
+          </h1>
+          <div className="meta">
+            {active.length} active assignments. A short focused session beats a
+            long distracted one.
+          </div>
+        </div>
+        <div style={{ display: 'flex', gap: 14 }}>
+          <MiniStat value="—" label="day streak" accent />
+          <MiniStat value={active.length} label="active" />
+          <MiniStat value={done.length} label="completed" />
+        </div>
+      </div>
+
+      <div
+        style={{
+          display: 'grid',
+          gridTemplateColumns: '1.05fr 1fr',
+          gap: 24,
+          alignItems: 'start',
+        }}
+      >
+        {/* LEFT */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+          {/* today's drill hero */}
+          {top ? (
+            <Card
+              style={{
+                padding: 24,
+                display: 'flex',
+                flexDirection: 'column',
+                gap: 18,
+                position: 'relative',
+                overflow: 'hidden',
+              }}
+            >
+              <div
+                style={{
+                  position: 'absolute',
+                  inset: '-40% -10% auto auto',
+                  width: 320,
+                  height: 320,
+                  background:
+                    'radial-gradient(circle, var(--accent-soft), transparent 70%)',
+                  pointerEvents: 'none',
+                  opacity: 0.6,
+                }}
+              />
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 12,
+                  position: 'relative',
+                }}
+              >
+                <span
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 6,
+                    padding: '4px 10px',
+                    borderRadius: 999,
+                    background: 'var(--accent-soft)',
+                    border: '1px solid var(--accent-ring)',
+                    color: 'var(--accent)',
+                    fontSize: 11,
+                    fontWeight: 600,
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.05em',
+                  }}
+                >
+                  <span className="dot-mainline" />
+                  Today's drill
+                </span>
+                <span className="meta" style={{ marginLeft: 'auto' }}>
+                  recommended · ~5 minutes
+                </span>
+              </div>
+              <div style={{ position: 'relative' }}>
+                <div
+                  style={{
+                    fontSize: 28,
+                    fontWeight: 600,
+                    letterSpacing: '-0.02em',
+                    lineHeight: 1.15,
+                    margin: '4px 0 6px',
+                  }}
+                >
+                  {top.name}
+                </div>
+                <div
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 8,
+                    background: 'var(--inset-bg)',
+                    border: '1px solid var(--inset-border)',
+                    padding: '4px 10px',
+                    borderRadius: 8,
+                    fontSize: 13,
+                    color: 'var(--text-dim)',
+                    width: 'fit-content',
+                  }}
+                >
+                  <Chip variant="mono" style={{ height: 20, padding: '0 6px' }}>
+                    {top.study_kind === 'opening' ? 'OPENING' : 'GAME'}
+                  </Chip>
+                  assigned {relativeDate(top.assigned_at)}
+                </div>
+              </div>
+
+              <div
+                style={{
+                  display: 'grid',
+                  gridTemplateColumns: '220px 1fr',
+                  gap: 22,
+                  alignItems: 'center',
+                  position: 'relative',
+                }}
+              >
+                <FenBoard
+                  fen={START_FEN}
+                  size={220}
+                  coordinates={false}
+                />
+                <div
+                  style={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: 16,
+                  }}
+                >
+                  <div className="meta" style={{ fontSize: 14, lineHeight: 1.55 }}>
+                    Pick up where you left off. The schedule will revisit the
+                    positions you've seen before.
+                  </div>
+                  <div
+                    style={{
+                      display: 'grid',
+                      gridTemplateColumns: '1fr 1fr 1fr',
+                      gap: 10,
+                    }}
+                  >
+                    <BreakdownTile l="Due now" v="—" accent />
+                    <BreakdownTile l="New today" v="—" />
+                    <BreakdownTile l="Reviewing" v="—" />
+                  </div>
+                  <div style={{ display: 'flex', gap: 10 }}>
+                    <Link
+                      to={
+                        top.study_kind === 'opening'
+                          ? `/student/study/opening/${top.study_id}`
+                          : `/student/study/game/${top.study_id}`
+                      }
+                    >
+                      <Btn variant="primary" size="lg">
+                        Start drill →
+                      </Btn>
+                    </Link>
+                    <Link
+                      to={
+                        top.study_kind === 'opening'
+                          ? `/student/study/opening/${top.study_id}`
+                          : `/student/study/game/${top.study_id}`
+                      }
+                    >
+                      <Btn variant="secondary" size="lg">Explore tree</Btn>
+                    </Link>
+                  </div>
+                </div>
+              </div>
+            </Card>
+          ) : (
+            <Card style={{ padding: 32, textAlign: 'center' }}>
+              <h2 className="h-2" style={{ margin: 0 }}>No active assignments</h2>
+              <p className="meta" style={{ marginTop: 8 }}>
+                When a coach assigns a study, it'll show up here.
+              </p>
+            </Card>
+          )}
+
+          {/* all assignments */}
+          <Card style={{ padding: '16px 18px' }}>
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'baseline',
+                justifyContent: 'space-between',
+                marginBottom: 12,
+              }}
+            >
+              <div style={{ display: 'flex', gap: 8, alignItems: 'baseline' }}>
+                <h2 className="h-2" style={{ margin: 0 }}>
+                  All assignments
+                </h2>
+                <span
+                  className="mono"
+                  style={{ color: 'var(--text-faint)', fontSize: 13 }}
+                >
+                  {rows.length}
+                </span>
+              </div>
+              <Segmented<ActiveFilter>
+                value={filter}
+                onChange={setFilter}
+                options={[
+                  { value: 'active', label: 'Active' },
+                  { value: 'completed', label: 'Completed' },
+                ]}
+              />
             </div>
-          </Link>
-        );
-      })}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              {visible.length === 0 ? (
+                <div className="meta" style={{ padding: 12 }}>
+                  No {filter === 'active' ? 'active' : 'completed'} assignments.
+                </div>
+              ) : (
+                visible.map((a) => (
+                  <AssignmentRowCard key={a.id} a={a} />
+                ))
+              )}
+            </div>
+          </Card>
+        </div>
+
+        {/* RIGHT */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+          <Card
+            style={{
+              padding: '16px 18px',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 14,
+            }}
+          >
+            <Avatar name="—" size="lg" />
+            <div style={{ flex: 1 }}>
+              <div className="meta-strong" style={{ fontSize: 14 }}>
+                Your trainer
+              </div>
+              <div className="meta" style={{ fontSize: 12 }}>
+                {active.length} studies assigned to you
+              </div>
+            </div>
+            <Btn variant="secondary" size="sm">
+              Message
+            </Btn>
+          </Card>
+
+          <Card style={{ padding: 18 }}>
+            <div
+              style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'baseline',
+                marginBottom: 14,
+              }}
+            >
+              <h2 className="h-2" style={{ margin: 0 }}>Today</h2>
+              <span className="meta">
+                {Math.round(
+                  rows.reduce((s, a) => s + a.progress_pct, 0) /
+                    Math.max(1, rows.length),
+                )}
+                % average
+              </span>
+            </div>
+            <ProgressBar
+              pct={
+                rows.reduce((s, a) => s + a.progress_pct, 0) /
+                Math.max(1, rows.length)
+              }
+              height={6}
+            />
+            <div style={{ display: 'flex', gap: 8, marginTop: 10 }}>
+              <Chip variant="success">{done.length} done</Chip>
+              <Chip>{active.length} active</Chip>
+            </div>
+          </Card>
+
+          <Card style={{ padding: 18 }}>
+            <h2 className="h-2" style={{ margin: '0 0 12px' }}>
+              Activity
+            </h2>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+              {rows.slice(0, 5).map((a) => (
+                <div
+                  key={a.id}
+                  style={{
+                    display: 'grid',
+                    gridTemplateColumns: '16px 1fr',
+                    gap: 14,
+                    alignItems: 'flex-start',
+                    padding: '4px 0',
+                  }}
+                >
+                  <span
+                    style={{
+                      width: 8,
+                      height: 8,
+                      borderRadius: 999,
+                      marginTop: 7,
+                      background: a.completed_at
+                        ? 'var(--success)'
+                        : 'var(--accent)',
+                      boxShadow: a.completed_at
+                        ? 'none'
+                        : '0 0 8px var(--accent-glow)',
+                    }}
+                  />
+                  <div>
+                    <div style={{ fontSize: 13 }}>
+                      {a.completed_at ? 'Completed' : 'Assigned'}{' '}
+                      <strong>{a.name}</strong>
+                    </div>
+                    <div
+                      style={{
+                        fontSize: 11.5,
+                        color: 'var(--text-faint)',
+                        marginTop: 2,
+                      }}
+                    >
+                      {relativeDate(a.completed_at ?? a.assigned_at)}
+                    </div>
+                  </div>
+                </div>
+              ))}
+              {rows.length === 0 && (
+                <div className="meta">No activity yet.</div>
+              )}
+            </div>
+          </Card>
+
+          <Card
+            style={{
+              padding: 16,
+              display: 'flex',
+              gap: 12,
+              alignItems: 'flex-start',
+            }}
+          >
+            <div
+              style={{
+                width: 32,
+                height: 32,
+                borderRadius: 8,
+                background: 'var(--accent-soft)',
+                color: 'var(--accent)',
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                flexShrink: 0,
+              }}
+            >
+              <IconLamp size={16} strokeWidth={2.2} />
+            </div>
+            <div>
+              <div className="meta-strong" style={{ fontSize: 13.5 }}>
+                Tip · use the keyboard
+              </div>
+              <div className="meta" style={{ fontSize: 12.5, marginTop: 2 }}>
+                In any drill, press <Kbd>↵</Kbd> to submit, <Kbd>Esc</Kbd> to skip,{' '}
+                <Kbd>?</Kbd> for the full cheatsheet.
+              </div>
+            </div>
+          </Card>
+        </div>
+      </div>
     </div>
+  );
+}
+
+function MiniStat({
+  value,
+  label,
+  accent = false,
+}: {
+  value: number | string;
+  label: string;
+  accent?: boolean;
+}) {
+  return (
+    <div
+      style={{
+        padding: '12px 16px',
+        background: 'var(--inset-bg)',
+        border: '1px solid var(--inset-border)',
+        borderRadius: 12,
+        minWidth: 110,
+      }}
+    >
+      <div
+        className="mono"
+        style={{
+          fontSize: 22,
+          fontWeight: 600,
+          letterSpacing: '-0.02em',
+          color: accent ? 'var(--accent)' : 'var(--text)',
+        }}
+      >
+        {value}
+      </div>
+      <div
+        style={{
+          fontSize: 11,
+          color: 'var(--text-faint)',
+          textTransform: 'uppercase',
+          letterSpacing: '0.04em',
+          marginTop: 2,
+        }}
+      >
+        {label}
+      </div>
+    </div>
+  );
+}
+
+function BreakdownTile({
+  l,
+  v,
+  accent = false,
+}: {
+  l: string;
+  v: string | number;
+  accent?: boolean;
+}) {
+  return (
+    <div
+      style={{
+        padding: '12px 14px',
+        borderRadius: 10,
+        background: 'var(--inset-bg)',
+        border: '1px solid var(--inset-border)',
+      }}
+    >
+      <div
+        style={{
+          fontSize: 11,
+          color: 'var(--text-faint)',
+          textTransform: 'uppercase',
+          letterSpacing: '0.04em',
+        }}
+      >
+        {l}
+      </div>
+      <div
+        className="mono"
+        style={{
+          fontSize: 16,
+          fontWeight: 600,
+          marginTop: 2,
+          color: accent ? 'var(--accent)' : 'var(--text)',
+        }}
+      >
+        {v}
+      </div>
+    </div>
+  );
+}
+
+function AssignmentRowCard({ a }: { a: AssignmentRow }) {
+  const path =
+    a.study_kind === 'opening'
+      ? `/student/study/opening/${a.study_id}`
+      : `/student/study/game/${a.study_id}`;
+  const isDone = a.completed_at != null;
+  return (
+    <Link to={path} style={{ textDecoration: 'none', color: 'inherit' }}>
+      <div
+        style={{
+          display: 'grid',
+          gridTemplateColumns: '56px 1fr 130px auto',
+          gap: 14,
+          alignItems: 'center',
+          padding: 12,
+          background: 'var(--inset-bg)',
+          border: '1px solid var(--inset-border)',
+          borderRadius: 12,
+          cursor: 'pointer',
+          transition: 'background 120ms ease, border-color 120ms ease',
+        }}
+      >
+        <FenBoard fen={START_FEN} size={56} coordinates={false} />
+        <div style={{ minWidth: 0 }}>
+          <div
+            style={{
+              fontSize: 14.5,
+              fontWeight: 600,
+              letterSpacing: '-0.005em',
+              marginBottom: 4,
+            }}
+          >
+            {a.name}
+          </div>
+          <div
+            style={{
+              fontSize: 12,
+              color: 'var(--text-dim)',
+              display: 'flex',
+              gap: 8,
+            }}
+          >
+            <span
+              className="mono"
+              style={{
+                textTransform: 'uppercase',
+                letterSpacing: '0.04em',
+                fontSize: 10.5,
+                color: 'var(--text-faint)',
+              }}
+            >
+              {a.study_kind}
+            </span>
+            <span>· assigned {relativeDate(a.assigned_at)}</span>
+            {isDone && <span>· completed {relativeDate(a.completed_at!)}</span>}
+          </div>
+        </div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+          <div
+            style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              fontSize: 11.5,
+            }}
+          >
+            <span style={{ color: 'var(--text-dim)' }}>
+              {a.progress_pct}% complete
+            </span>
+          </div>
+          <ProgressBar pct={a.progress_pct} />
+        </div>
+        {isDone ? (
+          <span
+            style={{
+              color: 'var(--success)',
+              fontSize: 12,
+              display: 'inline-flex',
+              gap: 6,
+              alignItems: 'center',
+            }}
+          >
+            <IconCheck size={14} strokeWidth={2.6} /> done
+          </span>
+        ) : a.progress_pct > 0 ? (
+          <span
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 6,
+              padding: '4px 10px',
+              borderRadius: 8,
+              fontFamily: 'var(--font-mono)',
+              fontSize: 12,
+              background: 'var(--accent-soft)',
+              color: 'var(--accent)',
+              border: '1px solid var(--accent-ring)',
+            }}
+          >
+            in progress
+          </span>
+        ) : (
+          <span className="chip" style={{ color: 'var(--text-faint)' }}>
+            <IconClock size={12} /> not started
+          </span>
+        )}
+      </div>
+    </Link>
   );
 }
