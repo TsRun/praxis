@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import {
   trainerStudies,
@@ -8,96 +8,321 @@ import {
 } from '../lib/api';
 import { NewOpeningStudyDialog } from './NewOpeningStudyDialog';
 import { NewGameStudyDialog } from './NewGameStudyDialog';
+import { Card, Btn, Chip, Segmented } from '../components/ui/atoms';
+import { FenBoard } from '../components/board/FenBoard';
+import {
+  IconBookOpen,
+  IconUsers,
+  IconList,
+  IconBolt,
+  IconPlus,
+  IconDownload,
+  IconChevDown,
+  IconSearch,
+  IconGrid,
+  IconTree,
+  IconGame,
+} from '../components/ui/Icons';
 
 const START_FEN = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1';
+
+type Filter = 'all' | 'opening' | 'game' | 'tactic';
+type View = 'grid' | 'list';
+
+function relativeDate(iso: string): string {
+  const d = new Date(iso);
+  const diff = (Date.now() - d.getTime()) / 1000;
+  if (diff < 60) return 'just now';
+  if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
+  if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
+  if (diff < 604800) return `${Math.floor(diff / 86400)}d ago`;
+  return d.toLocaleDateString();
+}
 
 export function StudiesPage() {
   const [opens, setOpens] = useState<OpeningStudySummary[] | null>(null);
   const [games, setGames] = useState<GameStudySummary[] | null>(null);
   const [openOpenDialog, setOpenOpenDialog] = useState(false);
   const [openGameDialog, setOpenGameDialog] = useState(false);
+  const [filter, setFilter] = useState<Filter>('all');
+  const [view, setView] = useState<View>('grid');
+  const [q, setQ] = useState('');
+  const [menuOpen, setMenuOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement | null>(null);
   const nav = useNavigate();
 
   useEffect(() => {
     trainerStudies.list().then(setOpens);
-  }, []);
-  useEffect(() => {
     trainerGames.list().then(setGames);
   }, []);
 
+  useEffect(() => {
+    if (!menuOpen) return;
+    const onDoc = (e: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+        setMenuOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', onDoc);
+    return () => document.removeEventListener('mousedown', onDoc);
+  }, [menuOpen]);
+
+  const filteredOpens = (opens ?? []).filter((s) =>
+    s.name.toLowerCase().includes(q.toLowerCase()) ||
+    (s.eco ?? '').toLowerCase().includes(q.toLowerCase()),
+  );
+  const filteredGames = (games ?? []).filter((s) =>
+    s.name.toLowerCase().includes(q.toLowerCase()),
+  );
+
+  const totalChapters = (opens ?? []).reduce(
+    (s, o) => s + o.annotation_count,
+    0,
+  ) + (games ?? []).reduce((s, g) => s + g.annotation_count, 0);
+
+  const showOpenings = filter === 'all' || filter === 'opening';
+  const showGames = filter === 'all' || filter === 'game';
+  const showTactics = filter === 'all' || filter === 'tactic';
+
   return (
-    <div className="flex flex-col gap-6">
-      <div className="flex items-center gap-3">
-        <h1 className="text-2xl font-semibold tracking-tight">Studies</h1>
-        <div className="ml-auto flex gap-2">
-          <button
-            onClick={() => setOpenOpenDialog(true)}
-            className="bg-amber-500 hover:bg-amber-400 text-zinc-950 px-3 py-1.5 rounded font-medium"
-          >
-            + Opening
-          </button>
-          <button
-            onClick={() => setOpenGameDialog(true)}
-            className="bg-amber-500 hover:bg-amber-400 text-zinc-950 px-3 py-1.5 rounded font-medium"
-          >
-            + Game
-          </button>
+    <div style={{ maxWidth: 1400, margin: '0 auto', padding: '32px 28px 100px' }}>
+      {/* page head */}
+      <div style={{ display: 'flex', alignItems: 'flex-end', gap: 24, paddingBottom: 24 }}>
+        <div style={{ flex: 1 }}>
+          <h1 className="h-1">Studies</h1>
+          <div className="meta" style={{ marginTop: 6 }}>
+            Author opening repertoires and annotated games. Assign them to students by nickname.
+          </div>
+        </div>
+        <div style={{ display: 'flex', gap: 10 }}>
+          <Btn variant="secondary">
+            <IconDownload size={13} strokeWidth={2.4} />
+            Import from Lichess
+          </Btn>
+          <div ref={menuRef} style={{ position: 'relative' }}>
+            <Btn variant="primary" onClick={() => setMenuOpen((v) => !v)}>
+              <IconPlus size={13} strokeWidth={2.4} />
+              New study
+              <IconChevDown size={11} strokeWidth={2.4} style={{ marginLeft: 2 }} />
+            </Btn>
+            {menuOpen && (
+              <div
+                style={{
+                  position: 'absolute',
+                  top: 'calc(100% + 6px)',
+                  right: 0,
+                  width: 320,
+                  background: 'var(--card-bg)',
+                  borderRadius: 12,
+                  boxShadow:
+                    'var(--card-shadow), 0 24px 60px -20px rgba(0,0,0,0.6)',
+                  padding: 6,
+                  zIndex: 30,
+                }}
+              >
+                <NewStudyMenuItem
+                  Icon={IconTree}
+                  iconBg="var(--accent-soft)"
+                  iconColor="var(--accent)"
+                  title="Opening study"
+                  sub="Branching repertoire with flat chapter list"
+                  onClick={() => {
+                    setMenuOpen(false);
+                    setOpenOpenDialog(true);
+                  }}
+                />
+                <NewStudyMenuItem
+                  Icon={IconGame}
+                  iconBg="rgba(96,165,250,0.12)"
+                  iconColor="#60a5fa"
+                  title="Game study"
+                  sub="Annotate a PGN ply by ply"
+                  onClick={() => {
+                    setMenuOpen(false);
+                    setOpenGameDialog(true);
+                  }}
+                />
+                <NewStudyMenuItem
+                  Icon={IconBolt}
+                  iconBg="var(--tactic-bg)"
+                  iconColor="var(--tactic)"
+                  title="Tactical study"
+                  sub="Flat collection of puzzles by theme"
+                  onClick={() => {
+                    setMenuOpen(false);
+                    /* TODO route to tactical editor */
+                  }}
+                />
+              </div>
+            )}
+          </div>
         </div>
       </div>
 
-      <section>
-        <h2 className="text-xs uppercase tracking-wider text-zinc-500 mb-2">Opening studies</h2>
-        {!opens && <p className="text-zinc-500">Loading…</p>}
-        {opens && opens.length === 0 && <p className="text-zinc-500">No opening studies yet.</p>}
-        {opens &&
-          opens.map((r) => (
-            <Link
-              key={r.id}
-              to={`/trainer/studies/opening/${r.id}`}
-              className="block panel p-3 hover:bg-amber-400/[0.04] mb-2"
-            >
-              <div className="flex items-center gap-3">
-                <strong>{r.name}</strong>
-                {r.eco && (
-                  <span className="text-xs font-mono px-1.5 py-0.5 rounded bg-amber-400/15 text-amber-300">
-                    {r.eco}
-                  </span>
-                )}
-                <span className="ml-auto text-xs text-zinc-500">
-                  {r.annotation_count} chapters · plays {r.side === 'w' ? 'white' : 'black'}
-                </span>
-              </div>
-            </Link>
-          ))}
-      </section>
+      {/* stats row */}
+      <div
+        style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(4, 1fr)',
+          gap: 14,
+          marginBottom: 28,
+        }}
+      >
+        <StatTile
+          accent
+          Icon={IconBookOpen}
+          value={(opens?.length ?? 0) + (games?.length ?? 0)}
+          label="studies authored"
+        />
+        <StatTile Icon={IconUsers} value="—" label="students assigned" />
+        <StatTile Icon={IconList} value={totalChapters} label="chapters total" />
+        <StatTile Icon={IconBolt} value="—" label="drills this week" />
+      </div>
 
-      <section>
-        <h2 className="text-xs uppercase tracking-wider text-zinc-500 mb-2">Game studies</h2>
-        {!games && <p className="text-zinc-500">Loading…</p>}
-        {games && games.length === 0 && <p className="text-zinc-500">No game studies yet.</p>}
-        {games &&
-          games.map((r) => (
-            <Link
-              key={r.id}
-              to={`/trainer/studies/game/${r.id}`}
-              className="block panel p-3 hover:bg-amber-400/[0.04] mb-2"
+      {/* filter bar */}
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: 12,
+          flexWrap: 'wrap',
+          padding: '10px 14px',
+          borderRadius: 12,
+          background: 'var(--inset-bg)',
+          border: '1px solid var(--inset-border)',
+          marginBottom: 22,
+        }}
+      >
+        <div style={{ position: 'relative', flex: 1, maxWidth: 360 }}>
+          <IconSearch
+            size={14}
+            strokeWidth={2.4}
+            style={{
+              position: 'absolute',
+              left: 10,
+              top: '50%',
+              transform: 'translateY(-50%)',
+              color: 'var(--text-faint)',
+              pointerEvents: 'none',
+            }}
+          />
+          <input
+            className="input"
+            placeholder="Find study by name or ECO…"
+            value={q}
+            onChange={(e) => setQ(e.target.value)}
+            style={{ paddingLeft: 32 }}
+          />
+        </div>
+        <Segmented<Filter>
+          value={filter}
+          onChange={setFilter}
+          options={[
+            { value: 'all', label: 'All' },
+            { value: 'opening', label: 'Opening' },
+            { value: 'game', label: 'Game' },
+            { value: 'tactic', label: 'Tactic' },
+          ]}
+        />
+        <div style={{ flex: 1 }} />
+        <Segmented<View>
+          value={view}
+          onChange={setView}
+          options={[
+            { value: 'grid', label: <IconGrid size={13} strokeWidth={2.2} /> },
+            { value: 'list', label: <IconList size={13} strokeWidth={2.2} /> },
+          ]}
+        />
+      </div>
+
+      {/* sections */}
+      {showOpenings && (
+        <Section
+          title="Opening studies"
+          count={filteredOpens.length}
+          loading={opens == null}
+        >
+          {opens != null && (
+            <div
+              style={{
+                display: 'grid',
+                gridTemplateColumns: view === 'grid' ? 'repeat(3, 1fr)' : '1fr',
+                gap: 16,
+              }}
             >
-              <div className="flex items-center gap-3">
-                <strong>{r.name}</strong>
-                <span className="text-xs text-zinc-500">
-                  {r.headers_json.White} vs {r.headers_json.Black}
-                </span>
-                <span className="ml-auto text-xs text-zinc-500">{r.annotation_count} notes</span>
-              </div>
-            </Link>
-          ))}
-      </section>
+              {filteredOpens.map((s) => (
+                <OpeningStudyCard key={s.id} study={s} />
+              ))}
+              <EmptyAddCard
+                title="New opening study"
+                sub="Start from a position, paste a FEN, or import a Lichess study."
+                onClick={() => setOpenOpenDialog(true)}
+                accent="var(--accent)"
+                accentBg="var(--accent-soft)"
+              />
+            </div>
+          )}
+        </Section>
+      )}
+
+      {showGames && (
+        <Section
+          title="Game studies"
+          count={filteredGames.length}
+          loading={games == null}
+        >
+          {games != null && (
+            <div
+              style={{
+                display: 'grid',
+                gridTemplateColumns: view === 'grid' ? 'repeat(3, 1fr)' : '1fr',
+                gap: 16,
+              }}
+            >
+              {filteredGames.map((s) => (
+                <GameStudyCard key={s.id} study={s} />
+              ))}
+              <EmptyAddCard
+                title="New game study"
+                sub="Paste a PGN to start annotating."
+                onClick={() => setOpenGameDialog(true)}
+                accent="#60a5fa"
+                accentBg="rgba(96,165,250,0.12)"
+              />
+            </div>
+          )}
+        </Section>
+      )}
+
+      {showTactics && (
+        <Section title="Tactical sets" count={0} loading={false}>
+          <div
+            style={{
+              display: 'grid',
+              gridTemplateColumns: view === 'grid' ? 'repeat(3, 1fr)' : '1fr',
+              gap: 16,
+            }}
+          >
+            <EmptyAddCard
+              title="New tactical set"
+              sub="Pick a theme (mate-in-N, pins, endgames) and pull a batch from Lichess by rating band."
+              onClick={() => {/* TODO */}}
+              accent="var(--tactic)"
+              accentBg="var(--tactic-bg)"
+            />
+          </div>
+        </Section>
+      )}
 
       <NewOpeningStudyDialog
         open={openOpenDialog}
         onClose={() => setOpenOpenDialog(false)}
         onCreate={async ({ name, side }) => {
-          const { id } = await trainerStudies.create({ name, root_fen: START_FEN, side });
+          const { id } = await trainerStudies.create({
+            name,
+            root_fen: START_FEN,
+            side,
+          });
           nav(`/trainer/studies/opening/${id}`);
         }}
       />
@@ -110,5 +335,356 @@ export function StudiesPage() {
         }}
       />
     </div>
+  );
+}
+
+function NewStudyMenuItem({
+  Icon,
+  iconBg,
+  iconColor,
+  title,
+  sub,
+  onClick,
+}: {
+  Icon: typeof IconTree;
+  iconBg: string;
+  iconColor: string;
+  title: string;
+  sub: string;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      style={{
+        display: 'grid',
+        gridTemplateColumns: '36px 1fr',
+        gap: 12,
+        alignItems: 'center',
+        padding: '10px 12px',
+        borderRadius: 8,
+        background: 'transparent',
+        border: 0,
+        cursor: 'pointer',
+        textAlign: 'left',
+        color: 'inherit',
+        width: '100%',
+      }}
+      onMouseOver={(e) =>
+        (e.currentTarget.style.background = 'var(--inset-bg)')
+      }
+      onMouseOut={(e) => (e.currentTarget.style.background = 'transparent')}
+    >
+      <span
+        style={{
+          width: 32,
+          height: 32,
+          borderRadius: 8,
+          background: iconBg,
+          color: iconColor,
+          display: 'inline-flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+        }}
+      >
+        <Icon size={14} strokeWidth={2.2} />
+      </span>
+      <div>
+        <div style={{ fontSize: 14, fontWeight: 600, letterSpacing: '-0.005em' }}>{title}</div>
+        <div style={{ fontSize: 12, color: 'var(--text-dim)', marginTop: 2 }}>{sub}</div>
+      </div>
+    </button>
+  );
+}
+
+function StatTile({
+  accent = false,
+  Icon,
+  value,
+  label,
+}: {
+  accent?: boolean;
+  Icon: typeof IconBookOpen;
+  value: number | string;
+  label: string;
+}) {
+  return (
+    <Card
+      style={{
+        padding: '16px 18px',
+        display: 'flex',
+        alignItems: 'center',
+        gap: 14,
+      }}
+    >
+      <div
+        style={{
+          width: 38,
+          height: 38,
+          borderRadius: 10,
+          background: accent ? 'var(--accent-soft)' : 'var(--inset-bg)',
+          border: `1px solid ${accent ? 'var(--accent-ring)' : 'var(--inset-border)'}`,
+          color: accent ? 'var(--accent)' : 'var(--text-dim)',
+          display: 'inline-flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          flexShrink: 0,
+        }}
+      >
+        <Icon size={18} />
+      </div>
+      <div>
+        <div
+          className="mono"
+          style={{
+            fontSize: 24,
+            fontWeight: 600,
+            letterSpacing: '-0.02em',
+          }}
+        >
+          {value}
+        </div>
+        <div style={{ fontSize: 12, color: 'var(--text-dim)', marginTop: 2 }}>
+          {label}
+        </div>
+      </div>
+    </Card>
+  );
+}
+
+function Section({
+  title,
+  count,
+  loading,
+  children,
+}: {
+  title: string;
+  count: number;
+  loading: boolean;
+  children: React.ReactNode;
+}) {
+  return (
+    <>
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'baseline',
+          justifyContent: 'space-between',
+          margin: '28px 0 14px',
+        }}
+      >
+        <div style={{ display: 'flex', gap: 8, alignItems: 'baseline' }}>
+          <h2 className="h-2" style={{ margin: 0 }}>{title}</h2>
+          <span
+            className="mono"
+            style={{ color: 'var(--text-faint)', fontSize: 13, marginLeft: 8 }}
+          >
+            {count}
+          </span>
+        </div>
+      </div>
+      {loading ? (
+        <div className="meta">Loading…</div>
+      ) : (
+        children
+      )}
+    </>
+  );
+}
+
+function OpeningStudyCard({ study }: { study: OpeningStudySummary }) {
+  return (
+    <Link
+      to={`/trainer/studies/opening/${study.id}`}
+      style={{ textDecoration: 'none', color: 'inherit' }}
+    >
+      <Card
+        className="study-card-hover"
+        style={{
+          padding: 18,
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 14,
+          cursor: 'pointer',
+          transition: 'transform 120ms ease',
+        }}
+      >
+        <div style={{ display: 'flex', alignItems: 'flex-start', gap: 14 }}>
+          <div style={{ width: 110, flexShrink: 0 }}>
+            <FenBoard
+              fen={study.root_fen}
+              flip={study.side === 'b'}
+              size={110}
+              coordinates={false}
+            />
+          </div>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div
+              style={{
+                fontSize: 16,
+                fontWeight: 600,
+                letterSpacing: '-0.01em',
+                lineHeight: 1.3,
+                marginBottom: 8,
+              }}
+            >
+              {study.name}
+            </div>
+            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+              {study.eco && <Chip variant="mono">{study.eco}</Chip>}
+              <Chip>
+                plays{' '}
+                <span style={{ color: 'var(--text)', marginLeft: 4 }}>
+                  {study.side === 'w' ? 'white' : 'black'}
+                </span>
+              </Chip>
+            </div>
+          </div>
+        </div>
+        <div
+          style={{
+            display: 'flex',
+            gap: 12,
+            paddingTop: 14,
+            borderTop: '1px solid var(--hairline)',
+            fontSize: 12,
+            color: 'var(--text-dim)',
+          }}
+        >
+          <span>
+            <strong className="mono" style={{ color: 'var(--text)', marginRight: 2 }}>
+              {study.annotation_count}
+            </strong>
+            chapters
+          </span>
+          <span style={{ marginLeft: 'auto' }}>updated {relativeDate(study.updated_at)}</span>
+        </div>
+      </Card>
+    </Link>
+  );
+}
+
+function GameStudyCard({ study }: { study: GameStudySummary }) {
+  const white = study.headers_json?.White ?? '—';
+  const black = study.headers_json?.Black ?? '—';
+  return (
+    <Link
+      to={`/trainer/studies/game/${study.id}`}
+      style={{ textDecoration: 'none', color: 'inherit' }}
+    >
+      <Card
+        style={{
+          padding: 18,
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 14,
+          cursor: 'pointer',
+        }}
+      >
+        <div style={{ display: 'flex', alignItems: 'flex-start', gap: 14 }}>
+          <div style={{ width: 110, flexShrink: 0 }}>
+            <FenBoard fen={START_FEN} size={110} coordinates={false} />
+          </div>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div
+              style={{
+                fontSize: 16,
+                fontWeight: 600,
+                letterSpacing: '-0.01em',
+                lineHeight: 1.3,
+                marginBottom: 8,
+              }}
+            >
+              {study.name}
+            </div>
+            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+              <Chip variant="mono">PGN</Chip>
+              <Chip>{white} vs {black}</Chip>
+            </div>
+          </div>
+        </div>
+        <div
+          style={{
+            display: 'flex',
+            gap: 12,
+            paddingTop: 14,
+            borderTop: '1px solid var(--hairline)',
+            fontSize: 12,
+            color: 'var(--text-dim)',
+          }}
+        >
+          <span>
+            <strong className="mono" style={{ color: 'var(--text)', marginRight: 2 }}>
+              {study.annotation_count}
+            </strong>
+            notes
+          </span>
+          <span style={{ marginLeft: 'auto' }}>updated {relativeDate(study.updated_at)}</span>
+        </div>
+      </Card>
+    </Link>
+  );
+}
+
+function EmptyAddCard({
+  title,
+  sub,
+  onClick,
+  accent,
+  accentBg,
+}: {
+  title: string;
+  sub: string;
+  onClick: () => void;
+  accent: string;
+  accentBg: string;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      style={{
+        background: 'transparent',
+        border: '1px dashed var(--inset-border)',
+        borderRadius: 14,
+        boxShadow: 'none',
+        padding: 18,
+        minHeight: 220,
+        cursor: 'pointer',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        textAlign: 'center',
+        color: 'inherit',
+        transition: 'border-color 120ms ease',
+      }}
+      onMouseOver={(e) =>
+        (e.currentTarget.style.borderColor = 'var(--hairline-2)')
+      }
+      onMouseOut={(e) =>
+        (e.currentTarget.style.borderColor = 'var(--inset-border)')
+      }
+    >
+      <div>
+        <div
+          style={{
+            width: 56,
+            height: 56,
+            borderRadius: 16,
+            background: accentBg,
+            color: accent,
+            display: 'inline-flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            margin: '0 auto 12px',
+          }}
+        >
+          <IconPlus size={22} strokeWidth={2.2} />
+        </div>
+        <div className="meta-strong" style={{ marginBottom: 4 }}>{title}</div>
+        <div className="meta" style={{ maxWidth: 240, margin: '0 auto' }}>{sub}</div>
+      </div>
+    </button>
   );
 }

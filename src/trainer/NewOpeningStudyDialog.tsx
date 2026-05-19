@@ -1,5 +1,6 @@
 import { useState, type FormEvent } from 'react';
 import { Dialog } from '../components/ui/Dialog';
+import { Btn } from '../components/ui/atoms';
 
 interface Props {
   open: boolean;
@@ -34,25 +35,29 @@ export function NewOpeningStudyDialog({ open, onClose, onCreate }: Props) {
   }
 
   return (
-    <Dialog open={open} onClose={busy ? () => {} : onClose} title="New opening study">
-      <form onSubmit={submit} className="flex flex-col gap-3">
-        <label className="flex flex-col gap-1">
-          <span className="text-xs uppercase tracking-wider text-zinc-500">
-            Study name
-          </span>
+    <Dialog
+      open={open}
+      onClose={busy ? () => {} : onClose}
+      title="New opening study"
+    >
+      <form
+        onSubmit={submit}
+        style={{ display: 'flex', flexDirection: 'column', gap: 14 }}
+      >
+        <label style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+          <span className="overline">Study name</span>
           <input
             autoFocus
-            className="border border-zinc-700 bg-zinc-900 rounded px-2 py-1.5"
+            className="input"
             placeholder="e.g. Caro-Kann Advance — White"
             value={name}
             onChange={(e) => setName(e.target.value)}
           />
         </label>
-        <fieldset className="flex flex-col gap-2">
-          <legend className="text-xs uppercase tracking-wider text-zinc-500">
-            Which side does the student play?
-          </legend>
-          <div className="grid grid-cols-2 gap-2">
+
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+          <span className="overline">Which side does the student play?</span>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
             <SideOption
               picked={side === 'w'}
               onClick={() => setSide('w')}
@@ -66,26 +71,30 @@ export function NewOpeningStudyDialog({ open, onClose, onCreate }: Props) {
               hint="You're preparing replies to White's first move."
             />
           </div>
-        </fieldset>
+        </div>
 
-        {err && <span className="text-xs text-red-400">{err}</span>}
+        {err && (
+          <span style={{ fontSize: 12, color: 'var(--danger)' }}>{err}</span>
+        )}
 
-        <div className="flex gap-2 justify-end mt-1">
-          <button
-            type="button"
-            onClick={onClose}
-            disabled={busy}
-            className="text-zinc-400 px-3 py-1.5 disabled:opacity-50"
-          >
+        <div
+          style={{
+            display: 'flex',
+            gap: 10,
+            justifyContent: 'flex-end',
+            marginTop: 4,
+          }}
+        >
+          <Btn variant="ghost" type="button" onClick={onClose} disabled={busy}>
             Cancel
-          </button>
-          <button
+          </Btn>
+          <Btn
+            variant="primary"
             type="submit"
             disabled={busy || !name.trim()}
-            className="bg-amber-500 hover:bg-amber-400 text-zinc-950 px-3 py-1.5 rounded font-medium disabled:opacity-50"
           >
             {busy ? 'Creating…' : 'Create study'}
-          </button>
+          </Btn>
         </div>
       </form>
     </Dialog>
@@ -107,14 +116,25 @@ function SideOption({
     <button
       type="button"
       onClick={onClick}
-      className={`text-left p-3 rounded border transition-colors ${
-        picked
-          ? 'border-amber-400/40 bg-amber-400/[0.06]'
-          : 'border-zinc-800 hover:bg-zinc-800/40'
-      }`}
+      style={{
+        textAlign: 'left',
+        padding: 14,
+        borderRadius: 12,
+        background: picked ? 'var(--accent-soft)' : 'var(--inset-bg)',
+        border: `1px solid ${picked ? 'var(--accent-ring)' : 'var(--inset-border)'}`,
+        cursor: 'pointer',
+        transition: 'background 120ms ease, border-color 120ms ease',
+        color: 'inherit',
+      }}
     >
-      <div className="text-sm font-medium text-zinc-100">{title}</div>
-      <div className="text-xs text-zinc-500 mt-0.5">{hint}</div>
+      <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text)' }}>
+        {title}
+      </div>
+      <div
+        style={{ fontSize: 12, color: 'var(--text-dim)', marginTop: 2 }}
+      >
+        {hint}
+      </div>
     </button>
   );
 }
