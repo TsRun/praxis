@@ -124,7 +124,7 @@ function TreeMode({ study }: { study: OpeningStudyForStudent }) {
 
   return (
     <>
-      <div className="grid grid-cols-[auto_1fr] gap-4">
+      <div className="flex flex-wrap items-start gap-4">
         <div className="flex flex-col gap-3">
           <div className="flex items-center justify-end">
             <button
@@ -173,7 +173,7 @@ function TreeMode({ study }: { study: OpeningStudyForStudent }) {
           </div>
         </div>
 
-        <aside className="panel p-3 overflow-auto">
+        <aside className="panel p-3 overflow-auto w-[380px] shrink-0">
           <div className="text-xs uppercase tracking-wider text-zinc-500 mb-2">
             {currentChapter ? currentChapter.title ?? "Trainer's note" : 'No chapter here'}
           </div>
@@ -218,8 +218,8 @@ function ChaptersMode({ study }: { study: OpeningStudyForStudent }) {
   );
 
   return (
-    <div className="grid grid-cols-[340px_1fr] gap-4">
-      <aside className="panel p-3 max-h-[80vh] overflow-auto">
+    <div className="flex items-start gap-4">
+      <aside className="panel p-3 max-h-[80vh] overflow-auto w-[340px] shrink-0">
         <h2 className="text-xs uppercase tracking-wider text-zinc-500 mb-2">Chapters</h2>
         <ChaptersOutline
           nodes={study.nodes}
@@ -228,7 +228,7 @@ function ChaptersMode({ study }: { study: OpeningStudyForStudent }) {
           onSelect={setCurrentNodeId}
         />
       </aside>
-      <aside className="panel p-4 overflow-auto">
+      <aside className="panel p-4 overflow-auto w-[520px] shrink-0">
         {currentChapter ? (
           <>
             <div className="text-xs uppercase tracking-wider text-zinc-500 mb-2">
