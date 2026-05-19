@@ -91,10 +91,10 @@ export function GameStudyViewer() {
 
   return (
     <div
+      className="page-wrap"
       style={{
-        maxWidth: 1400,
-        margin: '0 auto',
-        padding: '24px 28px 80px',
+        paddingTop: 24,
+        paddingBottom: 80,
         display: 'flex',
         flexDirection: 'column',
         gap: 18,
@@ -118,9 +118,8 @@ export function GameStudyViewer() {
         </div>
       </div>
       <div
+        className="three-pane"
         style={{
-          display: 'grid',
-          gridTemplateColumns: 'auto 1fr 360px',
           gap: 20,
           alignItems: 'start',
         }}

@@ -79,7 +79,8 @@ export function InviteStudentDialog({ onClose }: { onClose: () => void }) {
       <div
         onClick={(e) => e.stopPropagation()}
         style={{
-          width: 520,
+          width: '100%',
+          maxWidth: 520,
           padding: 24,
           background: 'var(--card-bg)',
           borderRadius: 16,

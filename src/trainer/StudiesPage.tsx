@@ -85,16 +85,16 @@ export function StudiesPage() {
   const showTactics = filter === 'all' || filter === 'tactic';
 
   return (
-    <div style={{ maxWidth: 1400, margin: '0 auto', padding: '32px 28px 100px' }}>
+    <div className="page-wrap" style={{ paddingTop: 32, paddingBottom: 100 }}>
       {/* page head */}
-      <div style={{ display: 'flex', alignItems: 'flex-end', gap: 24, paddingBottom: 24 }}>
-        <div style={{ flex: 1 }}>
+      <div style={{ display: 'flex', alignItems: 'flex-end', gap: 24, paddingBottom: 24, flexWrap: 'wrap' }}>
+        <div style={{ flex: 1, minWidth: 240 }}>
           <h1 className="t-h1">Studies</h1>
           <div className="meta" style={{ marginTop: 6 }}>
             Author opening repertoires and annotated games. Assign them to students by nickname.
           </div>
         </div>
-        <div style={{ display: 'flex', gap: 10 }}>
+        <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
           <Btn variant="secondary">
             <IconDownload size={13} strokeWidth={2.4} />
             Import from Lichess
@@ -111,7 +111,7 @@ export function StudiesPage() {
                   position: 'absolute',
                   top: 'calc(100% + 6px)',
                   right: 0,
-                  width: 320,
+                  width: 'min(320px, calc(100vw - 32px))',
                   background: 'var(--card-bg)',
                   borderRadius: 12,
                   boxShadow:
@@ -163,7 +163,7 @@ export function StudiesPage() {
       <div
         style={{
           display: 'grid',
-          gridTemplateColumns: 'repeat(4, 1fr)',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
           gap: 14,
           marginBottom: 28,
         }}
@@ -244,11 +244,12 @@ export function StudiesPage() {
         >
           {opens != null && (
             <div
-              style={{
-                display: 'grid',
-                gridTemplateColumns: view === 'grid' ? 'repeat(3, 1fr)' : '1fr',
-                gap: 16,
-              }}
+              className={view === 'grid' ? 'grid-3' : ''}
+              style={
+                view === 'grid'
+                  ? { gap: 16 }
+                  : { display: 'grid', gridTemplateColumns: '1fr', gap: 16 }
+              }
             >
               {filteredOpens.map((s) => (
                 <OpeningStudyCard key={s.id} study={s} />
@@ -273,11 +274,12 @@ export function StudiesPage() {
         >
           {games != null && (
             <div
-              style={{
-                display: 'grid',
-                gridTemplateColumns: view === 'grid' ? 'repeat(3, 1fr)' : '1fr',
-                gap: 16,
-              }}
+              className={view === 'grid' ? 'grid-3' : ''}
+              style={
+                view === 'grid'
+                  ? { gap: 16 }
+                  : { display: 'grid', gridTemplateColumns: '1fr', gap: 16 }
+              }
             >
               {filteredGames.map((s) => (
                 <GameStudyCard key={s.id} study={s} />
@@ -297,11 +299,12 @@ export function StudiesPage() {
       {showTactics && (
         <Section title="Tactical sets" count={0} loading={false}>
           <div
-            style={{
-              display: 'grid',
-              gridTemplateColumns: view === 'grid' ? 'repeat(3, 1fr)' : '1fr',
-              gap: 16,
-            }}
+            className={view === 'grid' ? 'grid-3' : ''}
+            style={
+              view === 'grid'
+                ? { gap: 16 }
+                : { display: 'grid', gridTemplateColumns: '1fr', gap: 16 }
+            }
           >
             <EmptyAddCard
               title="New tactical set"

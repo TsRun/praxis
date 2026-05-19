@@ -29,9 +29,13 @@ export function SettingsPage() {
       <TopBar />
       <div
         style={{
+          width: '100%',
           maxWidth: 720,
-          margin: '0 auto',
-          padding: '32px 28px 100px',
+          marginInline: 'auto',
+          paddingTop: 32,
+          paddingBottom: 100,
+          paddingLeft: 'clamp(16px, 4vw, 28px)',
+          paddingRight: 'clamp(16px, 4vw, 28px)',
           display: 'flex',
           flexDirection: 'column',
           gap: 24,
@@ -202,7 +206,7 @@ function RolesCard({
         and a student for someone else — all in the same account.
       </div>
       <form onSubmit={submit} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8 }}>
+        <div className="grid-3" style={{ gap: 8 }}>
           {ALL_ROLES.map((r) => {
             const on = picked.has(r);
             const { Icon, title, sub } = ROLE_LABELS[r];

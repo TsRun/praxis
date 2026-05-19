@@ -254,7 +254,7 @@ export function SignInUpForm({ inviteToken, inviteEmail, inviteName }: Props) {
           >
             I am a
           </label>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8 }}>
+          <div className="grid-3" style={{ gap: 8 }}>
             {ALL_ROLES.map((r) => {
               const on = roles.has(r);
               const { Icon, title, sub } = ROLE_LABELS[r];

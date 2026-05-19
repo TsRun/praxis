@@ -36,10 +36,10 @@ export function StudentsPage() {
   );
 
   return (
-    <div style={{ maxWidth: 1400, margin: '0 auto', padding: '32px 28px 100px' }}>
+    <div className="page-wrap" style={{ paddingTop: 32, paddingBottom: 100 }}>
       {/* page head */}
-      <div style={{ display: 'flex', alignItems: 'flex-end', gap: 24, paddingBottom: 24 }}>
-        <div style={{ flex: 1 }}>
+      <div style={{ display: 'flex', alignItems: 'flex-end', gap: 24, paddingBottom: 24, flexWrap: 'wrap' }}>
+        <div style={{ flex: 1, minWidth: 240 }}>
           <h1 className="t-h1">Students</h1>
           <div className="meta" style={{ marginTop: 6 }}>
             Send invites and track per-student progress. Linked students are
@@ -110,7 +110,7 @@ export function StudentsPage() {
         <div
           style={{
             display: 'grid',
-            gridTemplateColumns: 'repeat(4, 1fr)',
+            gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))',
             gap: 14,
           }}
         >

@@ -66,10 +66,10 @@ export function RolePicker() {
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        padding: 32,
+        padding: 'clamp(16px, 5vw, 32px)',
       }}
     >
-      <Card style={{ padding: 32, maxWidth: 520, width: '100%' }}>
+      <Card style={{ padding: 'clamp(20px, 5vw, 32px)', maxWidth: 520, width: '100%' }}>
         <h1 style={{ fontSize: 22, fontWeight: 600, margin: '0 0 6px', letterSpacing: '-0.01em' }}>
           Welcome, {user.name}
         </h1>
@@ -79,7 +79,7 @@ export function RolePicker() {
           and you can change this later.
         </p>
 
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 10, marginBottom: 22 }}>
+        <div className="grid-3" style={{ gap: 10, marginBottom: 22 }}>
           {ALL_ROLES.map((r) => {
             const on = picked.has(r);
             const { Icon, title, sub } = ROLE_LABELS[r];
