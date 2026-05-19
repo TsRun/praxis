@@ -1,0 +1,45 @@
+name: migrate
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'server/migrations/**.sql'
+      - 'scripts/apply-migrations.sh'
+      - '.github/workflows/migrate.yml'
+  workflow_dispatch:
+
+concurrency:
+  group: migrate-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  apply:
+    runs-on: [self-hosted, praxis-db]
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Confirm Docker postgres is up
+        shell: bash
+        run: |
+          for i in $(seq 1 30); do
+            status=$(docker inspect -f '{{.State.Health.Status}}' openings-db 2>/dev/null || echo "missing")
+            if [ "$status" = "healthy" ]; then
+              echo "openings-db healthy"
+              exit 0
+            fi
+            sleep 2
+          done
+          echo "openings-db not healthy (status=$status)" >&2
+          exit 1
+
+      - name: Apply pending migrations
+        shell: bash
+        run: ./scripts/apply-migrations.sh
+
+      - name: Report state
+        shell: bash
+        run: |
+          docker exec openings-db psql -U openings -d openings -c \
+            "SELECT filename, applied_at FROM schema_migrations ORDER BY applied_at DESC LIMIT 20;"
