@@ -71,11 +71,6 @@
   --chip-bg-hover:  #232328;
   --chip-border:    rgba(255, 255, 255, 0.06);
   --topbar-bg:      rgba(10, 10, 12, 0.85);
-
-  /* tactical accent (red kind) */
-  --tactic:        #f87171;
-  --tactic-bg:     rgba(248, 113, 113, 0.10);
-  --tactic-ring:   rgba(248, 113, 113, 0.30);
 }
 
 html, body, #root { height: 100%; }

@@ -1,6 +1,7 @@
 import { useEffect, useState, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import {
+  trainer,
   trainerStudies,
   trainerGames,
   type OpeningStudySummary,
@@ -14,7 +15,6 @@ import {
   IconBookOpen,
   IconUsers,
   IconList,
-  IconBolt,
   IconPlus,
   IconDownload,
   IconChevDown,
@@ -26,7 +26,7 @@ import {
 
 const START_FEN = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1';
 
-type Filter = 'all' | 'opening' | 'game' | 'tactic';
+type Filter = 'all' | 'opening' | 'game';
 type View = 'grid' | 'list';
 
 function relativeDate(iso: string): string {
@@ -42,8 +42,12 @@ function relativeDate(iso: string): string {
 export function StudiesPage() {
   const [opens, setOpens] = useState<OpeningStudySummary[] | null>(null);
   const [games, setGames] = useState<GameStudySummary[] | null>(null);
+  const [studentCount, setStudentCount] = useState<number | null>(null);
   const [openOpenDialog, setOpenOpenDialog] = useState(false);
   const [openGameDialog, setOpenGameDialog] = useState(false);
+  // When true, the next "Create study" lands directly in the Lichess import
+  // dialog inside the editor (via ?import=lichess on the redirect URL).
+  const [lichessIntent, setLichessIntent] = useState(false);
   const [filter, setFilter] = useState<Filter>('all');
   const [view, setView] = useState<View>('grid');
   const [q, setQ] = useState('');
@@ -54,6 +58,7 @@ export function StudiesPage() {
   useEffect(() => {
     trainerStudies.list().then(setOpens);
     trainerGames.list().then(setGames);
+    trainer.students().then((rows) => setStudentCount(rows.length));
   }, []);
 
   useEffect(() => {
@@ -82,7 +87,6 @@ export function StudiesPage() {
 
   const showOpenings = filter === 'all' || filter === 'opening';
   const showGames = filter === 'all' || filter === 'game';
-  const showTactics = filter === 'all' || filter === 'tactic';
 
   return (
     <div className="page-wrap" style={{ paddingTop: 32, paddingBottom: 100 }}>
@@ -95,7 +99,13 @@ export function StudiesPage() {
           </div>
         </div>
         <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-          <Btn variant="secondary">
+          <Btn
+            variant="secondary"
+            onClick={() => {
+              setLichessIntent(true);
+              setOpenOpenDialog(true);
+            }}
+          >
             <IconDownload size={13} strokeWidth={2.4} />
             Import from Lichess
           </Btn>
@@ -142,17 +152,6 @@ export function StudiesPage() {
                     setOpenGameDialog(true);
                   }}
                 />
-                <NewStudyMenuItem
-                  Icon={IconBolt}
-                  iconBg="var(--tactic-bg)"
-                  iconColor="var(--tactic)"
-                  title="Tactical study"
-                  sub="Flat collection of puzzles by theme"
-                  onClick={() => {
-                    setMenuOpen(false);
-                    /* TODO route to tactical editor */
-                  }}
-                />
               </div>
             )}
           </div>
@@ -174,9 +173,12 @@ export function StudiesPage() {
           value={(opens?.length ?? 0) + (games?.length ?? 0)}
           label="studies authored"
         />
-        <StatTile Icon={IconUsers} value="—" label="students assigned" />
+        <StatTile
+          Icon={IconUsers}
+          value={studentCount ?? '—'}
+          label="students linked"
+        />
         <StatTile Icon={IconList} value={totalChapters} label="chapters total" />
-        <StatTile Icon={IconBolt} value="—" label="drills this week" />
       </div>
 
       {/* filter bar */}
@@ -221,7 +223,6 @@ export function StudiesPage() {
             { value: 'all', label: 'All' },
             { value: 'opening', label: 'Opening' },
             { value: 'game', label: 'Game' },
-            { value: 'tactic', label: 'Tactic' },
           ]}
         />
         <div style={{ flex: 1 }} />
@@ -296,37 +297,24 @@ export function StudiesPage() {
         </Section>
       )}
 
-      {showTactics && (
-        <Section title="Tactical sets" count={0} loading={false}>
-          <div
-            className={view === 'grid' ? 'grid-3' : ''}
-            style={
-              view === 'grid'
-                ? { gap: 16 }
-                : { display: 'grid', gridTemplateColumns: '1fr', gap: 16 }
-            }
-          >
-            <EmptyAddCard
-              title="New tactical set"
-              sub="Pick a theme (mate-in-N, pins, endgames) and pull a batch from Lichess by rating band."
-              onClick={() => {/* TODO */}}
-              accent="var(--tactic)"
-              accentBg="var(--tactic-bg)"
-            />
-          </div>
-        </Section>
-      )}
-
       <NewOpeningStudyDialog
         open={openOpenDialog}
-        onClose={() => setOpenOpenDialog(false)}
+        onClose={() => {
+          setOpenOpenDialog(false);
+          setLichessIntent(false);
+        }}
+        lichessHint={lichessIntent}
         onCreate={async ({ name, side }) => {
           const { id } = await trainerStudies.create({
             name,
             root_fen: START_FEN,
             side,
           });
-          nav(`/trainer/studies/opening/${id}`);
+          const url = lichessIntent
+            ? `/trainer/studies/opening/${id}?import=lichess`
+            : `/trainer/studies/opening/${id}`;
+          setLichessIntent(false);
+          nav(url);
         }}
       />
       <NewGameStudyDialog

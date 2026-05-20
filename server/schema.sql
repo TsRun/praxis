@@ -10,11 +10,7 @@ CREATE TABLE IF NOT EXISTS player (
   name          TEXT NOT NULL,
   country       TEXT,
   title         TEXT,
-  sex           CHAR(1),
   rating        INTEGER,
-  rapid_rating  INTEGER,
-  blitz_rating  INTEGER,
-  birth_year    INTEGER,
   origin        TEXT NOT NULL DEFAULT 'fide'
 );
 
@@ -150,14 +146,6 @@ CREATE TABLE IF NOT EXISTS opening_study (
   updated_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
-CREATE TABLE IF NOT EXISTS opening_annotation (
-  id          BIGSERIAL PRIMARY KEY,
-  study_id    BIGINT NOT NULL REFERENCES opening_study(id) ON DELETE CASCADE,
-  fen         TEXT NOT NULL,
-  comment_md  TEXT NOT NULL,
-  UNIQUE (study_id, fen)
-);
-
 -- A node in the opening tree. parent_id NULL = a top-level child of the
 -- study's root_fen. Two nodes can never share (study_id, parent_id, san):
 -- if a child with the same move already exists, the trainer's "make a
@@ -246,11 +234,3 @@ CREATE TABLE IF NOT EXISTS quiz_attempt (
   attempted_at   TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 CREATE INDEX IF NOT EXISTS idx_quiz_attempt ON quiz_attempt(user_id, game_study_id);
-
-CREATE TABLE IF NOT EXISTS opening_visit (
-  user_id     BIGINT NOT NULL REFERENCES app_user(id) ON DELETE CASCADE,
-  study_id    BIGINT NOT NULL REFERENCES opening_study(id) ON DELETE CASCADE,
-  fen         TEXT NOT NULL,
-  visited_at  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  PRIMARY KEY (user_id, study_id, fen)
-);

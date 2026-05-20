@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useSearchParams } from 'react-router-dom';
 import { Chessground } from 'chessground';
 import type { Api as CGApi } from 'chessground/api';
 import type { Key } from 'chessground/types';
@@ -107,6 +107,7 @@ function chaptersInSubtree(
 export function OpeningStudyEditor() {
   const { id } = useParams();
   const numId = Number(id);
+  const [search, setSearch] = useSearchParams();
   const [study, setStudy] = useState<OpeningStudyFull | null>(null);
   const [currentNodeId, setCurrentNodeId] = useState<number | null>(null);
   const [busy, setBusy] = useState(false);
@@ -124,6 +125,17 @@ export function OpeningStudyEditor() {
       setFlip(s.side === 'b');
     });
   }, [numId]);
+
+  // When opened with ?import=lichess (e.g. from the "Import from Lichess"
+  // button on the studies list), auto-open the import dialog and strip the
+  // param so a refresh doesn't re-open it.
+  useEffect(() => {
+    if (search.get('import') === 'lichess') {
+      setShowImport(true);
+      search.delete('import');
+      setSearch(search, { replace: true });
+    }
+  }, [search, setSearch]);
 
   const currentFen = useMemo(() => {
     if (!study)

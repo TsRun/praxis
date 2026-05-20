@@ -6,7 +6,7 @@ import {
   sendAssignmentEmail,
   sendInviteEmail,
 } from './email.js';
-import { requireTrainer, requireAuthor, requireUser } from './auth-guards.js';
+import { requireTrainer, requireAuthor } from './auth-guards.js';
 import {
   parsePgnWithVariations,
   type PgnNode,
@@ -287,7 +287,10 @@ export async function trainerRoutes(app: FastifyInstance, opts: { pool: Pool }) 
       const uid = req.user!.id;
       const { rows } = await pool.query(
         `SELECT os.id, os.name, os.root_fen, os.eco, os.side, os.created_at, os.updated_at,
-                COALESCE((SELECT COUNT(*)::text FROM opening_annotation a WHERE a.study_id = os.id), '0') AS annotation_count
+                COALESCE((SELECT COUNT(*)::text
+                            FROM opening_chapter c
+                            JOIN opening_node n ON n.id = c.node_id
+                           WHERE n.study_id = os.id), '0') AS annotation_count
            FROM opening_study os
           WHERE os.owner_id = $1
           ORDER BY os.updated_at DESC`,
@@ -763,5 +766,3 @@ async function importChapter(
   }
   return { created, reused };
 }
-
-export { requireUser };

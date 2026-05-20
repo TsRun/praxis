@@ -81,8 +81,7 @@ export function DashboardPage() {
           </div>
         </div>
         <div style={{ display: 'flex', gap: 14 }}>
-          <MiniStat value="—" label="day streak" accent />
-          <MiniStat value={active.length} label="active" />
+          <MiniStat value={active.length} label="active" accent />
           <MiniStat value={done.length} label="completed" />
         </div>
       </div>
@@ -320,9 +319,6 @@ export function DashboardPage() {
                 {active.length} studies assigned to you
               </div>
             </div>
-            <Btn variant="secondary" size="sm">
-              Message
-            </Btn>
           </Card>
 
           <Card style={{ padding: 18 }}>

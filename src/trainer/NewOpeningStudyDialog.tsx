@@ -6,9 +6,12 @@ interface Props {
   open: boolean;
   onClose: () => void;
   onCreate: (input: { name: string; side: 'w' | 'b' }) => Promise<void>;
+  // When true, the dialog frames itself as the first step of a Lichess
+  // import — title + CTA tell the user the next screen will prompt for PGN.
+  lichessHint?: boolean;
 }
 
-export function NewOpeningStudyDialog({ open, onClose, onCreate }: Props) {
+export function NewOpeningStudyDialog({ open, onClose, onCreate, lichessHint }: Props) {
   const [name, setName] = useState('');
   const [side, setSide] = useState<'w' | 'b'>('w');
   const [busy, setBusy] = useState(false);
@@ -38,8 +41,14 @@ export function NewOpeningStudyDialog({ open, onClose, onCreate }: Props) {
     <Dialog
       open={open}
       onClose={busy ? () => {} : onClose}
-      title="New opening study"
+      title={lichessHint ? 'Import from Lichess' : 'New opening study'}
     >
+      {lichessHint && (
+        <p className="meta" style={{ marginBottom: 12 }}>
+          Name the study and pick the student's side. The next screen will ask
+          for the Lichess PGN.
+        </p>
+      )}
       <form
         onSubmit={submit}
         style={{ display: 'flex', flexDirection: 'column', gap: 14 }}
@@ -93,7 +102,11 @@ export function NewOpeningStudyDialog({ open, onClose, onCreate }: Props) {
             type="submit"
             disabled={busy || !name.trim()}
           >
-            {busy ? 'Creating…' : 'Create study'}
+            {busy
+              ? 'Creating…'
+              : lichessHint
+                ? 'Create + import PGN →'
+                : 'Create study'}
           </Btn>
         </div>
       </form>
