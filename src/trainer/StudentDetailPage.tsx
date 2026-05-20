@@ -4,9 +4,11 @@ import {
   trainerStudent,
   trainerStudies,
   trainerGames,
+  trainerTactics,
   type StudentDetail,
   type OpeningStudySummary,
   type GameStudySummary,
+  type TacticSetSummary,
 } from '../lib/api';
 import { Card, Btn, Chip, Avatar } from '../components/ui/atoms';
 import { IconCheck, IconClock } from '../components/ui/Icons';
@@ -17,6 +19,7 @@ export function StudentDetailPage() {
   const [detail, setDetail] = useState<StudentDetail | null>(null);
   const [opens, setOpens] = useState<OpeningStudySummary[]>([]);
   const [games, setGames] = useState<GameStudySummary[]>([]);
+  const [tactics, setTactics] = useState<TacticSetSummary[]>([]);
 
   async function refresh() {
     setDetail(await trainerStudent.get(numId));
@@ -27,9 +30,10 @@ export function StudentDetailPage() {
   useEffect(() => {
     trainerStudies.list().then(setOpens);
     trainerGames.list().then(setGames);
+    trainerTactics.list().then(setTactics);
   }, []);
 
-  async function assign(kind: 'opening' | 'game', studyId: number) {
+  async function assign(kind: 'opening' | 'game' | 'tactic', studyId: number) {
     await trainerStudent.assign(numId, kind, studyId);
     refresh();
   }
@@ -191,6 +195,43 @@ export function StudentDetailPage() {
                       size="sm"
                       disabled={already}
                       onClick={() => assign('game', s.id)}
+                    >
+                      {already ? 'Assigned' : '+ Assign'}
+                    </Btn>
+                  </div>
+                );
+              })}
+            </div>
+          </Card>
+          <Card style={{ padding: 14 }}>
+            <h3 className="t-h3" style={{ margin: '0 0 10px' }}>Tactical sets</h3>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+              {tactics.length === 0 && (
+                <div className="meta" style={{ padding: 10 }}>
+                  No tactical sets.
+                </div>
+              )}
+              {tactics.map((s) => {
+                const already = assignedIds.has(`tactic:${s.id}`);
+                return (
+                  <div
+                    key={s.id}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 10,
+                      padding: '8px 10px',
+                      borderRadius: 8,
+                      background: 'var(--inset-bg)',
+                      border: '1px solid var(--inset-border)',
+                    }}
+                  >
+                    <span style={{ flex: 1, fontSize: 13.5 }}>{s.name}</span>
+                    <Btn
+                      variant={already ? 'ghost' : 'secondary'}
+                      size="sm"
+                      disabled={already}
+                      onClick={() => assign('tactic', s.id)}
                     >
                       {already ? 'Assigned' : '+ Assign'}
                     </Btn>

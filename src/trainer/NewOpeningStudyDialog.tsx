@@ -54,7 +54,7 @@ export function NewOpeningStudyDialog({ open, onClose, onCreate, lichessHint }: 
         style={{ display: 'flex', flexDirection: 'column', gap: 14 }}
       >
         <label style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-          <span className="overline">Study name</span>
+          <span>Study name</span>
           <input
             autoFocus
             className="input"
@@ -65,7 +65,7 @@ export function NewOpeningStudyDialog({ open, onClose, onCreate, lichessHint }: 
         </label>
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-          <span className="overline">Which side does the student play?</span>
+          <span>Which side does the student play?</span>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 8 }}>
             <SideOption
               picked={side === 'w'}

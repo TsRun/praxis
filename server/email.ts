@@ -54,7 +54,7 @@ export interface AssignmentEmail {
   studentName: string;
   trainerName: string;
   studyName: string;
-  studyKind: 'opening' | 'game';
+  studyKind: 'opening' | 'game' | 'tactic';
   studyId: number;
 }
 

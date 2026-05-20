@@ -4,17 +4,21 @@ import {
   trainer,
   trainerStudies,
   trainerGames,
+  trainerTactics,
   type OpeningStudySummary,
   type GameStudySummary,
+  type TacticSetSummary,
 } from '../lib/api';
 import { NewOpeningStudyDialog } from './NewOpeningStudyDialog';
 import { NewGameStudyDialog } from './NewGameStudyDialog';
+import { NewTacticSetDialog } from './NewTacticSetDialog';
 import { Card, Btn, Chip, Segmented } from '../components/ui/atoms';
 import { FenBoard } from '../components/board/FenBoard';
 import {
   IconBookOpen,
   IconUsers,
   IconList,
+  IconBolt,
   IconPlus,
   IconDownload,
   IconChevDown,
@@ -26,7 +30,7 @@ import {
 
 const START_FEN = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1';
 
-type Filter = 'all' | 'opening' | 'game';
+type Filter = 'all' | 'opening' | 'game' | 'tactic';
 type View = 'grid' | 'list';
 
 function relativeDate(iso: string): string {
@@ -42,9 +46,11 @@ function relativeDate(iso: string): string {
 export function StudiesPage() {
   const [opens, setOpens] = useState<OpeningStudySummary[] | null>(null);
   const [games, setGames] = useState<GameStudySummary[] | null>(null);
+  const [tactics, setTactics] = useState<TacticSetSummary[] | null>(null);
   const [studentCount, setStudentCount] = useState<number | null>(null);
   const [openOpenDialog, setOpenOpenDialog] = useState(false);
   const [openGameDialog, setOpenGameDialog] = useState(false);
+  const [openTacticDialog, setOpenTacticDialog] = useState(false);
   // When true, the next "Create study" lands directly in the Lichess import
   // dialog inside the editor (via ?import=lichess on the redirect URL).
   const [lichessIntent, setLichessIntent] = useState(false);
@@ -58,6 +64,7 @@ export function StudiesPage() {
   useEffect(() => {
     trainerStudies.list().then(setOpens);
     trainerGames.list().then(setGames);
+    trainerTactics.list().then(setTactics);
     trainer.students().then((rows) => setStudentCount(rows.length));
   }, []);
 
@@ -79,6 +86,9 @@ export function StudiesPage() {
   const filteredGames = (games ?? []).filter((s) =>
     s.name.toLowerCase().includes(q.toLowerCase()),
   );
+  const filteredTactics = (tactics ?? []).filter((s) =>
+    s.name.toLowerCase().includes(q.toLowerCase()),
+  );
 
   const totalChapters = (opens ?? []).reduce(
     (s, o) => s + o.annotation_count,
@@ -87,6 +97,7 @@ export function StudiesPage() {
 
   const showOpenings = filter === 'all' || filter === 'opening';
   const showGames = filter === 'all' || filter === 'game';
+  const showTactics = filter === 'all' || filter === 'tactic';
 
   return (
     <div className="page-wrap" style={{ paddingTop: 32, paddingBottom: 100 }}>
@@ -150,6 +161,17 @@ export function StudiesPage() {
                   onClick={() => {
                     setMenuOpen(false);
                     setOpenGameDialog(true);
+                  }}
+                />
+                <NewStudyMenuItem
+                  Icon={IconBolt}
+                  iconBg="rgba(248,113,113,0.10)"
+                  iconColor="#f87171"
+                  title="Tactical set"
+                  sub="Flat collection of puzzles to drill"
+                  onClick={() => {
+                    setMenuOpen(false);
+                    setOpenTacticDialog(true);
                   }}
                 />
               </div>
@@ -223,6 +245,7 @@ export function StudiesPage() {
             { value: 'all', label: 'All' },
             { value: 'opening', label: 'Opening' },
             { value: 'game', label: 'Game' },
+            { value: 'tactic', label: 'Tactic' },
           ]}
         />
         <div style={{ flex: 1 }} />
@@ -297,6 +320,36 @@ export function StudiesPage() {
         </Section>
       )}
 
+      {showTactics && (
+        <Section
+          title="Tactical sets"
+          count={filteredTactics.length}
+          loading={tactics == null}
+        >
+          {tactics != null && (
+            <div
+              className={view === 'grid' ? 'grid-3' : ''}
+              style={
+                view === 'grid'
+                  ? { gap: 16 }
+                  : { display: 'grid', gridTemplateColumns: '1fr', gap: 16 }
+              }
+            >
+              {filteredTactics.map((s) => (
+                <TacticSetCard key={s.id} set={s} />
+              ))}
+              <EmptyAddCard
+                title="New tactical set"
+                sub="Author puzzles by hand from FEN + solution moves."
+                onClick={() => setOpenTacticDialog(true)}
+                accent="#f87171"
+                accentBg="rgba(248,113,113,0.10)"
+              />
+            </div>
+          )}
+        </Section>
+      )}
+
       <NewOpeningStudyDialog
         open={openOpenDialog}
         onClose={() => {
@@ -323,6 +376,14 @@ export function StudiesPage() {
         onCreate={async ({ name, pgn }) => {
           const { id } = await trainerGames.create(name, pgn);
           nav(`/trainer/studies/game/${id}`);
+        }}
+      />
+      <NewTacticSetDialog
+        open={openTacticDialog}
+        onClose={() => setOpenTacticDialog(false)}
+        onCreate={async ({ name }) => {
+          const { id } = await trainerTactics.create(name);
+          nav(`/trainer/studies/tactic/${id}`);
         }}
       />
     </div>
@@ -612,6 +673,77 @@ function GameStudyCard({ study }: { study: GameStudySummary }) {
             notes
           </span>
           <span style={{ marginLeft: 'auto' }}>updated {relativeDate(study.updated_at)}</span>
+        </div>
+      </Card>
+    </Link>
+  );
+}
+
+function TacticSetCard({ set }: { set: TacticSetSummary }) {
+  return (
+    <Link
+      to={`/trainer/studies/tactic/${set.id}`}
+      style={{ textDecoration: 'none', color: 'inherit' }}
+    >
+      <Card
+        style={{
+          padding: 18,
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 14,
+          cursor: 'pointer',
+        }}
+      >
+        <div style={{ display: 'flex', alignItems: 'flex-start', gap: 14 }}>
+          <div
+            style={{
+              width: 110,
+              height: 110,
+              flexShrink: 0,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              borderRadius: 10,
+              background: 'rgba(248,113,113,0.10)',
+              color: '#f87171',
+            }}
+          >
+            <IconBolt size={42} strokeWidth={1.8} />
+          </div>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div
+              style={{
+                fontSize: 16,
+                fontWeight: 600,
+                letterSpacing: '-0.01em',
+                lineHeight: 1.3,
+                marginBottom: 8,
+              }}
+            >
+              {set.name}
+            </div>
+            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+              <Chip variant="mono">Tactic</Chip>
+            </div>
+          </div>
+        </div>
+        <div
+          style={{
+            display: 'flex',
+            gap: 12,
+            paddingTop: 14,
+            borderTop: '1px solid var(--hairline)',
+            fontSize: 12,
+            color: 'var(--text-dim)',
+          }}
+        >
+          <span>
+            <strong className="mono" style={{ color: 'var(--text)', marginRight: 2 }}>
+              {set.puzzle_count}
+            </strong>
+            puzzles
+          </span>
+          <span style={{ marginLeft: 'auto' }}>updated {relativeDate(set.updated_at)}</span>
         </div>
       </Card>
     </Link>

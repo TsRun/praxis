@@ -217,7 +217,7 @@ CREATE TABLE IF NOT EXISTS game_annotation (
 CREATE TABLE IF NOT EXISTS assignment (
   id           BIGSERIAL PRIMARY KEY,
   assignee_id  BIGINT NOT NULL REFERENCES app_user(id) ON DELETE CASCADE,
-  study_kind   TEXT NOT NULL CHECK (study_kind IN ('opening','game')),
+  study_kind   TEXT NOT NULL CHECK (study_kind IN ('opening','game','tactic')),
   study_id     BIGINT NOT NULL,
   assigned_at  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   completed_at TIMESTAMPTZ,
@@ -234,3 +234,38 @@ CREATE TABLE IF NOT EXISTS quiz_attempt (
   attempted_at   TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 CREATE INDEX IF NOT EXISTS idx_quiz_attempt ON quiz_attempt(user_id, game_study_id);
+
+-- ─── Tactical sets ──────────────────────────────────────────────────────────
+-- A flat collection of puzzles. Each puzzle is a FEN + a solution line of
+-- SAN moves; the student plays their plies on a Chessground board and the
+-- viewer auto-plays the expected opponent plies in between. Attempts are
+-- logged in tactic_attempt; "progress" is distinct puzzles answered
+-- correctly at least once.
+CREATE TABLE IF NOT EXISTS tactic_set (
+  id          BIGSERIAL PRIMARY KEY,
+  owner_id    BIGINT NOT NULL REFERENCES app_user(id) ON DELETE CASCADE,
+  name        TEXT NOT NULL,
+  created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS tactic_puzzle (
+  id            BIGSERIAL PRIMARY KEY,
+  set_id        BIGINT NOT NULL REFERENCES tactic_set(id) ON DELETE CASCADE,
+  ord           INTEGER NOT NULL,
+  fen           TEXT NOT NULL,
+  solution_san  TEXT[] NOT NULL,
+  comment_md    TEXT NOT NULL DEFAULT '',
+  created_at    TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS idx_tactic_puzzle_set ON tactic_puzzle(set_id, ord);
+
+CREATE TABLE IF NOT EXISTS tactic_attempt (
+  id            BIGSERIAL PRIMARY KEY,
+  user_id       BIGINT NOT NULL REFERENCES app_user(id) ON DELETE CASCADE,
+  puzzle_id     BIGINT NOT NULL REFERENCES tactic_puzzle(id) ON DELETE CASCADE,
+  correct       BOOLEAN NOT NULL,
+  attempted_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS idx_tactic_attempt_user_puzzle
+  ON tactic_attempt(user_id, puzzle_id);

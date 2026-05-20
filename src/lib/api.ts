@@ -116,7 +116,7 @@ export const trainer = {
 
 export const trainerStudent = {
   get: (id: number) => api.get<StudentDetail>(`/api/trainer/students/${id}`),
-  assign: (id: number, study_kind: 'opening' | 'game', study_id: number) =>
+  assign: (id: number, study_kind: 'opening' | 'game' | 'tactic', study_id: number) =>
     api.post<{ ok: true }>(`/api/trainer/students/${id}/assignments`, { study_kind, study_id }),
 };
 
@@ -244,11 +244,70 @@ export const trainerGames = {
     api.put<{ ok: true; count: number }>(`/api/trainer/studies/game/${id}/annotations`, { annotations }),
 };
 
+// ─── Tactical sets (trainer-authored) ────────────────────────────────────────
+
+export interface TacticSetSummary {
+  id: number;
+  name: string;
+  created_at: string;
+  updated_at: string;
+  puzzle_count: number;
+}
+
+export interface TacticPuzzle {
+  id: number;
+  ord: number;
+  fen: string;
+  solution_san: string[];
+  comment_md: string;
+}
+
+export interface TacticSetFull {
+  id: number;
+  name: string;
+  created_at: string;
+  updated_at: string;
+  puzzles: TacticPuzzle[];
+}
+
+export interface TacticSetForStudent {
+  id: number;
+  name: string;
+  puzzles: TacticPuzzle[];
+  solved_ids: number[];
+}
+
+export const trainerTactics = {
+  list: () => api.get<TacticSetSummary[]>('/api/trainer/studies/tactic'),
+  create: (name: string) =>
+    api.post<{ id: number }>('/api/trainer/studies/tactic', { name }),
+  get: (id: number) => api.get<TacticSetFull>(`/api/trainer/studies/tactic/${id}`),
+  rename: (id: number, name: string) =>
+    api.put<{ ok: true }>(`/api/trainer/studies/tactic/${id}`, { name }),
+  delete: (id: number) =>
+    api.del<{ ok: true }>(`/api/trainer/studies/tactic/${id}`),
+  addPuzzle: (
+    id: number,
+    body: { fen: string; solution_san: string[]; comment_md?: string },
+  ) => api.post<{ id: number }>(`/api/trainer/studies/tactic/${id}/puzzles`, body),
+  updatePuzzle: (
+    id: number,
+    pid: number,
+    body: { fen: string; solution_san: string[]; comment_md?: string },
+  ) =>
+    api.put<{ ok: true }>(
+      `/api/trainer/studies/tactic/${id}/puzzles/${pid}`,
+      body,
+    ),
+  deletePuzzle: (id: number, pid: number) =>
+    api.del<{ ok: true }>(`/api/trainer/studies/tactic/${id}/puzzles/${pid}`),
+};
+
 // ─── Student / any-user API ───────────────────────────────────────────────────
 
 export interface AssignmentRow {
   id: number;
-  study_kind: 'opening' | 'game';
+  study_kind: 'opening' | 'game' | 'tactic';
   study_id: number;
   name: string;
   assigned_at: string;
@@ -310,4 +369,11 @@ export const student = {
       expected_san: string;
       chapter: { title: string | null; body_md: string } | null;
     }>(`/api/student/studies/opening/${id}/quiz/attempt`, { node_id, attempted_san }),
+  tactic: (id: number) =>
+    api.get<TacticSetForStudent>(`/api/student/studies/tactic/${id}`),
+  tacticAttempt: (id: number, puzzle_id: number, correct: boolean) =>
+    api.post<{ ok: true }>(`/api/student/studies/tactic/${id}/attempt`, {
+      puzzle_id,
+      correct,
+    }),
 };
