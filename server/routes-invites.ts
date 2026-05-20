@@ -1,6 +1,5 @@
 import type { FastifyInstance } from 'fastify';
 import type { Pool } from 'pg';
-import { createSession } from './auth.js';
 import { claimInviteForUser } from './routes-auth.js';
 
 export async function inviteRoutes(app: FastifyInstance, opts: { pool: Pool }) {
@@ -39,5 +38,3 @@ export async function inviteRoutes(app: FastifyInstance, opts: { pool: Pool }) {
     },
   );
 }
-
-export { createSession };

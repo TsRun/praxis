@@ -33,13 +33,30 @@ export async function studentRoutes(app: FastifyInstance, opts: { pool: Pool }) 
        SELECT b.*,
          CASE b.study_kind
            WHEN 'opening' THEN (
-             SELECT CASE WHEN (SELECT COUNT(*) FROM opening_annotation WHERE study_id = b.study_id) = 0
-                         THEN '0'
-                         ELSE (100.0 * (SELECT COUNT(*) FROM opening_visit
-                                          WHERE user_id = $1 AND study_id = b.study_id)
-                               /
-                               (SELECT COUNT(*) FROM opening_annotation WHERE study_id = b.study_id))::text
+             -- numerator: quizzable nodes the student has answered correctly at
+             -- least once (correct_streak >= 1). denominator: all quizzable
+             -- nodes — those where it's the student's side to move at parent_fen
+             -- (study.side='w' ⇒ odd ply, 'b' ⇒ even ply, matching quiz/next).
+             SELECT CASE WHEN total = 0 THEN '0'
+                         ELSE (100.0 * done / total)::text
                     END
+               FROM (
+                 SELECT
+                   (SELECT COUNT(*) FROM opening_node n
+                      JOIN opening_study s ON s.id = n.study_id
+                      WHERE n.study_id = b.study_id
+                        AND ((s.side = 'w' AND n.ply % 2 = 1)
+                          OR (s.side = 'b' AND n.ply % 2 = 0))
+                   ) AS total,
+                   (SELECT COUNT(*) FROM node_quiz_state q
+                      JOIN opening_node n  ON n.id = q.node_id
+                      JOIN opening_study s ON s.id = n.study_id
+                      WHERE q.user_id = $1 AND n.study_id = b.study_id
+                        AND q.correct_streak >= 1
+                        AND ((s.side = 'w' AND n.ply % 2 = 1)
+                          OR (s.side = 'b' AND n.ply % 2 = 0))
+                   ) AS done
+               ) x
            )
            WHEN 'game' THEN (
              SELECT CASE WHEN (SELECT COUNT(*) FROM game_annotation WHERE study_id = b.study_id AND is_quiz) = 0
