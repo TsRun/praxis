@@ -1,4 +1,5 @@
 import { useEffect, type ReactNode } from 'react';
+import { createPortal } from 'react-dom';
 import { Btn } from './atoms';
 import { IconX } from './Icons';
 
@@ -31,8 +32,20 @@ export function Dialog({
     return () => document.removeEventListener('keydown', onKey);
   }, [open, onClose]);
 
+  // Lock body scroll while open so the page behind doesn't move under the
+  // modal. scrollbar-gutter on <html> keeps the scrollbar slot reserved so
+  // the page doesn't shift sideways when overflow flips to hidden.
+  useEffect(() => {
+    if (!open) return;
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = prev;
+    };
+  }, [open]);
+
   if (!open) return null;
-  return (
+  return createPortal(
     <div className="modal-backdrop" onClick={onClose}>
       <div
         role="dialog"
@@ -67,6 +80,7 @@ export function Dialog({
         )}
         {children}
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }

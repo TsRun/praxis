@@ -1,4 +1,5 @@
-import { useState, useRef, type FormEvent } from 'react';
+import { useState, useRef, useEffect, type FormEvent } from 'react';
+import { createPortal } from 'react-dom';
 import { trainer } from '../lib/api';
 import { Btn } from '../components/ui/atoms';
 import { IconSearch, IconX, IconCheck } from '../components/ui/Icons';
@@ -74,7 +75,15 @@ export function InviteStudentDialog({ onClose }: { onClose: () => void }) {
     setErr(null);
   }
 
-  return (
+  useEffect(() => {
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = prev;
+    };
+  }, []);
+
+  return createPortal(
     <div className="modal-backdrop" onClick={onClose}>
       <div
         onClick={(e) => e.stopPropagation()}
@@ -133,7 +142,8 @@ export function InviteStudentDialog({ onClose }: { onClose: () => void }) {
           />
         )}
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }
 
