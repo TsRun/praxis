@@ -1,5 +1,6 @@
 import type { FastifyInstance, FastifyReply } from 'fastify';
 import type { Pool } from 'pg';
+import { createHash, randomBytes } from 'node:crypto';
 import { createSession, deleteSession, hashPassword, normalizeRoles, verifyPassword } from './auth.js';
 
 const COOKIE_NAME = 'sid';
@@ -218,6 +219,62 @@ export async function authRoutes(app: FastifyInstance, opts: { pool: Pool }) {
         hash,
         req.user.id,
       ]);
+      return { ok: true };
+    },
+  );
+
+  // ── API keys ──────────────────────────────────────────────────────────
+  // Per-user tokens for the MCP server / scripts. The full token is
+  // surfaced ONCE on creation; we store only the sha256 hash, plus the
+  // first 12 chars verbatim so the owner can recognise their own keys.
+
+  app.get('/api/auth/api-keys', async (req, reply) => {
+    if (!req.user) return reply.code(401).send({ error: 'not signed in' });
+    const { rows } = await pool.query<{
+      id: number;
+      name: string;
+      key_prefix: string;
+      created_at: string;
+      last_used_at: string | null;
+    }>(
+      `SELECT id, name, key_prefix, created_at, last_used_at
+         FROM api_key
+        WHERE user_id = $1
+        ORDER BY created_at DESC`,
+      [req.user.id],
+    );
+    return rows;
+  });
+
+  app.post<{ Body: { name?: string } }>(
+    '/api/auth/api-keys',
+    async (req, reply) => {
+      if (!req.user) return reply.code(401).send({ error: 'not signed in' });
+      const name = sanitizeName(req.body?.name ?? '');
+      if (!name) return reply.code(400).send({ error: 'invalid name' });
+      // 24 bytes of randomness → 32 chars base64url → ~192 bits.
+      const token = `praxis_${randomBytes(24).toString('base64url')}`;
+      const hash = createHash('sha256').update(token).digest('hex');
+      const prefix = token.slice(0, 12);
+      const { rows } = await pool.query<{ id: number }>(
+        `INSERT INTO api_key (user_id, name, key_hash, key_prefix)
+         VALUES ($1, $2, $3, $4)
+         RETURNING id`,
+        [req.user.id, name, hash, prefix],
+      );
+      return { id: rows[0].id, name, key: token, key_prefix: prefix };
+    },
+  );
+
+  app.delete<{ Params: { id: string } }>(
+    '/api/auth/api-keys/:id',
+    async (req, reply) => {
+      if (!req.user) return reply.code(401).send({ error: 'not signed in' });
+      const { rowCount } = await pool.query(
+        `DELETE FROM api_key WHERE id = $1 AND user_id = $2`,
+        [Number(req.params.id), req.user.id],
+      );
+      if (!rowCount) return reply.code(404).send({ error: 'not found' });
       return { ok: true };
     },
   );

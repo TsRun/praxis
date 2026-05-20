@@ -8,6 +8,7 @@ dist
 test-results
 playwright-report
 .playwright-mcp
+mcp-server
 data
 *.pgn
 *.zip
