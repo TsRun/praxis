@@ -82,10 +82,6 @@ describe('gameStore', () => {
     expect(after.currentPly).toBe(2);
   });
 
-  it('source defaults to otb', () => {
-    expect(useGameStore.getState().source).toBe('otb');
-  });
-
   it('setHistoryFromPgn loads valid PGN and parks the pointer at the end', () => {
     const ok = useGameStore.getState().setHistoryFromPgn('1. e4 c6 2. d4 d5');
     expect(ok).toBe(true);

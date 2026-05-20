@@ -1,6 +1,7 @@
 import { useEffect, useState, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import {
+  trainer,
   trainerStudies,
   trainerGames,
   type OpeningStudySummary,
@@ -41,6 +42,7 @@ function relativeDate(iso: string): string {
 export function StudiesPage() {
   const [opens, setOpens] = useState<OpeningStudySummary[] | null>(null);
   const [games, setGames] = useState<GameStudySummary[] | null>(null);
+  const [studentCount, setStudentCount] = useState<number | null>(null);
   const [openOpenDialog, setOpenOpenDialog] = useState(false);
   const [openGameDialog, setOpenGameDialog] = useState(false);
   // When true, the next "Create study" lands directly in the Lichess import
@@ -56,6 +58,7 @@ export function StudiesPage() {
   useEffect(() => {
     trainerStudies.list().then(setOpens);
     trainerGames.list().then(setGames);
+    trainer.students().then((rows) => setStudentCount(rows.length));
   }, []);
 
   useEffect(() => {
@@ -170,7 +173,11 @@ export function StudiesPage() {
           value={(opens?.length ?? 0) + (games?.length ?? 0)}
           label="studies authored"
         />
-        <StatTile Icon={IconUsers} value="—" label="students assigned" />
+        <StatTile
+          Icon={IconUsers}
+          value={studentCount ?? '—'}
+          label="students linked"
+        />
         <StatTile Icon={IconList} value={totalChapters} label="chapters total" />
       </div>
 

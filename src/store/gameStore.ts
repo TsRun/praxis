@@ -1,25 +1,18 @@
 import { create } from 'zustand';
 import { Chess } from 'chess.js';
-import type { Source } from '../lib/lichess';
 
 interface GameState {
   fen: string;
   history: string[];   // every move ever played in this line (preserved across rewinds)
   currentPly: number;  // 0..history.length — how many of those moves are "currently played"
-  source: Source;
-  minShare: number;
-  maxDepth: number;
   applyMove: (san: string) => boolean;
   goToPly: (ply: number) => void;
   stepForward: () => void;
   stepBack: () => void;
   jumpToEnd: () => void;
-  setSource: (s: Source) => void;
   setFen: (fen: string) => void;
   setHistoryFromPgn: (pgn: string) => boolean;
   loadLine: (sanMoves: string[], ply?: number) => boolean;
-  setMinShare: (n: number) => void;
-  setMaxDepth: (n: number) => void;
   reset: () => void;
 }
 
@@ -35,9 +28,6 @@ export const useGameStore = create<GameState>((set, get) => ({
   fen: START_FEN,
   history: [],
   currentPly: 0,
-  source: 'otb',
-  minShare: 0.005,
-  maxDepth: 12,
 
   applyMove(san) {
     const state = get();
@@ -85,10 +75,6 @@ export const useGameStore = create<GameState>((set, get) => ({
     set({ currentPly: state.history.length, fen: fenAtPly(state.history, state.history.length) });
   },
 
-  setSource(s) {
-    set({ source: s });
-  },
-
   setFen(fen) {
     // Jumping to an arbitrary FEN abandons any known move sequence.
     set({ fen, history: [], currentPly: 0 });
@@ -128,22 +114,11 @@ export const useGameStore = create<GameState>((set, get) => ({
     return valid.length > 0;
   },
 
-  setMinShare(n) {
-    set({ minShare: n });
-  },
-
-  setMaxDepth(n) {
-    set({ maxDepth: n });
-  },
-
   reset() {
     set({
       fen: START_FEN,
       history: [],
       currentPly: 0,
-      source: 'otb',
-      minShare: 0.005,
-      maxDepth: 12,
     });
   },
 }));
