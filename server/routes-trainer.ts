@@ -13,6 +13,34 @@ import {
   type PgnChapter,
 } from './pgn-tree.js';
 import { parsePgn } from './pgn.js';
+import { Chess } from 'chess.js';
+
+/** Validate a solution line against a starting FEN; returns the cleaned SAN
+ * array (re-serialized by chess.js so castling notation etc. is canonical),
+ * or throws an Error if the FEN is bad or any move is illegal. chess.js
+ * throws on illegal moves rather than returning null, so we re-wrap with a
+ * stable error prefix the client can rely on. */
+function validateSolution(fen: string, sans: string[]): string[] {
+  let c: Chess;
+  try {
+    c = new Chess(fen);
+  } catch (e) {
+    throw new Error(`invalid FEN: ${(e as Error).message}`);
+  }
+  if (sans.length === 0) throw new Error('solution must have at least one move');
+  const cleaned: string[] = [];
+  for (const san of sans) {
+    let m;
+    try {
+      m = c.move(san);
+    } catch {
+      m = null;
+    }
+    if (!m) throw new Error(`illegal move: ${san}`);
+    cleaned.push(m.san);
+  }
+  return cleaned;
+}
 
 
 export async function trainerRoutes(app: FastifyInstance, opts: { pool: Pool }) {
@@ -199,6 +227,7 @@ export async function trainerRoutes(app: FastifyInstance, opts: { pool: Pool }) 
                 CASE a.study_kind
                   WHEN 'opening' THEN (SELECT name FROM opening_study WHERE id = a.study_id)
                   WHEN 'game'    THEN (SELECT name FROM game_study   WHERE id = a.study_id)
+                  WHEN 'tactic'  THEN (SELECT name FROM tactic_set   WHERE id = a.study_id)
                 END AS name
            FROM assignment a
           WHERE a.assignee_id = $1
@@ -209,7 +238,7 @@ export async function trainerRoutes(app: FastifyInstance, opts: { pool: Pool }) 
     },
   );
 
-  app.post<{ Params: { id: string }; Body: { study_kind: 'opening' | 'game'; study_id: number } }>(
+  app.post<{ Params: { id: string }; Body: { study_kind: 'opening' | 'game' | 'tactic'; study_id: number } }>(
     '/api/trainer/students/:id/assignments',
     { preHandler: requireTrainer },
     async (req, reply) => {
@@ -217,17 +246,20 @@ export async function trainerRoutes(app: FastifyInstance, opts: { pool: Pool }) 
       const studentId = Number(req.params.id);
       const { study_kind, study_id } = req.body ?? ({} as never);
       if (!study_kind || !study_id) return reply.code(400).send({ error: 'missing fields' });
+      if (!['opening', 'game', 'tactic'].includes(study_kind))
+        return reply.code(400).send({ error: 'invalid study_kind' });
       const own = await pool.query(
         `SELECT 1 FROM mentor WHERE trainer_user_id = $1 AND student_user_id = $2`,
         [trainerId, studentId],
       );
       if (!own.rowCount) return reply.code(404).send({ error: 'not your student' });
-      const ownStudy = await pool.query(
+      const ownStudyQuery =
         study_kind === 'opening'
           ? `SELECT 1 FROM opening_study WHERE id = $1 AND owner_id = $2`
-          : `SELECT 1 FROM game_study   WHERE id = $1 AND owner_id = $2`,
-        [study_id, trainerId],
-      );
+          : study_kind === 'game'
+            ? `SELECT 1 FROM game_study   WHERE id = $1 AND owner_id = $2`
+            : `SELECT 1 FROM tactic_set   WHERE id = $1 AND owner_id = $2`;
+      const ownStudy = await pool.query(ownStudyQuery, [study_id, trainerId]);
       if (!ownStudy.rowCount) return reply.code(404).send({ error: 'study not found' });
       const ins = await pool.query<{ id: number }>(
         `INSERT INTO assignment (assignee_id, study_kind, study_id) VALUES ($1, $2, $3)
@@ -243,6 +275,11 @@ export async function trainerRoutes(app: FastifyInstance, opts: { pool: Pool }) 
       // Fetch trainer/student names + study name + student email for the
       // notification. Best effort — log and continue if the send fails.
       try {
+        const studyTable =
+          study_kind === 'opening' ? 'opening_study os' :
+          study_kind === 'game'    ? 'game_study gs' :
+                                     'tactic_set ts';
+        const studyAlias = studyTable.split(' ')[1];
         const meta = await pool.query<{
           student_name: string;
           student_email: string;
@@ -252,13 +289,13 @@ export async function trainerRoutes(app: FastifyInstance, opts: { pool: Pool }) 
           `SELECT s.name AS student_name,
                   s.email AS student_email,
                   t.name AS trainer_name,
-                  ${study_kind === 'opening' ? 'os.name' : 'gs.name'} AS study_name
+                  ${studyAlias}.name AS study_name
              FROM app_user s,
                   app_user t,
-                  ${study_kind === 'opening' ? 'opening_study os' : 'game_study gs'}
+                  ${studyTable}
             WHERE s.id = $1
               AND t.id = $2
-              AND ${study_kind === 'opening' ? 'os.id' : 'gs.id'} = $3`,
+              AND ${studyAlias}.id = $3`,
           [studentId, trainerId, study_id],
         );
         const row = meta.rows[0];
@@ -680,6 +717,198 @@ export async function trainerRoutes(app: FastifyInstance, opts: { pool: Pool }) 
 
       await pool.query(`UPDATE opening_study SET updated_at = NOW() WHERE id = $1`, [studyId]);
       return { imported_chapters, imported_nodes, reused_nodes, skipped };
+    },
+  );
+
+  // ─── Tactical sets (author = trainer or self-trainer) ────────────────────
+  app.get('/api/trainer/studies/tactic', { preHandler: requireAuthor }, async (req) => {
+    const uid = req.user!.id;
+    const { rows } = await pool.query(
+      `SELECT ts.id, ts.name, ts.created_at, ts.updated_at,
+              COALESCE((SELECT COUNT(*)::text FROM tactic_puzzle p WHERE p.set_id = ts.id), '0') AS puzzle_count
+         FROM tactic_set ts WHERE ts.owner_id = $1 ORDER BY ts.updated_at DESC`,
+      [uid],
+    );
+    return rows.map((r) => ({ ...r, puzzle_count: Number(r.puzzle_count) }));
+  });
+
+  app.post<{ Body: { name: string } }>(
+    '/api/trainer/studies/tactic',
+    { preHandler: requireAuthor },
+    async (req, reply) => {
+      const uid = req.user!.id;
+      const name = req.body?.name?.trim();
+      if (!name) return reply.code(400).send({ error: 'name is required' });
+      const { rows } = await pool.query<{ id: number }>(
+        `INSERT INTO tactic_set (owner_id, name) VALUES ($1, $2) RETURNING id`,
+        [uid, name],
+      );
+      if (req.user!.roles.includes('self')) {
+        await pool.query(
+          `INSERT INTO assignment (assignee_id, study_kind, study_id) VALUES ($1, 'tactic', $2)
+             ON CONFLICT DO NOTHING`,
+          [uid, rows[0].id],
+        );
+      }
+      return { id: rows[0].id };
+    },
+  );
+
+  app.get<{ Params: { id: string } }>(
+    '/api/trainer/studies/tactic/:id',
+    { preHandler: requireAuthor },
+    async (req, reply) => {
+      const uid = req.user!.id;
+      const id = Number(req.params.id);
+      const { rows: s } = await pool.query<{
+        id: number;
+        name: string;
+        created_at: string;
+        updated_at: string;
+      }>(
+        `SELECT id, name, created_at, updated_at FROM tactic_set
+          WHERE id = $1 AND owner_id = $2`,
+        [id, uid],
+      );
+      if (!s[0]) return reply.code(404).send({ error: 'not found' });
+      const { rows: puzzles } = await pool.query<{
+        id: number;
+        ord: number;
+        fen: string;
+        solution_san: string[];
+        comment_md: string;
+      }>(
+        `SELECT id, ord, fen, solution_san, comment_md FROM tactic_puzzle
+          WHERE set_id = $1 ORDER BY ord, id`,
+        [id],
+      );
+      return { ...s[0], puzzles };
+    },
+  );
+
+  app.put<{ Params: { id: string }; Body: { name: string } }>(
+    '/api/trainer/studies/tactic/:id',
+    { preHandler: requireAuthor },
+    async (req, reply) => {
+      const uid = req.user!.id;
+      const id = Number(req.params.id);
+      const name = req.body?.name?.trim();
+      if (!name) return reply.code(400).send({ error: 'name is required' });
+      const { rowCount } = await pool.query(
+        `UPDATE tactic_set SET name = $1, updated_at = NOW()
+          WHERE id = $2 AND owner_id = $3`,
+        [name, id, uid],
+      );
+      if (!rowCount) return reply.code(404).send({ error: 'not found' });
+      return { ok: true };
+    },
+  );
+
+  app.delete<{ Params: { id: string } }>(
+    '/api/trainer/studies/tactic/:id',
+    { preHandler: requireAuthor },
+    async (req, reply) => {
+      const uid = req.user!.id;
+      const id = Number(req.params.id);
+      const { rowCount } = await pool.query(
+        `DELETE FROM tactic_set WHERE id = $1 AND owner_id = $2`,
+        [id, uid],
+      );
+      if (!rowCount) return reply.code(404).send({ error: 'not found' });
+      return { ok: true };
+    },
+  );
+
+  app.post<{
+    Params: { id: string };
+    Body: { fen: string; solution_san: string[]; comment_md?: string };
+  }>(
+    '/api/trainer/studies/tactic/:id/puzzles',
+    { preHandler: requireAuthor },
+    async (req, reply) => {
+      const uid = req.user!.id;
+      const setId = Number(req.params.id);
+      const { fen, solution_san, comment_md } = req.body ?? ({} as never);
+      if (!fen || !Array.isArray(solution_san))
+        return reply.code(400).send({ error: 'fen and solution_san are required' });
+      const owns = await pool.query(
+        `SELECT 1 FROM tactic_set WHERE id = $1 AND owner_id = $2`,
+        [setId, uid],
+      );
+      if (!owns.rowCount) return reply.code(404).send({ error: 'not found' });
+      let cleaned: string[];
+      try {
+        cleaned = validateSolution(fen, solution_san);
+      } catch (e) {
+        return reply.code(400).send({ error: (e as Error).message });
+      }
+      const next = await pool.query<{ ord: number }>(
+        `SELECT COALESCE(MAX(ord), 0) + 1 AS ord FROM tactic_puzzle WHERE set_id = $1`,
+        [setId],
+      );
+      const { rows } = await pool.query<{ id: number }>(
+        `INSERT INTO tactic_puzzle (set_id, ord, fen, solution_san, comment_md)
+           VALUES ($1, $2, $3, $4, $5) RETURNING id`,
+        [setId, next.rows[0].ord, fen, cleaned, comment_md ?? ''],
+      );
+      await pool.query(`UPDATE tactic_set SET updated_at = NOW() WHERE id = $1`, [setId]);
+      return { id: rows[0].id };
+    },
+  );
+
+  app.put<{
+    Params: { id: string; pid: string };
+    Body: { fen: string; solution_san: string[]; comment_md?: string };
+  }>(
+    '/api/trainer/studies/tactic/:id/puzzles/:pid',
+    { preHandler: requireAuthor },
+    async (req, reply) => {
+      const uid = req.user!.id;
+      const setId = Number(req.params.id);
+      const pid = Number(req.params.pid);
+      const { fen, solution_san, comment_md } = req.body ?? ({} as never);
+      if (!fen || !Array.isArray(solution_san))
+        return reply.code(400).send({ error: 'fen and solution_san are required' });
+      const owns = await pool.query(
+        `SELECT 1 FROM tactic_set ts
+           JOIN tactic_puzzle p ON p.set_id = ts.id
+          WHERE ts.id = $1 AND ts.owner_id = $2 AND p.id = $3`,
+        [setId, uid, pid],
+      );
+      if (!owns.rowCount) return reply.code(404).send({ error: 'not found' });
+      let cleaned: string[];
+      try {
+        cleaned = validateSolution(fen, solution_san);
+      } catch (e) {
+        return reply.code(400).send({ error: (e as Error).message });
+      }
+      await pool.query(
+        `UPDATE tactic_puzzle SET fen = $1, solution_san = $2, comment_md = $3
+          WHERE id = $4`,
+        [fen, cleaned, comment_md ?? '', pid],
+      );
+      await pool.query(`UPDATE tactic_set SET updated_at = NOW() WHERE id = $1`, [setId]);
+      return { ok: true };
+    },
+  );
+
+  app.delete<{ Params: { id: string; pid: string } }>(
+    '/api/trainer/studies/tactic/:id/puzzles/:pid',
+    { preHandler: requireAuthor },
+    async (req, reply) => {
+      const uid = req.user!.id;
+      const setId = Number(req.params.id);
+      const pid = Number(req.params.pid);
+      const { rowCount } = await pool.query(
+        `DELETE FROM tactic_puzzle p
+           USING tactic_set ts
+          WHERE p.id = $1 AND p.set_id = ts.id
+            AND ts.id = $2 AND ts.owner_id = $3`,
+        [pid, setId, uid],
+      );
+      if (!rowCount) return reply.code(404).send({ error: 'not found' });
+      await pool.query(`UPDATE tactic_set SET updated_at = NOW() WHERE id = $1`, [setId]);
+      return { ok: true };
     },
   );
 }
