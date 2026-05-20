@@ -580,6 +580,25 @@ function MintedKeyDialog({
       >
         {token}
       </div>
+      <p className="meta" style={{ marginTop: 12, fontSize: 12 }}>
+        To plug this into Claude Code, run:
+      </p>
+      <div
+        className="mono"
+        style={{
+          fontSize: 11,
+          padding: 10,
+          marginTop: 6,
+          background: 'var(--inset-bg)',
+          border: '1px solid var(--inset-border)',
+          borderRadius: 8,
+          wordBreak: 'break-all',
+          color: 'var(--text-dim)',
+          whiteSpace: 'pre-wrap',
+        }}
+      >
+        {`claude mcp add --transport http praxis ${window.location.origin}/api/mcp --header "Authorization: Bearer ${token}"`}
+      </div>
       <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 12 }}>
         <Btn
           variant="secondary"

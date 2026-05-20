@@ -1,17 +1,44 @@
-# Praxis MCP server
+# Praxis MCP
 
-A [Model Context Protocol](https://modelcontextprotocol.io/) server that lets
-an AI assistant (Claude Code, Claude Desktop, Copilot CLI, etc.) author
-content in your Praxis account: create tactic sets and puzzles, create
-opening / game studies, list students, and push assignments.
+A [Model Context Protocol](https://modelcontextprotocol.io/) interface to
+your Praxis account: create tactic sets and puzzles, create opening / game
+studies, list students, and push assignments.
 
-## Setup
+**Two ways to use it:**
 
-1. **Mint an API key.** Sign in to Praxis → Settings → API keys → "New key".
-   Copy the `praxis_…` token shown once. It identifies as you with all of
-   your roles — keep it secret.
+- **Hosted (recommended)** — Praxis itself exposes the MCP at
+  `https://praxis.thiserro.com/api/mcp` via Streamable-HTTP. No install, no
+  build, updates with every deploy.
+- **Standalone stdio** — the `mcp-server/` package in this repo runs the
+  same tool surface locally as a subprocess for offline / dev work.
 
-2. **Build the server.**
+## 1. Hosted (recommended)
+
+1. **Mint an API key.** Praxis → Settings → API keys → "New key". Copy the
+   `praxis_…` token shown once.
+
+2. **Add it to your assistant.**
+
+   For Claude Code:
+
+   ```sh
+   claude mcp add --transport http praxis \
+     https://praxis.thiserro.com/api/mcp \
+     --header "Authorization: Bearer praxis_…"
+   ```
+
+   For other clients, point them at the same URL and pass the bearer header.
+
+That's it. The next session has the Praxis tools available — try
+`create_tactic_set`, `add_tactic_puzzle`, `list_students`, …
+
+## 2. Standalone stdio
+
+For offline use or a quick local sanity check.
+
+1. Mint a key as above.
+
+2. Build the standalone server:
 
    ```sh
    cd mcp-server
@@ -19,8 +46,8 @@ opening / game studies, list students, and push assignments.
    npm run build
    ```
 
-3. **Register the MCP with your client.** For Claude Code, add this to
-   `~/.claude.json` (replace the absolute path + key):
+3. Register it with your client. For Claude Code, add to `~/.claude.json`
+   (replace the absolute path + key):
 
    ```json
    {
@@ -37,8 +64,7 @@ opening / game studies, list students, and push assignments.
    }
    ```
 
-   `PRAXIS_BASE_URL` defaults to `https://praxis.thiserro.com`. Point it at
-   `http://localhost:5174` to test against a local dev server.
+   Override `PRAXIS_BASE_URL` to test against `http://localhost:5174`.
 
 ## Tools
 
