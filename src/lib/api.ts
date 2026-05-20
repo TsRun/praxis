@@ -51,6 +51,26 @@ export const auth = {
     }),
 };
 
+export interface ApiKeyRow {
+  id: number;
+  name: string;
+  key_prefix: string;
+  created_at: string;
+  last_used_at: string | null;
+}
+
+export interface ApiKeyMinted extends ApiKeyRow {
+  /** Returned ONCE on mint; never shown again. */
+  key: string;
+}
+
+export const apiKeys = {
+  list: () => api.get<ApiKeyRow[]>('/api/auth/api-keys'),
+  create: (name: string) =>
+    api.post<ApiKeyMinted>('/api/auth/api-keys', { name }),
+  revoke: (id: number) => api.del<{ ok: true }>(`/api/auth/api-keys/${id}`),
+};
+
 export interface InviteInfo {
   token: string;
   expires_at: string;
