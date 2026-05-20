@@ -5,7 +5,8 @@ import { StudentDetailPage } from './StudentDetailPage';
 import { StudiesPage } from './StudiesPage';
 import { OpeningStudyEditor } from './OpeningStudyEditor';
 import { GameStudyEditor } from './GameStudyEditor';
-import { TacticSetEditor } from './TacticSetEditor';
+import { TacticSetPage } from './TacticSetPage';
+import { TacticPuzzleEditor } from './TacticPuzzleEditor';
 import { useAuth } from '../auth/AuthContext';
 import { useKeyboardNav } from '../hooks/useKeyboardNav';
 
@@ -34,7 +35,11 @@ export function TrainerLayout() {
         <Route path="studies" element={<StudiesPage />} />
         <Route path="studies/opening/:id" element={<OpeningStudyEditor />} />
         <Route path="studies/game/:id" element={<GameStudyEditor />} />
-        <Route path="studies/tactic/:id" element={<TacticSetEditor />} />
+        <Route path="studies/tactic/:id" element={<TacticSetPage />} />
+        <Route
+          path="studies/tactic/:id/puzzles/:pid"
+          element={<TacticPuzzleEditor />}
+        />
         <Route path="*" element={<Navigate to="studies" replace />} />
       </Routes>
     </div>
