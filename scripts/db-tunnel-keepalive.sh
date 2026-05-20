@@ -25,6 +25,13 @@ if [ -f .env ]; then set -a; . ./.env; set +a; fi
 
 echo "================ tunnel keepalive · start $(date) ================"
 
+# RAILWAY_TOKEN (project token from Railway dashboard) is non-interactive and
+# survives idle; if set, the railway CLI will use it instead of the cached
+# OAuth refresh token (which expires and silently breaks DATABASE_URL pushes).
+[ -n "${RAILWAY_TOKEN:-}" ] && echo "[railway] using RAILWAY_TOKEN (non-interactive)"
+
+prev_database_url=""
+
 while true; do
   echo
   echo "[ssh] opening pinggy tunnel ($(date))"
@@ -62,11 +69,16 @@ while true; do
   database_url="postgresql://$PGUSER:$PGPASSWORD@$host:$port/$PGDATABASE"
   echo "[ssh] tunnel up: $host:$port"
 
-  echo "[railway] publishing DATABASE_URL to $RAILWAY_SERVICE"
-  if railway variables --service "$RAILWAY_SERVICE" --set "DATABASE_URL=$database_url" >/dev/null 2>&1; then
-    echo "[railway] ok"
+  if [ "$database_url" = "$prev_database_url" ]; then
+    echo "[railway] URL unchanged — skipping publish (no redeploy)"
   else
-    echo "[railway] FAILED to set DATABASE_URL — leaving previous value"
+    echo "[railway] publishing DATABASE_URL to $RAILWAY_SERVICE"
+    if railway variables --service "$RAILWAY_SERVICE" --set "DATABASE_URL=$database_url" >/dev/null 2>&1; then
+      echo "[railway] ok"
+      prev_database_url="$database_url"
+    else
+      echo "[railway] FAILED — re-login (railway login) or set RAILWAY_TOKEN in .env"
+    fi
   fi
 
   echo "[ssh] waiting on tunnel (pid $ssh_pid)…"
