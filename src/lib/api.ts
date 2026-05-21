@@ -213,34 +213,43 @@ export const trainerStudies = {
       `/api/trainer/studies/opening/${id}/import`,
       { pgn, chapter_indexes },
     ),
-  fetchChessCom: (id: number, username: string, max?: number) =>
+  fetchChessCom: (
+    id: number,
+    username: string,
+    max?: number,
+    filters?: SourceFetchFilters,
+  ) =>
     api.post<{ pgn: string; chapters: ImportChapterPreview[] }>(
       `/api/trainer/studies/opening/${id}/fetch-chesscom`,
-      { username, max },
+      { username, max, ...serializeSourceFilters(filters) },
     ),
-  fetchLichessUser: (id: number, username: string, max?: number) =>
+  fetchLichessUser: (
+    id: number,
+    username: string,
+    max?: number,
+    filters?: SourceFetchFilters,
+  ) =>
     api.post<{ pgn: string; chapters: ImportChapterPreview[] }>(
       `/api/trainer/studies/opening/${id}/fetch-lichess`,
-      { username, max },
+      { username, max, ...serializeSourceFilters(filters) },
     ),
   fetchBaseGames: (id: number, game_ids: number[]) =>
     api.post<{ pgn: string; chapters: ImportChapterPreview[] }>(
       `/api/trainer/studies/opening/${id}/fetch-base`,
       { game_ids },
     ),
-  searchBaseGames: (params: {
-    player?: string;
-    color?: 'white' | 'black' | 'either';
-    year_from?: number;
-    year_to?: number;
-    limit?: number;
-    offset?: number;
-  }) => {
+  searchBaseGames: (params: BaseSearchFilters) => {
     const q = new URLSearchParams();
     if (params.player) q.set('player', params.player);
     if (params.color && params.color !== 'either') q.set('color', params.color);
     if (params.year_from != null) q.set('year_from', String(params.year_from));
     if (params.year_to != null) q.set('year_to', String(params.year_to));
+    if (params.results && params.results.length > 0) {
+      q.set('result', params.results.join(','));
+    }
+    if (params.eco) q.set('eco', params.eco);
+    if (params.min_elo != null) q.set('min_elo', String(params.min_elo));
+    if (params.position_fen) q.set('position_fen', params.position_fen);
     if (params.limit != null) q.set('limit', String(params.limit));
     if (params.offset != null) q.set('offset', String(params.offset));
     const qs = q.toString();
@@ -249,6 +258,42 @@ export const trainerStudies = {
     );
   },
 };
+
+export type TimeControlBucket = 'bullet' | 'blitz' | 'rapid' | 'classical';
+
+export interface BaseSearchFilters {
+  player?: string;
+  color?: 'white' | 'black' | 'either';
+  year_from?: number;
+  year_to?: number;
+  results?: string[]; // '1-0' | '0-1' | '1/2-1/2'
+  eco?: string;
+  min_elo?: number;
+  position_fen?: string;
+  limit?: number;
+  offset?: number;
+}
+
+export interface SourceFetchFilters {
+  color?: 'white' | 'black' | 'either';
+  results?: string[];
+  eco?: string;
+  min_elo?: number;
+  time_control?: TimeControlBucket[];
+  position_fen?: string;
+}
+
+function serializeSourceFilters(f?: SourceFetchFilters) {
+  if (!f) return {};
+  const out: Record<string, unknown> = {};
+  if (f.color && f.color !== 'either') out.color = f.color;
+  if (f.results && f.results.length > 0) out.result = f.results;
+  if (f.eco) out.eco = f.eco;
+  if (f.min_elo != null && f.min_elo > 0) out.min_elo = f.min_elo;
+  if (f.time_control && f.time_control.length > 0) out.time_control = f.time_control;
+  if (f.position_fen) out.position_fen = f.position_fen;
+  return out;
+}
 
 export interface ImportChapterPreview {
   index: number;
