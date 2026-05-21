@@ -12,7 +12,7 @@ claude -p "<runbook entry prompt>"
 
 from `/Users/apple/Projects/Chess/yotta`. The headless Claude session checks `docs/agents/audit.md` for an `## Audit complete` marker:
 - **Phase 1 (audit missing the marker):** follows `AUDIT_RUNBOOK.md` — read-only audit of one UI area, appends findings via PR.
-- **Phase 2 (marker present):** follows `RUNBOOK.md` — picks one item from `queue.md`, ships a PR.
+- **Phase 2 (marker present):** follows `RUNBOOK.md` — picks one item from `queue.html`, ships a PR.
 
 Either way: one task per fire, PR-only, never merges. **Each fire is one billed Claude conversation.**
 

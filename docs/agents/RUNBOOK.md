@@ -4,16 +4,49 @@ This file is the contract between the cron-triggered Claude session and the user
 
 > **Mode gate.** Before following this runbook, check `docs/agents/audit.md` for a `## Audit complete` marker. If it is missing, the loop is in **Phase 1** — follow `AUDIT_RUNBOOK.md` instead. This file only applies once the audit has been promoted to queue items.
 
+## The queue lives in `queue.html`
+
+The queue is a single self-contained HTML file at `docs/agents/queue.html`. The user edits it through a browser UI; the agent reads and updates it by parsing the embedded JSON block:
+
+```html
+<script id="queue-data" type="application/json">
+{ "version": 1, "items": [...] }
+</script>
+```
+
+Each item has the shape:
+
+```json
+{
+  "id": "stable-uuid",
+  "section": "ui" | "back" | "chores",
+  "title": "short title — one-line context",
+  "state": "todo" | "in_progress" | "awaiting_confirmation" | "done",
+  "pr_url": null,
+  "claimed_at": null
+}
+```
+
+The agent only ever touches items it owns and only flips them through these state transitions:
+
+```
+todo → in_progress (agent claims it)
+in_progress → awaiting_confirmation (agent has opened a PR; user reviews/merges)
+```
+
+The user is the only one who flips `awaiting_confirmation → done` (via the Confirm done button) or deletes items.
+
 ## Each run, do exactly this
 
 1. **Pick a task.**
-   - Read `docs/agents/queue.md`.
-   - Walk sections in this order: `ui`, `back`, `chores`.
-   - The first unchecked line *without* a `<!-- claimed: ... -->` marker is the task.
-   - If there is no such line, append `## <local-timestamp> — idle (queue empty)` to `docs/agents/reports.md`, commit "chore(agents): idle tick", push, and stop.
+   - Read `docs/agents/queue.html`. Extract the JSON block (first `<script id="queue-data" type="application/json">...</script>`).
+   - Walk sections in this order: `ui`, `back`, `chores`. Within each section, walk items in array order.
+   - The first item with `state === "todo"` is the task.
+   - If no such item exists, append `## <local-timestamp> — idle (queue empty)` to `docs/agents/reports.md`, commit "chore(agents): idle tick", push, and stop.
 
 2. **Claim it.**
-   - Add `<!-- claimed: in-progress -->` to the end of the picked queue line.
+   - Set the picked item's `state` to `"in_progress"` and `claimed_at` to the current ISO 8601 timestamp.
+   - Re-serialize the JSON (2-space indent) and write it back into the same `<script>` block — leave the rest of the HTML untouched.
    - Commit "chore(agents): claim <short title>" on a fresh branch named `agents/<slug-of-title>`.
 
 3. **Plan in parallel.**
@@ -30,21 +63,37 @@ This file is the contract between the cron-triggered Claude session and the user
 5. **Open a PR — never merge.**
    - `git push -u origin agents/<slug>`.
    - `gh pr create` with title `[agent] <queue line>` and a body that:
-     - Quotes the queue line verbatim.
+     - Quotes the item title verbatim.
      - Lists files changed.
      - Notes test results.
      - Ends with: `Auto-opened by the agent loop. Review and merge manually.`
 
-6. **Report.**
+6. **Flip to awaiting confirmation.**
+   - Re-read `docs/agents/queue.html` (the user may have edited it while you worked).
+   - Find your item by `id`.
+   - Set `state` to `"awaiting_confirmation"` and `pr_url` to the PR URL from step 5.
+   - Re-serialize and write back. Commit "chore(agents): await confirmation <short title>" on the same `agents/<slug>` branch.
+
+7. **Report.**
    - Prepend a new entry to `docs/agents/reports.md` *under* the `---` separator (newest on top, just below the header block).
    - Format per the template at the top of `reports.md`.
-   - Replace the claim marker on the queue line with `<!-- claimed: PR#NN -->` so future runs see it as taken.
-   - Commit "chore(agents): report <short title>" on `main` via a tiny follow-up PR? **No** — append the report on the same `agents/<slug>` branch in a separate commit, and let the user pick up both with one merge.
+
+## How to edit the JSON block safely
+
+The JSON sits inside a `<script>` tag, so the only character sequence that must be escaped on write is `</script` → `<\/script` (case-insensitive). Standard `JSON.stringify(data, null, 2)` plus that one substitution is enough.
+
+When extracting, match the **first** `<script id="queue-data" type="application/json">...</script>` block — there is exactly one. Do not rely on whitespace around the JSON.
+
+Reference regex (JS):
+
+```js
+const RE = /(<script id="queue-data" type="application\/json">)([\s\S]*?)(<\/script>)/;
+```
 
 ## Hard rules
 
 - **Never merge a PR yourself.** PR-only. The user clicks merge.
-- **Never edit the queue except to add a claim marker.** No reordering, no deletion, no adding new items.
+- **Only edit queue.html to (a) flip a `todo` you picked to `in_progress`, or (b) flip your `in_progress` item to `awaiting_confirmation` with a `pr_url`.** Never reorder, delete, edit titles, or touch items that aren't yours.
 - **Never touch `main` directly.** Everything goes through `agents/<slug>` branches.
 - **Never run destructive git** (`reset --hard`, `clean -fd`, `push --force`) without a fresh user message authorizing it.
 - **One task per run.** Don't chain. If you finish early, stop — the next cron tick will pick up the next item.

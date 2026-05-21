@@ -1,0 +1,363 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Agent queue</title>
+<style>
+  :root {
+    --bg: #0f1115;
+    --panel: #161922;
+    --panel-2: #1e2230;
+    --border: #2a2f3d;
+    --text: #e6e8ee;
+    --muted: #8a92a6;
+    --accent: #6aa9ff;
+    --warn: #f0a13b;
+    --ok: #5fcf80;
+    --danger: #ef6464;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; background: var(--bg); color: var(--text); font: 14px/1.5 ui-sans-serif, system-ui, -apple-system, sans-serif; }
+  header { display: flex; align-items: center; gap: 12px; padding: 14px 20px; border-bottom: 1px solid var(--border); position: sticky; top: 0; background: var(--bg); z-index: 1; }
+  header h1 { font-size: 16px; font-weight: 600; margin: 0; flex: 1; }
+  header .status { color: var(--muted); font-size: 12px; }
+  header button { background: var(--panel-2); color: var(--text); border: 1px solid var(--border); padding: 6px 12px; border-radius: 6px; cursor: pointer; font: inherit; }
+  header button:hover { border-color: var(--accent); }
+  main { max-width: 880px; margin: 0 auto; padding: 24px 20px 80px; }
+  .show-done-row { display: flex; justify-content: flex-end; padding: 0 0 14px; }
+  .show-done-row label { color: var(--muted); font-size: 12px; cursor: pointer; user-select: none; }
+  .show-done-row input { vertical-align: middle; margin-right: 6px; }
+  section.queue { background: var(--panel); border: 1px solid var(--border); border-radius: 10px; margin-bottom: 18px; overflow: hidden; }
+  section.queue > h2 { font-size: 12px; text-transform: uppercase; letter-spacing: 0.12em; color: var(--muted); margin: 0; padding: 12px 16px; border-bottom: 1px solid var(--border); }
+  .items { list-style: none; margin: 0; padding: 0; }
+  .item { display: grid; grid-template-columns: auto 1fr auto; gap: 12px; padding: 10px 16px; align-items: center; border-bottom: 1px solid var(--border); }
+  .item:last-child { border-bottom: none; }
+  .item .badge { font-size: 10px; padding: 2px 8px; border-radius: 999px; border: 1px solid var(--border); color: var(--muted); white-space: nowrap; text-transform: uppercase; letter-spacing: 0.06em; }
+  .item[data-state="in_progress"] .badge { color: var(--warn); border-color: var(--warn); }
+  .item[data-state="awaiting_confirmation"] .badge { color: var(--accent); border-color: var(--accent); }
+  .item[data-state="done"] .badge { color: var(--ok); border-color: var(--ok); }
+  .item[data-state="done"] .title-input { color: var(--muted); text-decoration: line-through; }
+  .item .title { min-width: 0; }
+  .item .title-input { background: transparent; color: var(--text); border: none; outline: none; font: inherit; width: 100%; padding: 4px 0; border-bottom: 1px solid transparent; }
+  .item .title-input:focus { border-bottom-color: var(--accent); }
+  .item .pr-link { display: inline-block; margin-top: 2px; color: var(--accent); text-decoration: none; font-size: 12px; }
+  .item .pr-link:hover { text-decoration: underline; }
+  .item .actions { display: flex; gap: 6px; }
+  .item button { background: transparent; color: var(--muted); border: 1px solid var(--border); padding: 4px 10px; border-radius: 6px; cursor: pointer; font: inherit; font-size: 12px; }
+  .item button:hover { color: var(--text); border-color: var(--accent); }
+  .item .confirm-btn { color: var(--accent); border-color: var(--accent); }
+  .item .delete-btn:hover { color: var(--danger); border-color: var(--danger); }
+  .add-row { display: flex; gap: 8px; padding: 10px 16px; border-top: 1px solid var(--border); background: var(--panel-2); }
+  .add-row input { flex: 1; background: var(--bg); color: var(--text); border: 1px solid var(--border); padding: 8px 10px; border-radius: 6px; font: inherit; }
+  .add-row input:focus { outline: none; border-color: var(--accent); }
+  .add-row button { background: var(--accent); color: #0b0e14; border: none; padding: 0 14px; border-radius: 6px; cursor: pointer; font: inherit; font-weight: 600; }
+  .empty { padding: 14px 16px; color: var(--muted); font-style: italic; }
+  .help { color: var(--muted); font-size: 12px; margin: 0 0 18px; padding: 10px 14px; background: var(--panel); border: 1px dashed var(--border); border-radius: 8px; }
+  .help code { background: var(--panel-2); padding: 1px 6px; border-radius: 4px; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Agent queue</h1>
+  <span class="status" id="status">Not connected — open this file via Connect to enable autosave</span>
+  <button id="connect-btn" type="button">Connect file…</button>
+  <button id="download-btn" type="button" hidden>Download</button>
+</header>
+<main>
+  <p class="help">
+    You and the agent share this file. Add items per section; the agent claims the top <code>todo</code> in each section
+    (ui → back → chores), opens a PR, then flips the item to <code>awaiting confirmation</code> with a PR link.
+    Click <strong>Confirm done</strong> when you've merged. Edits autosave to disk once you've connected the file.
+  </p>
+  <div class="show-done-row">
+    <label><input type="checkbox" id="show-done"> Show done items</label>
+  </div>
+  <section class="queue" data-section="ui">
+    <h2>ui</h2>
+    <ul class="items"></ul>
+    <div class="add-row">
+      <input type="text" placeholder="short title — one-line context" data-add-input>
+      <button type="button" data-add-btn>Add</button>
+    </div>
+  </section>
+  <section class="queue" data-section="back">
+    <h2>back</h2>
+    <ul class="items"></ul>
+    <div class="add-row">
+      <input type="text" placeholder="short title — one-line context" data-add-input>
+      <button type="button" data-add-btn>Add</button>
+    </div>
+  </section>
+  <section class="queue" data-section="chores">
+    <h2>chores</h2>
+    <ul class="items"></ul>
+    <div class="add-row">
+      <input type="text" placeholder="short title — tests, docs, dep bumps" data-add-input>
+      <button type="button" data-add-btn>Add</button>
+    </div>
+  </section>
+</main>
+
+<script id="queue-data" type="application/json">
+{
+  "version": 1,
+  "items": []
+}
+</script>
+
+<script>
+(() => {
+  const ORIGINAL_HTML = '<!DOCTYPE html>\n' + document.documentElement.outerHTML;
+  const SECTIONS = ['ui', 'back', 'chores'];
+  const STATE_LABEL = {
+    todo: 'todo',
+    in_progress: 'in progress',
+    awaiting_confirmation: 'awaiting confirmation',
+    done: 'done',
+  };
+  const SCRIPT_BLOCK_RE = /(<script id="queue-data" type="application\/json">)([\s\S]*?)(<\/script>)/;
+
+  let fileHandle = null;
+  let state = readEmbeddedData();
+  let showDone = false;
+
+  const statusEl = document.getElementById('status');
+  const connectBtn = document.getElementById('connect-btn');
+  const downloadBtn = document.getElementById('download-btn');
+  const showDoneEl = document.getElementById('show-done');
+
+  function readEmbeddedData() {
+    const block = document.getElementById('queue-data');
+    try {
+      const data = JSON.parse(block.textContent);
+      if (!Array.isArray(data.items)) data.items = [];
+      return data;
+    } catch {
+      return { version: 1, items: [] };
+    }
+  }
+
+  function newId() {
+    if (crypto && crypto.randomUUID) return crypto.randomUUID();
+    return 'id-' + Date.now() + '-' + Math.random().toString(36).slice(2, 8);
+  }
+
+  function render() {
+    SECTIONS.forEach(section => {
+      const ul = document.querySelector(`section[data-section="${section}"] .items`);
+      ul.replaceChildren();
+      const items = state.items.filter(it => it.section === section && (showDone || it.state !== 'done'));
+      if (items.length === 0) {
+        const li = document.createElement('li');
+        li.className = 'empty';
+        li.textContent = showDone ? 'No items.' : 'No open items.';
+        ul.appendChild(li);
+        return;
+      }
+      items.forEach(item => ul.appendChild(renderItem(item)));
+    });
+  }
+
+  function renderItem(item) {
+    const li = document.createElement('li');
+    li.className = 'item';
+    li.dataset.state = item.state;
+    li.dataset.id = item.id;
+
+    const badge = document.createElement('span');
+    badge.className = 'badge';
+    badge.textContent = STATE_LABEL[item.state] || item.state;
+    li.appendChild(badge);
+
+    const titleWrap = document.createElement('div');
+    titleWrap.className = 'title';
+    const titleInput = document.createElement('input');
+    titleInput.type = 'text';
+    titleInput.className = 'title-input';
+    titleInput.value = item.title;
+    titleInput.addEventListener('input', () => {
+      item.title = titleInput.value;
+      scheduleSave();
+    });
+    titleWrap.appendChild(titleInput);
+    if (item.pr_url) {
+      const link = document.createElement('a');
+      link.href = item.pr_url;
+      link.target = '_blank';
+      link.rel = 'noopener';
+      link.className = 'pr-link';
+      link.textContent = item.pr_url;
+      titleWrap.appendChild(link);
+    }
+    li.appendChild(titleWrap);
+
+    const actions = document.createElement('div');
+    actions.className = 'actions';
+
+    if (item.state === 'awaiting_confirmation') {
+      const confirmBtn = document.createElement('button');
+      confirmBtn.className = 'confirm-btn';
+      confirmBtn.type = 'button';
+      confirmBtn.textContent = 'Confirm done';
+      confirmBtn.addEventListener('click', () => {
+        item.state = 'done';
+        item.confirmed_at = new Date().toISOString();
+        render();
+        save();
+      });
+      actions.appendChild(confirmBtn);
+    }
+    if (item.state === 'done') {
+      const reopen = document.createElement('button');
+      reopen.type = 'button';
+      reopen.textContent = 'Reopen';
+      reopen.addEventListener('click', () => {
+        item.state = 'todo';
+        item.confirmed_at = null;
+        render();
+        save();
+      });
+      actions.appendChild(reopen);
+    }
+
+    const deleteBtn = document.createElement('button');
+    deleteBtn.className = 'delete-btn';
+    deleteBtn.type = 'button';
+    deleteBtn.textContent = 'Delete';
+    deleteBtn.addEventListener('click', () => {
+      if (item.state === 'in_progress' && !confirm('This item is claimed by the agent. Delete anyway?')) return;
+      if (item.state === 'awaiting_confirmation' && !confirm('An agent PR is open for this item. Delete anyway?')) return;
+      state.items = state.items.filter(it => it.id !== item.id);
+      render();
+      save();
+    });
+    actions.appendChild(deleteBtn);
+
+    li.appendChild(actions);
+    return li;
+  }
+
+  function addItem(section, title) {
+    const trimmed = title.trim();
+    if (!trimmed) return;
+    state.items.push({
+      id: newId(),
+      section,
+      title: trimmed,
+      state: 'todo',
+      pr_url: null,
+      claimed_at: null,
+    });
+    render();
+    save();
+  }
+
+  document.querySelectorAll('section.queue').forEach(section => {
+    const sec = section.dataset.section;
+    const input = section.querySelector('[data-add-input]');
+    const btn = section.querySelector('[data-add-btn]');
+    btn.addEventListener('click', () => { addItem(sec, input.value); input.value = ''; input.focus(); });
+    input.addEventListener('keydown', e => { if (e.key === 'Enter') btn.click(); });
+  });
+
+  showDoneEl.addEventListener('change', () => { showDone = showDoneEl.checked; render(); });
+
+  function serialize() {
+    return JSON.stringify(state, null, 2);
+  }
+
+  function rewriteHtml(originalHtml, newJson) {
+    if (!SCRIPT_BLOCK_RE.test(originalHtml)) throw new Error('queue-data block not found');
+    const escaped = newJson.replace(/<\/script/gi, '<\\/script');
+    return originalHtml.replace(SCRIPT_BLOCK_RE, `$1\n${escaped}\n$3`);
+  }
+
+  let saveTimer = null;
+  function scheduleSave() {
+    clearTimeout(saveTimer);
+    saveTimer = setTimeout(save, 400);
+  }
+
+  async function save() {
+    if (!fileHandle) {
+      setStatus('Not connected — Connect file or Download to persist', 'muted');
+      return;
+    }
+    try {
+      const file = await fileHandle.getFile();
+      const onDisk = await file.text();
+      const next = rewriteHtml(onDisk, serialize());
+      const writer = await fileHandle.createWritable();
+      await writer.write(next);
+      await writer.close();
+      setStatus('Saved ' + new Date().toLocaleTimeString(), 'ok');
+    } catch (err) {
+      setStatus('Save failed: ' + err.message, 'danger');
+    }
+  }
+
+  function setStatus(text, kind) {
+    statusEl.textContent = text;
+    statusEl.style.color = kind === 'ok' ? 'var(--ok)' : kind === 'danger' ? 'var(--danger)' : 'var(--muted)';
+  }
+
+  connectBtn.addEventListener('click', async () => {
+    if (!window.showOpenFilePicker) {
+      connectBtn.hidden = true;
+      downloadBtn.hidden = false;
+      setStatus('File System Access not supported — use Download instead', 'muted');
+      return;
+    }
+    try {
+      const [handle] = await window.showOpenFilePicker({
+        types: [{ description: 'queue.html', accept: { 'text/html': ['.html'] } }],
+      });
+      const perm = await handle.requestPermission({ mode: 'readwrite' });
+      if (perm !== 'granted') { setStatus('Permission denied', 'danger'); return; }
+      fileHandle = handle;
+      const file = await fileHandle.getFile();
+      const html = await file.text();
+      const match = html.match(SCRIPT_BLOCK_RE);
+      if (match) {
+        try {
+          const parsed = JSON.parse(match[2]);
+          if (Array.isArray(parsed.items)) state = parsed;
+        } catch {}
+      }
+      render();
+      setStatus('Connected: ' + handle.name, 'ok');
+      connectBtn.textContent = 'Reconnect';
+    } catch (err) {
+      if (err.name !== 'AbortError') setStatus('Connect failed: ' + err.message, 'danger');
+    }
+  });
+
+  downloadBtn.addEventListener('click', () => {
+    try {
+      const next = rewriteHtml(ORIGINAL_HTML, serialize());
+      const blob = new Blob([next], { type: 'text/html' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'queue.html';
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+      setStatus('Downloaded — replace docs/agents/queue.html', 'ok');
+    } catch (err) {
+      setStatus('Download failed: ' + err.message, 'danger');
+    }
+  });
+
+  if (!window.showOpenFilePicker) {
+    connectBtn.hidden = true;
+    downloadBtn.hidden = false;
+    setStatus('File System Access unavailable in this browser — use Download to save', 'muted');
+  }
+
+  render();
+})();
+</script>
+</body>
+</html>
