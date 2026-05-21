@@ -216,22 +216,20 @@ export const trainerStudies = {
   fetchChessCom: (
     id: number,
     username: string,
-    max?: number,
     filters?: SourceFetchFilters,
   ) =>
     api.post<{ pgn: string; chapters: ImportChapterPreview[] }>(
       `/api/trainer/studies/opening/${id}/fetch-chesscom`,
-      { username, max, ...serializeSourceFilters(filters) },
+      { username, ...serializeSourceFilters(filters) },
     ),
   fetchLichessUser: (
     id: number,
     username: string,
-    max?: number,
     filters?: SourceFetchFilters,
   ) =>
     api.post<{ pgn: string; chapters: ImportChapterPreview[] }>(
       `/api/trainer/studies/opening/${id}/fetch-lichess`,
-      { username, max, ...serializeSourceFilters(filters) },
+      { username, ...serializeSourceFilters(filters) },
     ),
   fetchBaseGames: (id: number, game_ids: number[]) =>
     api.post<{ pgn: string; chapters: ImportChapterPreview[] }>(

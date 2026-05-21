@@ -189,9 +189,10 @@ export function filterPgnGames(pgn: string, filters: PostFilters): string {
  * Chess.com has no "last N games" endpoint; we walk the monthly archives
  * newest-first via the documented `archives` index and stop once we've gathered
  * enough games. */
+// internal cap — keep low so server-side replay-filter stays responsive
 export async function fetchChessComGames(
   username: string,
-  max: number = 30,
+  max: number = 50,
 ): Promise<string> {
   const user = encodeURIComponent(username.trim());
   if (!user) throw new Error('username required');
@@ -235,9 +236,10 @@ export async function fetchChessComGames(
 
 /** Fetch the last `max` games from Lichess for `username`. The response IS the
  * PGN body — we ask for x-chess-pgn explicitly so we don't get ndjson. */
+// internal cap — keep low so server-side replay-filter stays responsive
 export async function fetchLichessUserGames(
   username: string,
-  max: number = 30,
+  max: number = 50,
 ): Promise<string> {
   const user = encodeURIComponent(username.trim());
   if (!user) throw new Error('username required');
