@@ -408,8 +408,8 @@ function PuzzleBoard({
   }, [currentFen, disabled]);
 
   return (
-    <div style={{ width: '100%', maxWidth: 520, position: 'relative' }}>
-      <div ref={ref} style={{ width: '100%', aspectRatio: '1 / 1' }} />
+    <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
+      <div ref={ref} style={{ width: '100%', maxWidth: 520, aspectRatio: '1 / 1' }} />
       <BoardToolbar fen={currentFen} orientation={orientation} />
     </div>
   );

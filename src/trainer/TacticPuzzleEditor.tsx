@@ -25,9 +25,12 @@ type Color = 'w' | 'b';
 interface Piece { type: PieceType; color: Color }
 type Brush = Piece | 'erase';
 
-const GLYPH: Record<Color, Record<PieceType, string>> = {
-  w: { k: '♔', q: '♕', r: '♖', b: '♗', n: '♘', p: '♙' },
-  b: { k: '♚', q: '♛', r: '♜', b: '♝', n: '♞', p: '♟' },
+// Use the SOLID glyphs for both colors so the piece silhouettes match —
+// the outline ♔♕♖♗♘♙ variants would render almost invisibly in a dark
+// theme. Per-row CSS coloring (below, in PaletteButton) is what tells
+// white from black.
+const GLYPH: Record<PieceType, string> = {
+  k: '♚', q: '♛', r: '♜', b: '♝', n: '♞', p: '♟',
 };
 const PALETTE_ORDER: PieceType[] = ['k', 'q', 'r', 'b', 'n', 'p'];
 
@@ -307,7 +310,7 @@ function PositionEditor({
 
       <PalettePanel brush={brush} onPick={setBrush} />
 
-      <div style={{ position: 'relative', width: '100%', maxWidth: 460 }}>
+      <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
         <SetupBoard
           fen={currentFen}
           onSquareClick={(sq) => applyBrush(sq as Square)}
@@ -432,7 +435,8 @@ function PaletteRow({
             key={`${color}${type}`}
             active={active}
             label={`${color === 'w' ? 'White' : 'Black'} ${type}`}
-            glyph={GLYPH[color][type]}
+            glyph={GLYPH[type]}
+            pieceColor={color}
             onClick={() => onPick({ type, color })}
           />
         );
@@ -447,13 +451,26 @@ function PaletteButton({
   glyph,
   onClick,
   wide,
+  pieceColor,
 }: {
   active: boolean;
   label: string;
   glyph: string;
   onClick: () => void;
   wide?: boolean;
+  pieceColor?: Color;
 }) {
+  const isWhite = pieceColor === 'w';
+  const isBlack = pieceColor === 'b';
+  // Color the glyph itself so the two rows are visually distinct as
+  // white vs. black regardless of theme. White uses a cream fill with
+  // a dark stroke so it stays legible on light AND dark backgrounds;
+  // black uses a near-black fill.
+  const glyphStyle = isWhite
+    ? { color: '#f7f3e3', WebkitTextStroke: '1px #1a1a1a' as const }
+    : isBlack
+      ? { color: '#1a1a1a' }
+      : { color: 'var(--text)' };
   return (
     <button
       type="button"
@@ -469,8 +486,8 @@ function PaletteButton({
         border: `1px solid ${active ? 'var(--accent-ring)' : 'var(--inset-border)'}`,
         borderRadius: 8,
         cursor: 'pointer',
-        color: 'var(--text)',
         transition: 'background 120ms ease, border-color 120ms ease',
+        ...glyphStyle,
       }}
     >
       {glyph}
@@ -559,7 +576,7 @@ function SolutionEditor({
       <h2 className="t-h2" style={{ margin: 0 }}>Solution</h2>
 
       {liveChess ? (
-        <div style={{ position: 'relative', width: '100%', maxWidth: 460 }}>
+        <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
           <SolutionBoard
             startFen={fen}
             playedSans={solutionSan}

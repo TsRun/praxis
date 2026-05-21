@@ -62,8 +62,8 @@ export const IconSearch   = makeIcon([
 export const IconCheck    = makeIcon('M20 6L9 17l-5-5');
 export const IconX        = makeIcon('M18 6L6 18M6 6l12 12');
 export const IconFlip     = makeIcon([
-  'M21 7H3M3 7l4-4M3 7l4 4',
-  'M3 17h18M21 17l-4-4M21 17l-4 4',
+  'M7 21V3M3 7l4-4 4 4',
+  'M17 3v18M21 17l-4 4-4-4',
 ]);
 export const IconTrash    = makeIcon([
   'M3 6h18',
