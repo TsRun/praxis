@@ -13,6 +13,7 @@ import {
 import { pathToNode, findChildBySan } from '../lib/opening-tree';
 import { ConfirmDialog } from '../components/ui/ConfirmDialog';
 import { useOpeningTreeNav } from '../hooks/useOpeningTreeNav';
+import { ChapterWalker } from '../components/opening/ChapterWalker';
 import { ImportLichessDialog } from './ImportLichessDialog';
 import { AssignStudyDialog } from './AssignStudyDialog';
 import {
@@ -148,6 +149,8 @@ export function OpeningStudyEditor() {
     study?.nodes ?? [],
     currentNodeId,
     setCurrentNodeId,
+    // Chapters mode has its own scoped nav inside ChapterWalker — only run
+    // the global navigation when we're in tree view.
     mode === 'tree' && !!study,
   );
 
@@ -213,22 +216,27 @@ export function OpeningStudyEditor() {
     setCurrentNodeId(newId);
   }
 
-  async function saveTitle(value: string) {
+  async function saveTitle(value: string, nodeIdOverride?: number) {
     const s = study;
-    if (!s || !currentNode) return;
+    // Default to the currently-selected node when the caller doesn't pass
+    // an explicit id (Tree mode's chapter card). The chapter walker passes
+    // the chapter's anchor id explicitly so it doesn't matter where the
+    // user has walked inside the chapter.
+    const targetNodeId = nodeIdOverride ?? currentNode?.id ?? null;
+    if (!s || targetNodeId == null) return;
     setBusy(true);
     try {
       const title = value || null;
-      const body_md = currentChapter?.body_md ?? '';
-      await trainerStudies.saveChapter(s.id, currentNode.id, title, body_md);
-      const nodeId = currentNode.id;
+      const existing = s.chapters.find((c) => c.node_id === targetNodeId);
+      const body_md = existing?.body_md ?? '';
+      await trainerStudies.saveChapter(s.id, targetNodeId, title, body_md);
       setStudy((prev) => {
         if (!prev) return prev;
-        const others = prev.chapters.filter((c) => c.node_id !== nodeId);
+        const others = prev.chapters.filter((c) => c.node_id !== targetNodeId);
         return {
           ...prev,
           chapters: title
-            ? [...others, { node_id: nodeId, title, body_md }]
+            ? [...others, { node_id: targetNodeId, title, body_md }]
             : others,
         };
       });
@@ -1074,116 +1082,125 @@ function ChaptersMode({
   busy: boolean;
 }) {
   const chapters = useMemo(() => {
-    const titleByNode = new Map(
-      study.chapters.map((c) => [c.node_id, c.title] as const),
+    const titledChapters = study.chapters.filter(
+      (c) => c.title != null && c.title.trim().length > 0,
     );
-    return study.nodes
-      .filter((n) => titleByNode.has(n.id))
-      .map((n) => ({ node: n, title: titleByNode.get(n.id) ?? '' }))
+    const byNode = new Map(titledChapters.map((c) => [c.node_id, c] as const));
+    const ordered = study.nodes
+      .filter((n) => byNode.has(n.id))
+      .map((n) => ({ node: n, chapter: byNode.get(n.id)! }))
       .sort((a, b) => a.node.ply - b.node.ply || a.node.id - b.node.id);
+    return ordered;
   }, [study]);
 
-  const selectedChap =
-    currentNodeId != null
-      ? chapters.find((c) => c.node.id === currentNodeId)
-      : chapters[0];
-  const selectedNode = selectedChap?.node ?? null;
-  const fen = selectedNode?.fen ?? study.root_fen;
-  const lastMove = selectedNode?.uci ?? null;
+  const chapterLookup = useMemo(() => makeChapterLookup(study), [study]);
+  // Selected chapter = the chapter that owns the current node (inclusive
+  // walk). If the current node isn't inside any chapter, fall back to the
+  // first chapter so the right pane always has something to show.
+  const selectedChapterAnchorId: number | null = useMemo(() => {
+    if (currentNodeId != null) {
+      const owner = chapterLookup(currentNodeId);
+      if (owner) return owner.node.id;
+    }
+    return chapters[0]?.node.id ?? null;
+  }, [currentNodeId, chapterLookup, chapters]);
+
+  function selectChapter(anchorId: number) {
+    // Reset the walk to the chapter's anchor so the board snaps to its root.
+    setCurrentNodeId(anchorId);
+  }
 
   return (
     <div
       style={{
         display: 'grid',
-        gridTemplateColumns: '1fr 520px',
+        gridTemplateColumns: '260px 1fr',
         gap: 24,
         alignItems: 'start',
       }}
     >
-      <Card style={{ padding: 0 }}>
+      <Card style={{ padding: 0, position: 'sticky', top: 72 }}>
         <div
           style={{
-            padding: '16px 18px',
+            padding: '14px 16px',
             borderBottom: '1px solid var(--hairline)',
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
           }}
         >
-          <div>
-            <h2 className="t-h2" style={{ margin: 0 }}>Chapters</h2>
-            <div className="meta">{chapters.length} chapters</div>
+          <h2 className="t-h2" style={{ margin: 0, fontSize: 15 }}>Chapters</h2>
+          <div className="meta">
+            {chapters.length} {chapters.length === 1 ? 'chapter' : 'chapters'}
           </div>
         </div>
-        <div style={{ padding: 10 }}>
+        <div style={{ padding: 6, maxHeight: '70vh', overflowY: 'auto' }}>
           {chapters.length === 0 ? (
-            <div className="meta" style={{ padding: 18, textAlign: 'center' }}>
-              No chapters yet. In Tree mode, set a chapter title under the
-              board to add one here.
+            <div
+              className="meta"
+              style={{ padding: 16, fontSize: 12.5, lineHeight: 1.5 }}
+            >
+              No chapters yet. Switch to Tree mode and type a title under the
+              board to start one.
             </div>
           ) : (
-            chapters.map(({ node, title }, i) => {
-              const active = node.id === selectedNode?.id;
+            chapters.map(({ node, chapter }, i) => {
+              const active = node.id === selectedChapterAnchorId;
               return (
                 <button
                   key={node.id}
                   type="button"
-                  onClick={() => setCurrentNodeId(node.id)}
+                  onClick={() => selectChapter(node.id)}
                   style={{
                     display: 'grid',
-                    gridTemplateColumns: '32px 1fr auto',
-                    alignItems: 'center',
-                    gap: 14,
-                    padding: '10px 14px',
-                    borderRadius: 10,
+                    gridTemplateColumns: '24px 1fr',
+                    alignItems: 'baseline',
+                    gap: 10,
+                    padding: '8px 12px',
+                    borderRadius: 8,
                     cursor: 'pointer',
                     background: active ? 'var(--accent-soft)' : 'transparent',
                     border: 0,
                     textAlign: 'left',
                     color: 'inherit',
                     width: '100%',
+                    marginBottom: 2,
                   }}
                 >
                   <span
                     className="mono"
                     style={{
-                      color: 'var(--text-faint)',
-                      fontSize: 12,
+                      color: active ? 'var(--accent)' : 'var(--text-faint)',
+                      fontSize: 11,
                       textAlign: 'right',
                     }}
                   >
                     {String(i + 1).padStart(2, '0')}
                   </span>
-                  <div>
-                    <div style={{ fontSize: 14.5, color: 'var(--text)', fontWeight: 500 }}>
-                      {title || '(untitled)'}
+                  <div style={{ minWidth: 0 }}>
+                    <div
+                      style={{
+                        fontSize: 13.5,
+                        color: 'var(--text)',
+                        fontWeight: 500,
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        whiteSpace: 'nowrap',
+                      }}
+                    >
+                      {chapter.title || '(untitled)'}
                     </div>
                     <div
                       className="mono"
                       style={{
-                        fontSize: 12,
+                        fontSize: 11,
                         color: 'var(--text-faint)',
                         marginTop: 2,
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        whiteSpace: 'nowrap',
                       }}
                     >
-                      {lineSan(study, node.id)}
+                      {lineSan(study, node.id) || `ply ${node.ply}`}
                     </div>
                   </div>
-                  <span
-                    className="mono"
-                    style={{
-                      fontSize: 11,
-                      color: active ? 'var(--text-dim)' : 'var(--text-faint)',
-                      background: active
-                        ? 'rgba(255,255,255,0.05)'
-                        : 'var(--inset-bg)',
-                      border: '1px solid var(--inset-border)',
-                      padding: '2px 8px',
-                      borderRadius: 999,
-                    }}
-                  >
-                    ply {node.ply}
-                  </span>
                 </button>
               );
             })
@@ -1191,117 +1208,32 @@ function ChaptersMode({
         </div>
       </Card>
 
-      <div
-        style={{
-          display: 'flex',
-          flexDirection: 'column',
-          gap: 14,
-          position: 'sticky',
-          top: 72,
-        }}
-      >
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <span
-            className="meta-strong"
-            style={{ flex: 1, fontFamily: 'var(--font-mono)' }}
-          >
-            {selectedNode
-              ? `${plyLabel(selectedNode.ply)} ${selectedNode.san}`
-              : 'Start position'}
-          </span>
-          <Btn variant="ghost" size="sm" onClick={() => setFlip(!flip)}>
-            <IconFlip size={12} strokeWidth={2.4} /> Flip
-          </Btn>
-        </div>
-        <ReadOnlyBoard fen={fen} lastMove={lastMove} flip={flip} />
-        {selectedNode && (
-          <Card
-            style={{
-              padding: '14px 16px',
-              display: 'flex',
-              gap: 14,
-              alignItems: 'flex-start',
-              borderLeft: '3px solid var(--success)',
-            }}
-          >
-            <span className="dot-chapter" style={{ marginTop: 8 }} />
-            <input
-              key={selectedNode.id}
-              defaultValue={selectedChap?.title ?? ''}
-              onBlur={(e) => {
-                setCurrentNodeId(selectedNode.id);
-                saveTitle(e.target.value.trim());
-              }}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter')
-                  (e.target as HTMLInputElement).blur();
-              }}
-              style={{
-                flex: 1,
-                background: 'transparent',
-                border: 0,
-                color: 'var(--text)',
-                fontSize: 17,
-                fontWeight: 600,
-                letterSpacing: '-0.01em',
-                outline: 'none',
-                padding: 0,
-              }}
-            />
-            <Btn variant="secondary" size="sm" disabled={busy}>
-              {busy ? 'Saving…' : 'Save'}
-            </Btn>
-          </Card>
-        )}
-      </div>
+      {selectedChapterAnchorId != null ? (
+        <ChapterWalker
+          studyRootFen={study.root_fen}
+          nodes={study.nodes}
+          chapters={study.chapters}
+          chapterNodeId={selectedChapterAnchorId}
+          currentNodeId={currentNodeId}
+          setCurrentNodeId={setCurrentNodeId}
+          flip={flip}
+          setFlip={setFlip}
+          onSaveTitle={saveTitle}
+          busy={busy}
+        />
+      ) : (
+        <Card
+          style={{
+            padding: 32,
+            textAlign: 'center',
+            color: 'var(--text-dim)',
+          }}
+        >
+          Add a chapter from Tree mode to walk it here.
+        </Card>
+      )}
     </div>
   );
-}
-
-function ReadOnlyBoard({
-  fen,
-  lastMove,
-  flip,
-}: {
-  fen: string;
-  lastMove: string | null;
-  flip: boolean;
-}) {
-  const ref = useRef<HTMLDivElement | null>(null);
-  const cgRef = useRef<CGApi | null>(null);
-
-  useEffect(() => {
-    if (!ref.current) return;
-    cgRef.current = Chessground(ref.current, {
-      fen,
-      orientation: flip ? 'black' : 'white',
-      viewOnly: true,
-      coordinates: true,
-      lastMove:
-        lastMove && lastMove.length >= 4
-          ? ([lastMove.slice(0, 2), lastMove.slice(2, 4)] as [Key, Key])
-          : undefined,
-    });
-    return () => {
-      cgRef.current?.destroy();
-      cgRef.current = null;
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  useEffect(() => {
-    if (!cgRef.current) return;
-    cgRef.current.set({
-      fen,
-      orientation: flip ? 'black' : 'white',
-      lastMove:
-        lastMove && lastMove.length >= 4
-          ? ([lastMove.slice(0, 2), lastMove.slice(2, 4)] as [Key, Key])
-          : undefined,
-    });
-  }, [fen, lastMove, flip]);
-
-  return <div ref={ref} style={{ width: 520, height: 520 }} />;
 }
 
 /* ────────────────────────── Chapter card (under board) ─────────────────── */
