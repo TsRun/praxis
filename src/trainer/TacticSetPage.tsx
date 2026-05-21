@@ -3,7 +3,7 @@ import { Link, useNavigate, useParams } from 'react-router-dom';
 import { trainerTactics, type TacticSetFull, type TacticPuzzle } from '../lib/api';
 import { Card, Btn, Chip, MoveChip } from '../components/ui/atoms';
 import { ConfirmDialog } from '../components/ui/ConfirmDialog';
-import { CopyDiagramButton } from '../components/CopyDiagramButton';
+import { BoardToolbar } from '../components/BoardToolbar';
 import { AssignStudyDialog } from './AssignStudyDialog';
 import {
   IconBolt,
@@ -268,13 +268,18 @@ function PuzzleRow({
           ))}
         </div>
       </Link>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-        <CopyDiagramButton
+      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+        <BoardToolbar
           fen={puzzle.fen}
           orientation={
             (puzzle.fen.split(' ')[1] ?? 'w') === 'w' ? 'white' : 'black'
           }
-          label=""
+          style={{
+            position: 'static',
+            top: 'auto',
+            right: 'auto',
+            zIndex: 'auto',
+          }}
         />
         <button
           type="button"

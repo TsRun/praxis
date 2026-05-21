@@ -10,6 +10,7 @@ import {
   type TacticSetForStudent,
 } from '../lib/api';
 import { Card, Btn, Chip, MoveChip } from '../components/ui/atoms';
+import { BoardToolbar } from '../components/BoardToolbar';
 import {
   IconBolt,
   IconCheck,
@@ -407,6 +408,9 @@ function PuzzleBoard({
   }, [currentFen, disabled]);
 
   return (
-    <div ref={ref} style={{ width: '100%', maxWidth: 520, aspectRatio: '1 / 1' }} />
+    <div style={{ width: '100%', maxWidth: 520, position: 'relative' }}>
+      <div ref={ref} style={{ width: '100%', aspectRatio: '1 / 1' }} />
+      <BoardToolbar fen={currentFen} orientation={orientation} />
+    </div>
   );
 }

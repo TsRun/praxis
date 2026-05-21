@@ -11,6 +11,7 @@ import {
 } from '../lib/api';
 import { pathToNode } from '../lib/opening-tree';
 import { useOpeningTreeNav } from '../hooks/useOpeningTreeNav';
+import { BoardToolbar } from '../components/BoardToolbar';
 import {
   Card,
   Btn,
@@ -336,10 +337,19 @@ function DrillView({
           </span>
         </div>
 
-        <div
-          ref={boardRef}
-          style={{ width: '100%', maxWidth: 520, aspectRatio: '1 / 1' }}
-        />
+        <div style={{ width: '100%', maxWidth: 520, position: 'relative' }}>
+          <div
+            ref={boardRef}
+            style={{ width: '100%', aspectRatio: '1 / 1' }}
+          />
+          {card && (
+            <BoardToolbar
+              fen={`${card.parent_fen} 0 1`}
+              orientation={flip ? 'black' : 'white'}
+              onFlip={() => setFlip(!flip)}
+            />
+          )}
+        </div>
 
         <Card
           style={{
@@ -764,7 +774,12 @@ function TreeMode({
             <IconFlip size={12} strokeWidth={2.4} /> Flip
           </Btn>
         </div>
-        <FixedReadOnlyBoard fen={fen} lastMove={lastMove} flip={flip} />
+        <FixedReadOnlyBoard
+          fen={fen}
+          lastMove={lastMove}
+          flip={flip}
+          onToggleFlip={() => setFlip(!flip)}
+        />
         {currentChapter && (
           <Card
             style={{
@@ -937,10 +952,12 @@ function FixedReadOnlyBoard({
   fen,
   lastMove,
   flip,
+  onToggleFlip,
 }: {
   fen: string;
   lastMove: string | null;
   flip: boolean;
+  onToggleFlip?: () => void;
 }) {
   const ref = useRef<HTMLDivElement | null>(null);
   const cgRef = useRef<CGApi | null>(null);
@@ -977,10 +994,14 @@ function FixedReadOnlyBoard({
   }, [fen, lastMove, flip]);
 
   return (
-    <div
-      ref={ref}
-      style={{ width: '100%', maxWidth: 520, aspectRatio: '1 / 1' }}
-    />
+    <div style={{ width: '100%', maxWidth: 520, position: 'relative' }}>
+      <div ref={ref} style={{ width: '100%', aspectRatio: '1 / 1' }} />
+      <BoardToolbar
+        fen={fen}
+        orientation={flip ? 'black' : 'white'}
+        onFlip={onToggleFlip}
+      />
+    </div>
   );
 }
 
@@ -1089,6 +1110,7 @@ function ChaptersView({
           fen={node?.fen ?? study.root_fen}
           lastMove={node?.uci ?? null}
           flip={flip}
+          onToggleFlip={() => setFlip(!flip)}
         />
       </div>
     </div>
