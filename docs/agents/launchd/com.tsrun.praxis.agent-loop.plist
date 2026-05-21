@@ -9,23 +9,21 @@
   <array>
     <string>/Users/apple/.local/bin/claude</string>
     <string>-p</string>
-    <string>You are the autonomous agent loop for Praxis. Read docs/agents/RUNBOOK.md and follow it exactly. Operate from /Users/apple/Projects/Chess/yotta — create a fresh worktree via EnterWorktree before making any code changes. Do exactly one task this run, then stop. PR-only — never merge. If the queue is empty, log an idle tick and stop.</string>
+    <string>You are the autonomous agent loop for Praxis.
+
+Mode gate: read docs/agents/audit.md first. If it does NOT contain a line starting with "## Audit complete", you are in PHASE 1 — follow docs/agents/AUDIT_RUNBOOK.md (read-only audit, no app code changes). Otherwise you are in PHASE 2 — follow docs/agents/RUNBOOK.md (work through docs/agents/queue.md).
+
+Operate from /Users/apple/Projects/Chess/yotta. Create a fresh worktree via EnterWorktree before any changes. Do exactly one task this run, then stop. PR-only — never merge.</string>
   </array>
 
   <key>WorkingDirectory</key>
   <string>/Users/apple/Projects/Chess/yotta</string>
 
   <key>StartCalendarInterval</key>
-  <array>
-    <dict><key>Minute</key><integer>7</integer><key>Hour</key><integer>0</integer></dict>
-    <dict><key>Minute</key><integer>7</integer><key>Hour</key><integer>3</integer></dict>
-    <dict><key>Minute</key><integer>7</integer><key>Hour</key><integer>6</integer></dict>
-    <dict><key>Minute</key><integer>7</integer><key>Hour</key><integer>9</integer></dict>
-    <dict><key>Minute</key><integer>7</integer><key>Hour</key><integer>12</integer></dict>
-    <dict><key>Minute</key><integer>7</integer><key>Hour</key><integer>15</integer></dict>
-    <dict><key>Minute</key><integer>7</integer><key>Hour</key><integer>18</integer></dict>
-    <dict><key>Minute</key><integer>7</integer><key>Hour</key><integer>21</integer></dict>
-  </array>
+  <dict>
+    <key>Minute</key>
+    <integer>13</integer>
+  </dict>
 
   <key>StandardOutPath</key>
   <string>/Users/apple/Library/Logs/praxis-agent-loop.log</string>

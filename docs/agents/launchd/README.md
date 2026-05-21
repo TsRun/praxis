@@ -4,13 +4,17 @@ True persistence for the autonomous agent loop. The in-session cron (`CronCreate
 
 ## What it does
 
-Every 3 hours at minute `:07` (00:07, 03:07, 06:07, ... 21:07), launchd invokes:
+Every hour at minute `:13` (00:13, 01:13, 02:13, ...), launchd invokes:
 
 ```
 claude -p "<runbook entry prompt>"
 ```
 
-from `/Users/apple/Projects/Chess/yotta`. The headless Claude session reads `docs/agents/RUNBOOK.md`, picks one task from `docs/agents/queue.md`, opens a PR, and exits. **Each fire is one billed Claude conversation.**
+from `/Users/apple/Projects/Chess/yotta`. The headless Claude session checks `docs/agents/audit.md` for an `## Audit complete` marker:
+- **Phase 1 (audit missing the marker):** follows `AUDIT_RUNBOOK.md` — read-only audit of one UI area, appends findings via PR.
+- **Phase 2 (marker present):** follows `RUNBOOK.md` — picks one item from `queue.md`, ships a PR.
+
+Either way: one task per fire, PR-only, never merges. **Each fire is one billed Claude conversation.**
 
 ## Install
 
@@ -49,7 +53,7 @@ The first column is the PID (or `-` when idle between fires); third column is th
 
 ## Cost & safety notes
 
-- Each fire is a real Claude API conversation. 8 fires/day = ~8 conversations/day of cost. Disable when you don't need it.
+- Each fire is a real Claude API conversation. 24 fires/day = ~24 conversations/day of cost. Disable when you don't need it (`uninstall.sh`).
 - The job runs as your user — same shell credentials, same `gh` auth, same git config. It cannot do anything you couldn't do.
 - It is **PR-only** by runbook contract. It cannot merge. The classifier on the headless side also blocks `gh pr merge` without explicit per-action authorization.
 - If you change `claude`'s install path (`which claude`), update `ProgramArguments[0]` in the plist and re-install.
