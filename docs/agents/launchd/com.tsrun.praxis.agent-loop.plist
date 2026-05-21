@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>Label</key>
+  <string>com.tsrun.praxis.agent-loop</string>
+
+  <key>ProgramArguments</key>
+  <array>
+    <string>/Users/apple/.local/bin/claude</string>
+    <string>-p</string>
+    <string>You are the autonomous agent loop for Praxis. Read docs/agents/RUNBOOK.md and follow it exactly. Operate from /Users/apple/Projects/Chess/yotta — create a fresh worktree via EnterWorktree before making any code changes. Do exactly one task this run, then stop. PR-only — never merge. If the queue is empty, log an idle tick and stop.</string>
+  </array>
+
+  <key>WorkingDirectory</key>
+  <string>/Users/apple/Projects/Chess/yotta</string>
+
+  <key>StartCalendarInterval</key>
+  <array>
+    <dict><key>Minute</key><integer>7</integer><key>Hour</key><integer>0</integer></dict>
+    <dict><key>Minute</key><integer>7</integer><key>Hour</key><integer>3</integer></dict>
+    <dict><key>Minute</key><integer>7</integer><key>Hour</key><integer>6</integer></dict>
+    <dict><key>Minute</key><integer>7</integer><key>Hour</key><integer>9</integer></dict>
+    <dict><key>Minute</key><integer>7</integer><key>Hour</key><integer>12</integer></dict>
+    <dict><key>Minute</key><integer>7</integer><key>Hour</key><integer>15</integer></dict>
+    <dict><key>Minute</key><integer>7</integer><key>Hour</key><integer>18</integer></dict>
+    <dict><key>Minute</key><integer>7</integer><key>Hour</key><integer>21</integer></dict>
+  </array>
+
+  <key>StandardOutPath</key>
+  <string>/Users/apple/Library/Logs/praxis-agent-loop.log</string>
+
+  <key>StandardErrorPath</key>
+  <string>/Users/apple/Library/Logs/praxis-agent-loop.err.log</string>
+
+  <key>EnvironmentVariables</key>
+  <dict>
+    <key>PATH</key>
+    <string>/Users/apple/.local/bin:/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin</string>
+    <key>HOME</key>
+    <string>/Users/apple</string>
+  </dict>
+
+  <key>RunAtLoad</key>
+  <false/>
+</dict>
+</plist>
