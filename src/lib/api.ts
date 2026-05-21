@@ -183,6 +183,10 @@ export const trainerStudies = {
   create: (input: { name: string; root_fen: string; eco?: string; side: 'w' | 'b' }) =>
     api.post<{ id: number }>('/api/trainer/studies/opening', input),
   get: (id: number) => api.get<OpeningStudyFull>(`/api/trainer/studies/opening/${id}`),
+  renameOpening: (id: number, name: string) =>
+    api.put<{ ok: true }>(`/api/trainer/studies/opening/${id}`, { name }),
+  renameGame: (id: number, name: string) =>
+    api.put<{ ok: true }>(`/api/trainer/studies/game/${id}`, { name }),
   upsertNode: (
     id: number,
     input: {

@@ -1,9 +1,10 @@
-import { useEffect, useState, type FormEvent } from 'react';
+import { useEffect, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { trainerTactics, type TacticSetFull, type TacticPuzzle } from '../lib/api';
 import { Card, Btn, Chip, MoveChip } from '../components/ui/atoms';
 import { ConfirmDialog } from '../components/ui/ConfirmDialog';
 import { BoardToolbar } from '../components/BoardToolbar';
+import { EditableTitle } from '../components/ui/EditableTitle';
 import { AssignStudyDialog } from './AssignStudyDialog';
 import {
   IconBolt,
@@ -23,14 +24,11 @@ export function TacticSetPage() {
   const [showAssign, setShowAssign] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState<TacticPuzzle | null>(null);
   const [confirmDeleteSet, setConfirmDeleteSet] = useState(false);
-  const [editingName, setEditingName] = useState(false);
-  const [nameDraft, setNameDraft] = useState('');
   const [err, setErr] = useState<string | null>(null);
 
   useEffect(() => {
     trainerTactics.get(numId).then((s) => {
       setSet(s);
-      setNameDraft(s.name);
     });
   }, [numId]);
 
@@ -56,27 +54,6 @@ export function TacticSetPage() {
       nav('/trainer/studies');
     } catch (e) {
       setErr((e as Error).message);
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  async function saveName(e: FormEvent) {
-    e.preventDefault();
-    const next = nameDraft.trim();
-    if (!set || !next || next === set.name) {
-      setEditingName(false);
-      setNameDraft(set?.name ?? '');
-      return;
-    }
-    setBusy(true);
-    try {
-      await trainerTactics.rename(numId, next);
-      setSet({ ...set, name: next });
-      setEditingName(false);
-    } catch (e) {
-      setErr((e as Error).message);
-      setNameDraft(set.name);
     } finally {
       setBusy(false);
     }
@@ -109,27 +86,16 @@ export function TacticSetPage() {
           <IconBolt size={11} strokeWidth={2.4} />
           Tactical set
         </Chip>
-        {editingName ? (
-          <form onSubmit={saveName} style={{ flex: 1, minWidth: 240 }}>
-            <input
-              className="input t-h1"
-              autoFocus
-              value={nameDraft}
-              onChange={(e) => setNameDraft(e.target.value)}
-              onBlur={saveName}
-              style={{ height: 'auto', padding: '4px 12px' }}
-            />
-          </form>
-        ) : (
-          <h1
-            className="t-h1"
-            style={{ flex: 1, minWidth: 240, margin: 0, cursor: 'pointer' }}
-            onClick={() => setEditingName(true)}
-            title="Click to rename"
-          >
-            {set.name}
-          </h1>
-        )}
+        <div style={{ flex: 1, minWidth: 240 }}>
+          <EditableTitle
+            level="h1"
+            value={set.name}
+            onSave={async (next) => {
+              await trainerTactics.rename(numId, next);
+              setSet({ ...set, name: next });
+            }}
+          />
+        </div>
         <Btn variant="ghost" size="sm" onClick={() => setConfirmDeleteSet(true)}>
           <IconTrash size={13} strokeWidth={2.4} />
           Delete set

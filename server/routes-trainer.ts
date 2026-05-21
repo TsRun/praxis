@@ -403,6 +403,24 @@ export async function trainerRoutes(app: FastifyInstance, opts: { pool: Pool }) 
     },
   );
 
+  app.put<{ Params: { id: string }; Body: { name: string } }>(
+    '/api/trainer/studies/opening/:id',
+    { preHandler: requireAuthor },
+    async (req, reply) => {
+      const uid = req.user!.id;
+      const id = Number(req.params.id);
+      const name = req.body?.name?.trim();
+      if (!name) return reply.code(400).send({ error: 'name is required' });
+      const { rowCount } = await pool.query(
+        `UPDATE opening_study SET name = $1, updated_at = NOW()
+          WHERE id = $2 AND owner_id = $3`,
+        [name, id, uid],
+      );
+      if (!rowCount) return reply.code(404).send({ error: 'not found' });
+      return { ok: true };
+    },
+  );
+
   // Upsert a node by (study, parent, san). The trainer's "make a move on
   // the board" handler calls this — if the child already exists we just
   // return its id so navigation is idempotent.
@@ -595,6 +613,24 @@ export async function trainerRoutes(app: FastifyInstance, opts: { pool: Pool }) 
         [id],
       );
       return { ...rows[0], annotations: ann.rows };
+    },
+  );
+
+  app.put<{ Params: { id: string }; Body: { name: string } }>(
+    '/api/trainer/studies/game/:id',
+    { preHandler: requireAuthor },
+    async (req, reply) => {
+      const uid = req.user!.id;
+      const id = Number(req.params.id);
+      const name = req.body?.name?.trim();
+      if (!name) return reply.code(400).send({ error: 'name is required' });
+      const { rowCount } = await pool.query(
+        `UPDATE game_study SET name = $1, updated_at = NOW()
+          WHERE id = $2 AND owner_id = $3`,
+        [name, id, uid],
+      );
+      if (!rowCount) return reply.code(404).send({ error: 'not found' });
+      return { ok: true };
     },
   );
 
