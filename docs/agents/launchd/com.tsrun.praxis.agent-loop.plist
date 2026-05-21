@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>Label</key>
+  <string>com.tsrun.praxis.agent-loop</string>
+
+  <key>ProgramArguments</key>
+  <array>
+    <string>/Users/apple/.local/bin/claude</string>
+    <string>-p</string>
+    <string>You are the autonomous agent loop for Praxis.
+
+Mode gate: read docs/agents/audit.md first. If it does NOT contain a line starting with "## Audit complete", you are in PHASE 1 — follow docs/agents/AUDIT_RUNBOOK.md (read-only audit, no app code changes). Otherwise you are in PHASE 2 — follow docs/agents/RUNBOOK.md (work through docs/agents/queue.md).
+
+Operate from /Users/apple/Projects/Chess/yotta. Create a fresh worktree via EnterWorktree before any changes. Do exactly one task this run, then stop. PR-only — never merge.</string>
+  </array>
+
+  <key>WorkingDirectory</key>
+  <string>/Users/apple/Projects/Chess/yotta</string>
+
+  <key>StartCalendarInterval</key>
+  <dict>
+    <key>Minute</key>
+    <integer>13</integer>
+  </dict>
+
+  <key>StandardOutPath</key>
+  <string>/Users/apple/Library/Logs/praxis-agent-loop.log</string>
+
+  <key>StandardErrorPath</key>
+  <string>/Users/apple/Library/Logs/praxis-agent-loop.err.log</string>
+
+  <key>EnvironmentVariables</key>
+  <dict>
+    <key>PATH</key>
+    <string>/Users/apple/.local/bin:/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin</string>
+    <key>HOME</key>
+    <string>/Users/apple</string>
+  </dict>
+
+  <key>RunAtLoad</key>
+  <false/>
+</dict>
+</plist>
