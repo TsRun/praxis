@@ -13,6 +13,11 @@ import {
   type PgnChapter,
 } from './pgn-tree.js';
 import { parsePgn } from './pgn.js';
+import {
+  fetchChessComGames,
+  fetchLichessUserGames,
+  reconstructBaseGames,
+} from './import-sources.js';
 import { Chess } from 'chess.js';
 
 /** Validate a solution line against a starting FEN; returns the cleaned SAN
@@ -719,6 +724,190 @@ export async function trainerRoutes(app: FastifyInstance, opts: { pool: Pool }) 
       return { imported_chapters, imported_nodes, reused_nodes, skipped };
     },
   );
+
+  // ─── Multi-source import: Chess.com, Lichess user games, OTB database ────
+  // Each endpoint produces a PGN string and runs it through the same
+  // preview parser as /import-preview so the client can show the chapter
+  // picker and then POST back to the existing /import endpoint.
+
+  async function previewChaptersForStudy(
+    studyId: number,
+    uid: number,
+    pgn: string,
+  ): Promise<
+    | { ok: true; chapters: ReturnType<typeof previewShape>[]; root: string }
+    | { notFound: true }
+  > {
+    const { rows } = await pool.query<{ root_fen: string }>(
+      `SELECT root_fen FROM opening_study WHERE id = $1 AND owner_id = $2`,
+      [studyId, uid],
+    );
+    if (!rows[0]) return { notFound: true };
+    const studyRoot = rows[0].root_fen?.split(' ').slice(0, 4).join(' ') ?? '';
+    const chapters = parsePgnWithVariations(pgn);
+    return {
+      ok: true,
+      root: studyRoot,
+      chapters: chapters.map((c) => previewShape(c, studyRoot)),
+    };
+  }
+
+  function previewShape(c: PgnChapter, studyRoot: string) {
+    return {
+      index: c.index,
+      name: c.headers.Event ?? c.headers.Site ?? `Chapter ${c.index + 1}`,
+      mainline_move_count: countMainline(c.root),
+      root_fen: c.root_fen,
+      matches_study_root: c.root_fen === studyRoot,
+    };
+  }
+
+  app.post<{
+    Params: { id: string };
+    Body: { username?: string; max?: number };
+  }>(
+    '/api/trainer/studies/opening/:id/fetch-chesscom',
+    { preHandler: requireAuthor },
+    async (req, reply) => {
+      const uid = req.user!.id;
+      const studyId = Number(req.params.id);
+      const username = (req.body?.username ?? '').trim();
+      const max = clampMax(req.body?.max);
+      if (!username) return reply.code(400).send({ error: 'username required' });
+      let pgn: string;
+      try {
+        pgn = await fetchChessComGames(username, max);
+      } catch (e) {
+        return reply.code(502).send({ error: (e as Error).message });
+      }
+      const result = await previewChaptersForStudy(studyId, uid, pgn);
+      if ('notFound' in result) return reply.code(404).send({ error: 'not found' });
+      return { pgn, chapters: result.chapters };
+    },
+  );
+
+  app.post<{
+    Params: { id: string };
+    Body: { username?: string; max?: number };
+  }>(
+    '/api/trainer/studies/opening/:id/fetch-lichess',
+    { preHandler: requireAuthor },
+    async (req, reply) => {
+      const uid = req.user!.id;
+      const studyId = Number(req.params.id);
+      const username = (req.body?.username ?? '').trim();
+      const max = clampMax(req.body?.max);
+      if (!username) return reply.code(400).send({ error: 'username required' });
+      let pgn: string;
+      try {
+        pgn = await fetchLichessUserGames(username, max);
+      } catch (e) {
+        return reply.code(502).send({ error: (e as Error).message });
+      }
+      const result = await previewChaptersForStudy(studyId, uid, pgn);
+      if ('notFound' in result) return reply.code(404).send({ error: 'not found' });
+      return { pgn, chapters: result.chapters };
+    },
+  );
+
+  app.post<{
+    Params: { id: string };
+    Body: { game_ids?: number[] };
+  }>(
+    '/api/trainer/studies/opening/:id/fetch-base',
+    { preHandler: requireAuthor },
+    async (req, reply) => {
+      const uid = req.user!.id;
+      const studyId = Number(req.params.id);
+      const ids = (req.body?.game_ids ?? []).filter(
+        (n): n is number => Number.isInteger(n) && n > 0,
+      );
+      if (ids.length === 0) return reply.code(400).send({ error: 'game_ids empty' });
+      if (ids.length > 200) return reply.code(400).send({ error: 'too many ids (max 200)' });
+      let pgn: string;
+      try {
+        pgn = await reconstructBaseGames(pool, ids);
+      } catch (e) {
+        return reply.code(502).send({ error: (e as Error).message });
+      }
+      const result = await previewChaptersForStudy(studyId, uid, pgn);
+      if ('notFound' in result) return reply.code(404).send({ error: 'not found' });
+      return { pgn, chapters: result.chapters };
+    },
+  );
+
+  app.get<{
+    Querystring: {
+      player?: string;
+      color?: string;
+      year_from?: string;
+      year_to?: string;
+      limit?: string;
+      offset?: string;
+    };
+  }>(
+    '/api/trainer/games',
+    { preHandler: requireAuthor },
+    async (req) => {
+      const q = req.query;
+      const player = (q.player ?? '').trim();
+      const color = q.color === 'white' || q.color === 'black' ? q.color : null;
+      const yearFrom = q.year_from ? Number(q.year_from) : null;
+      const yearTo = q.year_to ? Number(q.year_to) : null;
+      const limit = Math.min(200, Math.max(1, Number(q.limit ?? 50) || 50));
+      const offset = Math.max(0, Number(q.offset ?? 0) || 0);
+
+      const conds: string[] = [];
+      const vals: unknown[] = [];
+      function bind(v: unknown) {
+        vals.push(v);
+        return `$${vals.length}`;
+      }
+      if (player) {
+        if (color === 'white') conds.push(`white_name ILIKE '%' || ${bind(player)} || '%'`);
+        else if (color === 'black') conds.push(`black_name ILIKE '%' || ${bind(player)} || '%'`);
+        else {
+          const p = bind(player);
+          conds.push(`(white_name ILIKE '%' || ${p} || '%' OR black_name ILIKE '%' || ${p} || '%')`);
+        }
+      } else if (color) {
+        // color only is a no-op without a player; ignore.
+      }
+      if (yearFrom != null && Number.isFinite(yearFrom)) {
+        conds.push(`LEFT(event_date, 4) ~ '^[0-9]{4}$' AND LEFT(event_date, 4)::int >= ${bind(yearFrom)}`);
+      }
+      if (yearTo != null && Number.isFinite(yearTo)) {
+        conds.push(`LEFT(event_date, 4) ~ '^[0-9]{4}$' AND LEFT(event_date, 4)::int <= ${bind(yearTo)}`);
+      }
+      const where = conds.length ? `WHERE ${conds.join(' AND ')}` : '';
+
+      const totalRes = await pool.query<{ c: string }>(
+        `SELECT COUNT(*)::text AS c FROM game ${where}`,
+        vals,
+      );
+      const total = Number(totalRes.rows[0]?.c ?? '0');
+
+      const listVals = [...vals, limit, offset];
+      const { rows } = await pool.query(
+        `SELECT id::text AS id, white_name, black_name, event, event_date, result,
+                white_elo, black_elo
+           FROM game ${where}
+           ORDER BY event_date DESC NULLS LAST, id DESC
+           LIMIT $${vals.length + 1} OFFSET $${vals.length + 2}`,
+        listVals,
+      );
+      return {
+        games: rows.map((r) => ({ ...r, id: Number(r.id) })),
+        total,
+      };
+    },
+  );
+
+  function clampMax(n: unknown): number {
+    const v = Number(n);
+    if (!Number.isFinite(v) || v <= 0) return 30;
+    return Math.min(100, Math.floor(v));
+  }
 
   // ─── Tactical sets (author = trainer or self-trainer) ────────────────────
   app.get('/api/trainer/studies/tactic', { preHandler: requireAuthor }, async (req) => {

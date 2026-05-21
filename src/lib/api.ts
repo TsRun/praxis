@@ -204,7 +204,7 @@ export const trainerStudies = {
       body_md,
     }),
   importPreview: (id: number, pgn: string) =>
-    api.post<{ chapters: LichessChapterPreview[] }>(
+    api.post<{ chapters: ImportChapterPreview[] }>(
       `/api/trainer/studies/opening/${id}/import-preview`,
       { pgn },
     ),
@@ -213,14 +213,68 @@ export const trainerStudies = {
       `/api/trainer/studies/opening/${id}/import`,
       { pgn, chapter_indexes },
     ),
+  fetchChessCom: (id: number, username: string, max?: number) =>
+    api.post<{ pgn: string; chapters: ImportChapterPreview[] }>(
+      `/api/trainer/studies/opening/${id}/fetch-chesscom`,
+      { username, max },
+    ),
+  fetchLichessUser: (id: number, username: string, max?: number) =>
+    api.post<{ pgn: string; chapters: ImportChapterPreview[] }>(
+      `/api/trainer/studies/opening/${id}/fetch-lichess`,
+      { username, max },
+    ),
+  fetchBaseGames: (id: number, game_ids: number[]) =>
+    api.post<{ pgn: string; chapters: ImportChapterPreview[] }>(
+      `/api/trainer/studies/opening/${id}/fetch-base`,
+      { game_ids },
+    ),
+  searchBaseGames: (params: {
+    player?: string;
+    color?: 'white' | 'black' | 'either';
+    year_from?: number;
+    year_to?: number;
+    limit?: number;
+    offset?: number;
+  }) => {
+    const q = new URLSearchParams();
+    if (params.player) q.set('player', params.player);
+    if (params.color && params.color !== 'either') q.set('color', params.color);
+    if (params.year_from != null) q.set('year_from', String(params.year_from));
+    if (params.year_to != null) q.set('year_to', String(params.year_to));
+    if (params.limit != null) q.set('limit', String(params.limit));
+    if (params.offset != null) q.set('offset', String(params.offset));
+    const qs = q.toString();
+    return api.get<BaseSearchResult>(
+      `/api/trainer/games${qs ? `?${qs}` : ''}`,
+    );
+  },
 };
 
-export interface LichessChapterPreview {
+export interface ImportChapterPreview {
   index: number;
   name: string;
   mainline_move_count: number;
   root_fen: string;
   matches_study_root: boolean;
+}
+
+/** @deprecated Use ImportChapterPreview. Kept as an alias for downstream code. */
+export type LichessChapterPreview = ImportChapterPreview;
+
+export interface BaseGame {
+  id: number;
+  white_name: string | null;
+  black_name: string | null;
+  event: string | null;
+  event_date: string | null;
+  result: string;
+  white_elo: number | null;
+  black_elo: number | null;
+}
+
+export interface BaseSearchResult {
+  games: BaseGame[];
+  total: number;
 }
 
 export interface ImportResult {

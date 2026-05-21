@@ -15,6 +15,7 @@ import { ConfirmDialog } from '../components/ui/ConfirmDialog';
 import { BoardToolbar } from '../components/BoardToolbar';
 import { useOpeningTreeNav } from '../hooks/useOpeningTreeNav';
 import { ImportLichessDialog } from './ImportLichessDialog';
+import { ImportGamesDialog } from './ImportGamesDialog';
 import { AssignStudyDialog } from './AssignStudyDialog';
 import {
   Card,
@@ -116,6 +117,7 @@ export function OpeningStudyEditor() {
     useState<OpeningNode | null>(null);
   const [mode, setMode] = useState<ViewMode>('tree');
   const [showImport, setShowImport] = useState(false);
+  const [showImportGames, setShowImportGames] = useState(false);
   const [showAssign, setShowAssign] = useState(false);
   const [flip, setFlip] = useState(false);
 
@@ -340,7 +342,11 @@ export function OpeningStudyEditor() {
           />
           <Btn variant="secondary" onClick={() => setShowImport(true)}>
             <IconDownload size={13} strokeWidth={2.4} />
-            Import
+            Import from Lichess
+          </Btn>
+          <Btn variant="secondary" onClick={() => setShowImportGames(true)}>
+            <IconDownload size={13} strokeWidth={2.4} />
+            Import games
           </Btn>
           <Btn variant="primary" onClick={() => setShowAssign(true)}>
             <IconAssign size={13} strokeWidth={2.4} />
@@ -507,6 +513,16 @@ export function OpeningStudyEditor() {
         open={showImport}
         studyId={study.id}
         onClose={() => setShowImport(false)}
+        onImported={async () => {
+          const refreshed = await trainerStudies.get(study.id);
+          setStudy(refreshed);
+        }}
+      />
+
+      <ImportGamesDialog
+        open={showImportGames}
+        studyId={study.id}
+        onClose={() => setShowImportGames(false)}
         onImported={async () => {
           const refreshed = await trainerStudies.get(study.id);
           setStudy(refreshed);
