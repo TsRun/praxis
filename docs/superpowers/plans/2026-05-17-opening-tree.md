@@ -8,7 +8,7 @@
 
 **Tech Stack:** Vite, React 18, TypeScript, Tailwind CSS, Zustand, React Router, chess.js, chessground, D3 (`d3-hierarchy`, `d3-zoom`, `d3-selection`), Vitest, Playwright.
 
-**Spec:** [docs/superpowers/specs/2026-05-17-chess-opening-tree-design.md](../specs/2026-05-17-chess-opening-tree-design.md)
+**Spec:** see git history (removed after the feature shipped).
 
 ---
 

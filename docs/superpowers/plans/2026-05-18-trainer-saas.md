@@ -8,7 +8,7 @@
 
 **Tech Stack:** Existing Vite/React 18/TS/Tailwind/Zustand/React Router/chess.js/chessground/Fastify/pg + new bcryptjs, @fastify/cookie, resend, react-markdown.
 
-**Spec:** [docs/superpowers/specs/2026-05-18-trainer-saas-design.md](../specs/2026-05-18-trainer-saas-design.md)
+**Spec:** see git history (removed after the feature shipped).
 
 ---
 
