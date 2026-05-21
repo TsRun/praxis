@@ -11,6 +11,7 @@ import type { Key } from 'chessground/types';
 import { Chess } from 'chess.js';
 import { trainerTactics, type TacticPuzzle } from '../lib/api';
 import { Card, Btn, Chip, MoveChip } from '../components/ui/atoms';
+import { CopyDiagramButton } from '../components/CopyDiagramButton';
 import { IconArrowL, IconCheck } from '../components/ui/Icons';
 
 const FILES = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'] as const;
@@ -292,14 +293,19 @@ function PositionEditor({
     }
   }
 
+  const currentFen = piecesToFen(pieces, turn);
+
   return (
     <Card style={{ padding: 18, display: 'flex', flexDirection: 'column', gap: 14 }}>
-      <h2 className="t-h2" style={{ margin: 0 }}>Position</h2>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 10 }}>
+        <h2 className="t-h2" style={{ margin: 0 }}>Position</h2>
+        <CopyDiagramButton fen={currentFen} orientation={turn === 'w' ? 'white' : 'black'} />
+      </div>
 
       <PalettePanel brush={brush} onPick={setBrush} />
 
       <SetupBoard
-        fen={piecesToFen(pieces, turn)}
+        fen={currentFen}
         onSquareClick={(sq) => applyBrush(sq as Square)}
       />
 

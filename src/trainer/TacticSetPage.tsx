@@ -3,6 +3,7 @@ import { Link, useNavigate, useParams } from 'react-router-dom';
 import { trainerTactics, type TacticSetFull, type TacticPuzzle } from '../lib/api';
 import { Card, Btn, Chip, MoveChip } from '../components/ui/atoms';
 import { ConfirmDialog } from '../components/ui/ConfirmDialog';
+import { CopyDiagramButton } from '../components/CopyDiagramButton';
 import { AssignStudyDialog } from './AssignStudyDialog';
 import {
   IconBolt,
@@ -267,20 +268,29 @@ function PuzzleRow({
           ))}
         </div>
       </Link>
-      <button
-        type="button"
-        onClick={onDelete}
-        title="Delete puzzle"
-        style={{
-          background: 'transparent',
-          border: 0,
-          cursor: 'pointer',
-          color: 'var(--text-dim)',
-          padding: 6,
-        }}
-      >
-        <IconTrash size={13} strokeWidth={2.4} />
-      </button>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+        <CopyDiagramButton
+          fen={puzzle.fen}
+          orientation={
+            (puzzle.fen.split(' ')[1] ?? 'w') === 'w' ? 'white' : 'black'
+          }
+          label=""
+        />
+        <button
+          type="button"
+          onClick={onDelete}
+          title="Delete puzzle"
+          style={{
+            background: 'transparent',
+            border: 0,
+            cursor: 'pointer',
+            color: 'var(--text-dim)',
+            padding: 6,
+          }}
+        >
+          <IconTrash size={13} strokeWidth={2.4} />
+        </button>
+      </div>
     </Card>
   );
 }
