@@ -169,4 +169,4 @@ Vitest unit tests (run via `npm test`) cover the API client, game store, PGN par
 
 ## Design + plan
 
-Implementation plans for shipped features live under `docs/superpowers/plans/`. Older `specs/` were removed once the corresponding code merged — refer to git history if needed.
+Original specs and implementation plans were removed once their code shipped — refer to git history (`docs/superpowers/`) if you need them.
