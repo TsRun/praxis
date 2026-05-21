@@ -11,6 +11,7 @@ import type { Key } from 'chessground/types';
 import { Chess } from 'chess.js';
 import { trainerTactics, type TacticPuzzle } from '../lib/api';
 import { Card, Btn, Chip, MoveChip } from '../components/ui/atoms';
+import { BoardToolbar } from '../components/BoardToolbar';
 import { IconArrowL, IconCheck } from '../components/ui/Icons';
 
 const FILES = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'] as const;
@@ -292,16 +293,31 @@ function PositionEditor({
     }
   }
 
+  const currentFen = piecesToFen(pieces, turn);
+
+  function pasteFenIntoEditor(fen: string) {
+    const parsed = fenToPieces(fen);
+    setPieces(parsed.pieces);
+    setTurn(parsed.turn);
+  }
+
   return (
     <Card style={{ padding: 18, display: 'flex', flexDirection: 'column', gap: 14 }}>
       <h2 className="t-h2" style={{ margin: 0 }}>Position</h2>
 
       <PalettePanel brush={brush} onPick={setBrush} />
 
-      <SetupBoard
-        fen={piecesToFen(pieces, turn)}
-        onSquareClick={(sq) => applyBrush(sq as Square)}
-      />
+      <div style={{ position: 'relative', width: '100%', maxWidth: 460 }}>
+        <SetupBoard
+          fen={currentFen}
+          onSquareClick={(sq) => applyBrush(sq as Square)}
+        />
+        <BoardToolbar
+          fen={currentFen}
+          orientation={turn === 'w' ? 'white' : 'black'}
+          onPasteFen={pasteFenIntoEditor}
+        />
+      </div>
 
       <div style={{ display: 'flex', gap: 14, alignItems: 'center', flexWrap: 'wrap' }}>
         <span style={{ fontSize: 13, color: 'var(--text-dim)' }}>Side to move</span>
@@ -543,11 +559,17 @@ function SolutionEditor({
       <h2 className="t-h2" style={{ margin: 0 }}>Solution</h2>
 
       {liveChess ? (
-        <SolutionBoard
-          startFen={fen}
-          playedSans={solutionSan}
-          onMove={onAppend}
-        />
+        <div style={{ position: 'relative', width: '100%', maxWidth: 460 }}>
+          <SolutionBoard
+            startFen={fen}
+            playedSans={solutionSan}
+            onMove={onAppend}
+          />
+          <BoardToolbar
+            fen={liveChess.fen()}
+            orientation={(fen.split(' ')[1] ?? 'w') === 'w' ? 'white' : 'black'}
+          />
+        </div>
       ) : (
         <div
           style={{

@@ -12,6 +12,7 @@ import {
 } from '../lib/api';
 import { pathToNode, findChildBySan } from '../lib/opening-tree';
 import { ConfirmDialog } from '../components/ui/ConfirmDialog';
+import { BoardToolbar } from '../components/BoardToolbar';
 import { useOpeningTreeNav } from '../hooks/useOpeningTreeNav';
 import { ImportLichessDialog } from './ImportLichessDialog';
 import { AssignStudyDialog } from './AssignStudyDialog';
@@ -448,6 +449,7 @@ export function OpeningStudyEditor() {
               onAddChild={onAddChild}
               onSelectExisting={setCurrentNodeId}
               flip={flip}
+              onToggleFlip={() => setFlip((f) => !f)}
             />
 
             {currentNode && (
@@ -557,6 +559,7 @@ function BoardWithBuild({
   onAddChild,
   onSelectExisting,
   flip,
+  onToggleFlip,
 }: {
   study: OpeningStudyFull;
   currentNode: OpeningNode | null;
@@ -568,6 +571,7 @@ function BoardWithBuild({
   ) => Promise<void>;
   onSelectExisting: (id: number) => void;
   flip: boolean;
+  onToggleFlip?: () => void;
 }) {
   const boardRef = useRef<HTMLDivElement | null>(null);
   const cgRef = useRef<CGApi | null>(null);
@@ -680,10 +684,17 @@ function BoardWithBuild({
   }, [currentFen, currentNode?.id]);
 
   return (
-    <div
-      ref={boardRef}
-      style={{ width: '100%', maxWidth: 520, aspectRatio: '1 / 1' }}
-    />
+    <div style={{ width: '100%', maxWidth: 520, position: 'relative' }}>
+      <div
+        ref={boardRef}
+        style={{ width: '100%', aspectRatio: '1 / 1' }}
+      />
+      <BoardToolbar
+        fen={currentFen}
+        orientation={flip ? 'black' : 'white'}
+        onFlip={onToggleFlip}
+      />
+    </div>
   );
 }
 

@@ -2,6 +2,7 @@ import { useEffect, useRef } from 'react';
 import { Chessground } from 'chessground';
 import type { Api } from 'chessground/api';
 import type { Color, Key } from 'chessground/types';
+import { BoardToolbar } from '../BoardToolbar';
 
 interface FenBoardProps {
   fen: string;
@@ -18,6 +19,13 @@ interface FenBoardProps {
   className?: string;
   /** When false, hides chessground coordinate labels (used by mini thumbnails). */
   coordinates?: boolean;
+  /** Show the floating board toolbar (copy / optional flip). Opt-in
+   * because tiny preview thumbnails don't need it. */
+  toolbar?: boolean;
+  /** Called when the user clicks the flip button in the toolbar — the
+   * parent owns the flip state. Only rendered if `toolbar` is true and
+   * a handler is provided. */
+  onFlip?: () => void;
 }
 
 function parseLast(uci: string | null | undefined): [Key, Key] | undefined {
@@ -35,6 +43,8 @@ export function FenBoard({
   size = 480,
   className = '',
   coordinates = true,
+  toolbar = false,
+  onFlip,
 }: FenBoardProps) {
   const ref = useRef<HTMLDivElement | null>(null);
   const apiRef = useRef<Api | null>(null);
@@ -67,11 +77,26 @@ export function FenBoard({
     });
   }, [fen, lastMove, flip]);
 
+  if (!toolbar) {
+    return (
+      <div
+        ref={ref}
+        className={className}
+        style={{ width: '100%', maxWidth: size, aspectRatio: '1 / 1' }}
+      />
+    );
+  }
   return (
     <div
-      ref={ref}
       className={className}
-      style={{ width: '100%', maxWidth: size, aspectRatio: '1 / 1' }}
-    />
+      style={{ width: '100%', maxWidth: size, position: 'relative' }}
+    >
+      <div ref={ref} style={{ width: '100%', aspectRatio: '1 / 1' }} />
+      <BoardToolbar
+        fen={fen}
+        orientation={flip ? 'black' : 'white'}
+        onFlip={onFlip}
+      />
+    </div>
   );
 }
