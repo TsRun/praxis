@@ -1220,7 +1220,7 @@ function ChaptersMode({
               : 'Start position'}
           </span>
           <Btn variant="ghost" size="sm" onClick={() => setFlip(!flip)}>
-            <IconFlip size={12} strokeWidth={2.4} /> Flip
+            <IconFlip size={12} strokeWidth={2.4} />
           </Btn>
         </div>
         <ReadOnlyBoard fen={fen} lastMove={lastMove} flip={flip} />

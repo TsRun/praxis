@@ -416,7 +416,7 @@ function DrillView({
             </span>
           </div>
           <Btn variant="ghost" size="sm" onClick={() => setFlip(!flip)}>
-            <IconFlip size={12} strokeWidth={2.4} /> Flip
+            <IconFlip size={12} strokeWidth={2.4} />
           </Btn>
         </Card>
       </div>
@@ -770,7 +770,7 @@ function TreeMode({
               : 'Start position'}
           </span>
           <Btn variant="ghost" size="sm" onClick={() => setFlip(!flip)}>
-            <IconFlip size={12} strokeWidth={2.4} /> Flip
+            <IconFlip size={12} strokeWidth={2.4} />
           </Btn>
         </div>
         <FixedReadOnlyBoard
@@ -1095,7 +1095,7 @@ function ChaptersView({
             {selChap?.title ?? 'No chapter selected'}
           </span>
           <Btn variant="ghost" size="sm" onClick={() => setFlip(!flip)}>
-            <IconFlip size={12} strokeWidth={2.4} /> Flip
+            <IconFlip size={12} strokeWidth={2.4} />
           </Btn>
         </div>
         <FixedReadOnlyBoard
