@@ -17,6 +17,9 @@ import {
   fetchChessComGames,
   fetchLichessUserGames,
   reconstructBaseGames,
+  filterPgnGames,
+  type PostFilters,
+  type TimeControlBucket,
 } from './import-sources.js';
 import { Chess } from 'chess.js';
 
@@ -762,9 +765,31 @@ export async function trainerRoutes(app: FastifyInstance, opts: { pool: Pool }) 
     };
   }
 
+  interface FetchFilterBody {
+    color?: 'white' | 'black' | 'either';
+    result?: string[];
+    eco?: string;
+    min_elo?: number;
+    time_control?: TimeControlBucket[];
+    position_fen?: string;
+  }
+
+  function bodyToPostFilters(b: FetchFilterBody | undefined, player?: string): PostFilters {
+    if (!b) return { player };
+    return {
+      color: b.color,
+      player,
+      results: Array.isArray(b.result) ? b.result : undefined,
+      eco: b.eco?.trim() || undefined,
+      minElo: typeof b.min_elo === 'number' && b.min_elo > 0 ? b.min_elo : undefined,
+      timeControls: Array.isArray(b.time_control) ? b.time_control : undefined,
+      positionFen: b.position_fen?.trim() || undefined,
+    };
+  }
+
   app.post<{
     Params: { id: string };
-    Body: { username?: string; max?: number };
+    Body: { username?: string; max?: number } & FetchFilterBody;
   }>(
     '/api/trainer/studies/opening/:id/fetch-chesscom',
     { preHandler: requireAuthor },
@@ -780,6 +805,7 @@ export async function trainerRoutes(app: FastifyInstance, opts: { pool: Pool }) 
       } catch (e) {
         return reply.code(502).send({ error: (e as Error).message });
       }
+      pgn = filterPgnGames(pgn, bodyToPostFilters(req.body));
       const result = await previewChaptersForStudy(studyId, uid, pgn);
       if ('notFound' in result) return reply.code(404).send({ error: 'not found' });
       return { pgn, chapters: result.chapters };
@@ -788,7 +814,7 @@ export async function trainerRoutes(app: FastifyInstance, opts: { pool: Pool }) 
 
   app.post<{
     Params: { id: string };
-    Body: { username?: string; max?: number };
+    Body: { username?: string; max?: number } & FetchFilterBody;
   }>(
     '/api/trainer/studies/opening/:id/fetch-lichess',
     { preHandler: requireAuthor },
@@ -804,6 +830,7 @@ export async function trainerRoutes(app: FastifyInstance, opts: { pool: Pool }) 
       } catch (e) {
         return reply.code(502).send({ error: (e as Error).message });
       }
+      pgn = filterPgnGames(pgn, bodyToPostFilters(req.body));
       const result = await previewChaptersForStudy(studyId, uid, pgn);
       if ('notFound' in result) return reply.code(404).send({ error: 'not found' });
       return { pgn, chapters: result.chapters };
@@ -842,6 +869,10 @@ export async function trainerRoutes(app: FastifyInstance, opts: { pool: Pool }) 
       color?: string;
       year_from?: string;
       year_to?: string;
+      result?: string;
+      eco?: string;
+      min_elo?: string;
+      position_fen?: string;
       limit?: string;
       offset?: string;
     };
@@ -854,6 +885,21 @@ export async function trainerRoutes(app: FastifyInstance, opts: { pool: Pool }) 
       const color = q.color === 'white' || q.color === 'black' ? q.color : null;
       const yearFrom = q.year_from ? Number(q.year_from) : null;
       const yearTo = q.year_to ? Number(q.year_to) : null;
+      const minElo = q.min_elo ? Number(q.min_elo) : null;
+      const positionFen = (q.position_fen ?? '').trim();
+      const eco = (q.eco ?? '').trim();
+      // result is sent as `1-0,0-1,1/2-1/2`. Internally the DB stores one of
+      // '1' | '0' | 'd' | '=' so we normalize the client tokens here.
+      const resultTokens = (q.result ?? '')
+        .split(',')
+        .map((s) => s.trim())
+        .filter(Boolean);
+      const dbResults: string[] = [];
+      for (const t of resultTokens) {
+        if (t === '1-0') dbResults.push('1');
+        else if (t === '0-1') dbResults.push('0');
+        else if (t === '1/2-1/2') dbResults.push('d');
+      }
       const limit = Math.min(200, Math.max(1, Number(q.limit ?? 50) || 50));
       const offset = Math.max(0, Number(q.offset ?? 0) || 0);
 
@@ -878,6 +924,31 @@ export async function trainerRoutes(app: FastifyInstance, opts: { pool: Pool }) 
       }
       if (yearTo != null && Number.isFinite(yearTo)) {
         conds.push(`LEFT(event_date, 4) ~ '^[0-9]{4}$' AND LEFT(event_date, 4)::int <= ${bind(yearTo)}`);
+      }
+      if (dbResults.length > 0) {
+        // result is CHAR(1) — we accept both 'd' and '=' to mean draw.
+        const placeholders = dbResults.map((r) => bind(r)).join(',');
+        const drawCond = dbResults.includes('d') ? ` OR result = '='` : '';
+        conds.push(`(result IN (${placeholders})${drawCond})`);
+      }
+      if (minElo != null && Number.isFinite(minElo)) {
+        const m = bind(minElo);
+        conds.push(`GREATEST(COALESCE(white_elo, 0), COALESCE(black_elo, 0)) >= ${m}`);
+      }
+      // The `game` table has no ECO column; the import process normally puts
+      // the opening name into `event` so ILIKE on event is the best we can
+      // do without a migration. Documented behavior — search "Sicilian" etc.
+      if (eco) {
+        conds.push(`event ILIKE '%' || ${bind(eco)} || '%'`);
+      }
+      if (positionFen) {
+        // parent_fen is stored normalized to the first 4 FEN fields, matching
+        // the import pipeline's convention. EXISTS is fast thanks to
+        // idx_game_move_parent (see schema.sql).
+        const f = bind(positionFen);
+        conds.push(
+          `EXISTS (SELECT 1 FROM game_move gm WHERE gm.game_id = game.id AND gm.parent_fen = ${f})`,
+        );
       }
       const where = conds.length ? `WHERE ${conds.join(' AND ')}` : '';
 

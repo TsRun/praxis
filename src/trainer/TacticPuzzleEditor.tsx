@@ -12,64 +12,10 @@ import { Chess } from 'chess.js';
 import { trainerTactics, type TacticPuzzle } from '../lib/api';
 import { Card, Btn, Chip, MoveChip } from '../components/ui/atoms';
 import { BoardToolbar } from '../components/BoardToolbar';
+import { PositionSetupBoard } from '../components/board/PositionSetupBoard';
 import { IconArrowL, IconCheck } from '../components/ui/Icons';
 
-const FILES = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'] as const;
 const START_FEN = new Chess().fen();
-
-type FileChar = (typeof FILES)[number];
-type RankChar = '1' | '2' | '3' | '4' | '5' | '6' | '7' | '8';
-type Square = `${FileChar}${RankChar}`;
-type PieceType = 'p' | 'n' | 'b' | 'r' | 'q' | 'k';
-type Color = 'w' | 'b';
-interface Piece { type: PieceType; color: Color }
-type Brush = Piece | 'erase';
-
-// Use the SOLID glyphs for both colors so the piece silhouettes match —
-// the outline ♔♕♖♗♘♙ variants would render almost invisibly in a dark
-// theme. Per-row CSS coloring (below, in PaletteButton) is what tells
-// white from black.
-const GLYPH: Record<PieceType, string> = {
-  k: '♚', q: '♛', r: '♜', b: '♝', n: '♞', p: '♟',
-};
-const PALETTE_ORDER: PieceType[] = ['k', 'q', 'r', 'b', 'n', 'p'];
-
-function fenToPieces(fen: string): { pieces: Map<Square, Piece>; turn: Color } {
-  const parts = fen.split(/\s+/);
-  const placement = parts[0] ?? '';
-  const turn: Color = parts[1] === 'b' ? 'b' : 'w';
-  const pieces = new Map<Square, Piece>();
-  const ranks = placement.split('/');
-  for (let r = 0; r < 8; r++) {
-    const rankStr = ranks[r] ?? '';
-    let file = 0;
-    for (const ch of rankStr) {
-      if (/\d/.test(ch)) { file += Number(ch); continue; }
-      const color: Color = ch === ch.toUpperCase() ? 'w' : 'b';
-      const type = ch.toLowerCase() as PieceType;
-      pieces.set(`${FILES[file]}${(8 - r) as unknown as RankChar}` as Square, { type, color });
-      file++;
-    }
-  }
-  return { pieces, turn };
-}
-
-function piecesToFen(pieces: Map<Square, Piece>, turn: Color): string {
-  const ranks: string[] = [];
-  for (let r = 8; r >= 1; r--) {
-    let row = '';
-    let empty = 0;
-    for (const f of FILES) {
-      const p = pieces.get(`${f}${r as unknown as RankChar}` as Square);
-      if (!p) { empty++; continue; }
-      if (empty > 0) { row += empty; empty = 0; }
-      row += p.color === 'w' ? p.type.toUpperCase() : p.type;
-    }
-    if (empty > 0) row += empty;
-    ranks.push(row);
-  }
-  return `${ranks.join('/')} ${turn} - - 0 1`;
-}
 
 export function TacticPuzzleEditor() {
   const { id, pid } = useParams();
@@ -221,12 +167,9 @@ export function TacticPuzzleEditor() {
   );
 }
 
-/* ─── Position editor ──────────────────────────────────────────────────────
- * Visual position builder. Pick a piece (or eraser) in the palette, then
- * click squares to apply the brush. Side-to-move is a radio. The internal
- * piece map is the source of truth; the FEN textbox below is kept in sync
- * both ways so trainers who already have a FEN can paste it in.
- */
+/* Thin wrapper around the shared PositionSetupBoard that adds the FEN-input
+ * fallback for trainers who already have a position string and inline
+ * validation against chess.js. */
 function PositionEditor({
   fen,
   onChange,
@@ -234,25 +177,14 @@ function PositionEditor({
   fen: string;
   onChange: (fen: string) => void;
 }) {
-  const { pieces: initialPieces, turn: initialTurn } = useMemo(
-    () => fenToPieces(fen),
-    // We only want to seed on first render — internal edits drive the FEN
-    // outward, not the other way around.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [],
-  );
-  const [pieces, setPieces] = useState<Map<Square, Piece>>(initialPieces);
-  const [turn, setTurn] = useState<Color>(initialTurn);
-  const [brush, setBrush] = useState<Brush>({ type: 'p', color: 'w' });
   const [fenInput, setFenInput] = useState(fen);
   const [fenError, setFenError] = useState<string | null>(null);
   const [validation, setValidation] = useState<string | null>(null);
+  // Bump this to force PositionSetupBoard to re-seed from a pasted FEN.
+  const [seedKey, setSeedKey] = useState(0);
+  const [seedFen, setSeedFen] = useState(fen);
 
-  // Recompute FEN from pieces+turn and push it upward, validating against
-  // chess.js (illegal positions are flagged inline so the trainer notices
-  // before they try to play the solution).
-  useEffect(() => {
-    const next = piecesToFen(pieces, turn);
+  function handleChange(next: string) {
     setFenInput(next);
     try {
       // eslint-disable-next-line no-new
@@ -262,92 +194,28 @@ function PositionEditor({
       setValidation((e as Error).message || 'illegal position');
     }
     onChange(next);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pieces, turn]);
-
-  function applyBrush(square: Square) {
-    setPieces((prev) => {
-      const next = new Map(prev);
-      const here = next.get(square);
-      if (brush === 'erase') {
-        next.delete(square);
-        return next;
-      }
-      // If the same piece is already on this square, treat the click as an
-      // erase — saves swapping to the eraser tool just to clear a misclick.
-      if (here && here.type === brush.type && here.color === brush.color) {
-        next.delete(square);
-        return next;
-      }
-      next.set(square, brush);
-      return next;
-    });
   }
 
   function applyFenInput() {
     try {
       const c = new Chess(fenInput.trim());
-      const parsed = fenToPieces(c.fen());
-      setPieces(parsed.pieces);
-      setTurn(parsed.turn);
+      setSeedFen(c.fen());
+      setSeedKey((k) => k + 1);
       setFenError(null);
     } catch (e) {
       setFenError((e as Error).message || 'invalid FEN');
     }
   }
 
-  const currentFen = piecesToFen(pieces, turn);
-
-  function pasteFenIntoEditor(fen: string) {
-    const parsed = fenToPieces(fen);
-    setPieces(parsed.pieces);
-    setTurn(parsed.turn);
-  }
-
   return (
     <Card style={{ padding: 18, display: 'flex', flexDirection: 'column', gap: 14 }}>
       <h2 className="t-h2" style={{ margin: 0 }}>Position</h2>
 
-      <PalettePanel brush={brush} onPick={setBrush} />
-
-      <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
-        <SetupBoard
-          fen={currentFen}
-          onSquareClick={(sq) => applyBrush(sq as Square)}
-        />
-        <BoardToolbar
-          fen={currentFen}
-          orientation={turn === 'w' ? 'white' : 'black'}
-          onPasteFen={pasteFenIntoEditor}
-        />
-      </div>
-
-      <div style={{ display: 'flex', gap: 14, alignItems: 'center', flexWrap: 'wrap' }}>
-        <span style={{ fontSize: 13, color: 'var(--text-dim)' }}>Side to move</span>
-        <label style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-          <input type="radio" checked={turn === 'w'} onChange={() => setTurn('w')} />
-          White
-        </label>
-        <label style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-          <input type="radio" checked={turn === 'b'} onChange={() => setTurn('b')} />
-          Black
-        </label>
-        <div style={{ flex: 1 }} />
-        <Btn
-          variant="ghost"
-          size="sm"
-          onClick={() => { setPieces(fenToPieces(START_FEN).pieces); setTurn('w'); }}
-        >
-          Starting position
-        </Btn>
-        <Btn
-          variant="ghost"
-          size="sm"
-          onClick={() => setPieces(new Map())}
-        >
-          Empty board
-        </Btn>
-      </div>
+      <PositionSetupBoard
+        key={seedKey}
+        fen={seedFen}
+        onChange={handleChange}
+      />
 
       {validation && (
         <div style={{ fontSize: 12, color: 'var(--danger)' }}>
@@ -381,162 +249,6 @@ function PositionEditor({
         )}
       </details>
     </Card>
-  );
-}
-
-function PalettePanel({
-  brush,
-  onPick,
-}: {
-  brush: Brush;
-  onPick: (b: Brush) => void;
-}) {
-  return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-      <PaletteRow
-        color="w"
-        brush={brush}
-        onPick={onPick}
-      />
-      <PaletteRow
-        color="b"
-        brush={brush}
-        onPick={onPick}
-      />
-      <div style={{ display: 'flex', gap: 6 }}>
-        <PaletteButton
-          active={brush === 'erase'}
-          label="Erase"
-          glyph="⌫"
-          onClick={() => onPick('erase')}
-          wide
-        />
-      </div>
-    </div>
-  );
-}
-
-function PaletteRow({
-  color,
-  brush,
-  onPick,
-}: {
-  color: Color;
-  brush: Brush;
-  onPick: (b: Brush) => void;
-}) {
-  return (
-    <div style={{ display: 'flex', gap: 6 }}>
-      {PALETTE_ORDER.map((type) => {
-        const active =
-          brush !== 'erase' && brush.type === type && brush.color === color;
-        return (
-          <PaletteButton
-            key={`${color}${type}`}
-            active={active}
-            label={`${color === 'w' ? 'White' : 'Black'} ${type}`}
-            glyph={GLYPH[type]}
-            pieceColor={color}
-            onClick={() => onPick({ type, color })}
-          />
-        );
-      })}
-    </div>
-  );
-}
-
-function PaletteButton({
-  active,
-  label,
-  glyph,
-  onClick,
-  wide,
-  pieceColor,
-}: {
-  active: boolean;
-  label: string;
-  glyph: string;
-  onClick: () => void;
-  wide?: boolean;
-  pieceColor?: Color;
-}) {
-  const isWhite = pieceColor === 'w';
-  const isBlack = pieceColor === 'b';
-  // Color the glyph itself so the two rows are visually distinct as
-  // white vs. black regardless of theme. White uses a cream fill with
-  // a dark stroke so it stays legible on light AND dark backgrounds;
-  // black uses a near-black fill.
-  const glyphStyle = isWhite
-    ? { color: '#f7f3e3', WebkitTextStroke: '1px #1a1a1a' as const }
-    : isBlack
-      ? { color: '#1a1a1a' }
-      : { color: 'var(--text)' };
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      aria-label={label}
-      title={label}
-      style={{
-        flex: 1,
-        height: 44,
-        fontSize: wide ? 16 : 28,
-        lineHeight: 1,
-        background: active ? 'var(--accent-soft)' : 'var(--inset-bg)',
-        border: `1px solid ${active ? 'var(--accent-ring)' : 'var(--inset-border)'}`,
-        borderRadius: 8,
-        cursor: 'pointer',
-        transition: 'background 120ms ease, border-color 120ms ease',
-        ...glyphStyle,
-      }}
-    >
-      {glyph}
-    </button>
-  );
-}
-
-function SetupBoard({
-  fen,
-  onSquareClick,
-}: {
-  fen: string;
-  onSquareClick: (key: Key) => void;
-}) {
-  const ref = useRef<HTMLDivElement | null>(null);
-  const cgRef = useRef<CGApi | null>(null);
-  // Keep the latest handler in a ref so we don't need to teardown chessground
-  // on every render (chessground's API doesn't let us reassign events.select
-  // after construction).
-  const clickRef = useRef(onSquareClick);
-  clickRef.current = onSquareClick;
-
-  useEffect(() => {
-    if (!ref.current) return;
-    cgRef.current = Chessground(ref.current, {
-      fen,
-      coordinates: true,
-      viewOnly: false,
-      draggable: { enabled: false },
-      selectable: { enabled: true },
-      movable: { free: false, color: undefined, dests: new Map() },
-      drawable: { enabled: false },
-      events: {
-        select: (k) => clickRef.current(k),
-      },
-    });
-    return () => {
-      cgRef.current?.destroy();
-      cgRef.current = null;
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  useEffect(() => {
-    cgRef.current?.set({ fen, lastMove: undefined });
-  }, [fen]);
-
-  return (
-    <div ref={ref} style={{ width: '100%', maxWidth: 460, aspectRatio: '1 / 1' }} />
   );
 }
 
