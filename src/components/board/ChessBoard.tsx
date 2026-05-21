@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
 import { Chessground } from 'chessground';
 import type { Api } from 'chessground/api';
 import type { Key } from 'chessground/types';
@@ -45,7 +45,6 @@ export function ChessBoard() {
   const history = useGameStore((s) => s.history);
   const currentPly = useGameStore((s) => s.currentPly);
   const applyMove = useGameStore((s) => s.applyMove);
-  const [flipped, setFlipped] = useState(false);
 
   const lastMove = useMemo(
     () => computeLastMove(history, currentPly),
@@ -59,7 +58,6 @@ export function ChessBoard() {
     apiRef.current = Chessground(ref.current, {
       fen,
       turnColor,
-      orientation: flipped ? 'black' : 'white',
       lastMove,
       movable: {
         free: false,
@@ -95,23 +93,21 @@ export function ChessBoard() {
     apiRef.current.set({
       fen,
       turnColor,
-      orientation: flipped ? 'black' : 'white',
       lastMove,
       movable: {
         color: turnColor,
         dests: toDestsMap(c),
       },
     });
-  }, [fen, lastMove, flipped]);
+  }, [fen, lastMove]);
 
   return (
-    <div style={{ width: '100%', maxWidth: 480, position: 'relative' }}>
-      <div ref={ref} style={{ width: '100%', aspectRatio: '1 / 1' }} />
-      <BoardToolbar
-        fen={fen}
-        orientation={flipped ? 'black' : 'white'}
-        onFlip={() => setFlipped((v) => !v)}
+    <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
+      <div
+        ref={ref}
+        style={{ width: '100%', maxWidth: 480, aspectRatio: '1 / 1' }}
       />
+      <BoardToolbar fen={fen} />
     </div>
   );
 }

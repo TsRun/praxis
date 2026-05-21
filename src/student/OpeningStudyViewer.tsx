@@ -337,16 +337,15 @@ function DrillView({
           </span>
         </div>
 
-        <div style={{ width: '100%', maxWidth: 520, position: 'relative' }}>
+        <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
           <div
             ref={boardRef}
-            style={{ width: '100%', aspectRatio: '1 / 1' }}
+            style={{ width: '100%', maxWidth: 520, aspectRatio: '1 / 1' }}
           />
           {card && (
             <BoardToolbar
               fen={`${card.parent_fen} 0 1`}
               orientation={flip ? 'black' : 'white'}
-              onFlip={() => setFlip(!flip)}
             />
           )}
         </div>
@@ -778,7 +777,6 @@ function TreeMode({
           fen={fen}
           lastMove={lastMove}
           flip={flip}
-          onToggleFlip={() => setFlip(!flip)}
         />
         {currentChapter && (
           <Card
@@ -952,12 +950,10 @@ function FixedReadOnlyBoard({
   fen,
   lastMove,
   flip,
-  onToggleFlip,
 }: {
   fen: string;
   lastMove: string | null;
   flip: boolean;
-  onToggleFlip?: () => void;
 }) {
   const ref = useRef<HTMLDivElement | null>(null);
   const cgRef = useRef<CGApi | null>(null);
@@ -994,13 +990,9 @@ function FixedReadOnlyBoard({
   }, [fen, lastMove, flip]);
 
   return (
-    <div style={{ width: '100%', maxWidth: 520, position: 'relative' }}>
-      <div ref={ref} style={{ width: '100%', aspectRatio: '1 / 1' }} />
-      <BoardToolbar
-        fen={fen}
-        orientation={flip ? 'black' : 'white'}
-        onFlip={onToggleFlip}
-      />
+    <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
+      <div ref={ref} style={{ width: '100%', maxWidth: 520, aspectRatio: '1 / 1' }} />
+      <BoardToolbar fen={fen} orientation={flip ? 'black' : 'white'} />
     </div>
   );
 }
@@ -1110,7 +1102,6 @@ function ChaptersView({
           fen={node?.fen ?? study.root_fen}
           lastMove={node?.uci ?? null}
           flip={flip}
-          onToggleFlip={() => setFlip(!flip)}
         />
       </div>
     </div>

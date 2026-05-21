@@ -449,7 +449,6 @@ export function OpeningStudyEditor() {
               onAddChild={onAddChild}
               onSelectExisting={setCurrentNodeId}
               flip={flip}
-              onToggleFlip={() => setFlip((f) => !f)}
             />
 
             {currentNode && (
@@ -559,7 +558,6 @@ function BoardWithBuild({
   onAddChild,
   onSelectExisting,
   flip,
-  onToggleFlip,
 }: {
   study: OpeningStudyFull;
   currentNode: OpeningNode | null;
@@ -571,7 +569,6 @@ function BoardWithBuild({
   ) => Promise<void>;
   onSelectExisting: (id: number) => void;
   flip: boolean;
-  onToggleFlip?: () => void;
 }) {
   const boardRef = useRef<HTMLDivElement | null>(null);
   const cgRef = useRef<CGApi | null>(null);
@@ -684,15 +681,14 @@ function BoardWithBuild({
   }, [currentFen, currentNode?.id]);
 
   return (
-    <div style={{ width: '100%', maxWidth: 520, position: 'relative' }}>
+    <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
       <div
         ref={boardRef}
-        style={{ width: '100%', aspectRatio: '1 / 1' }}
+        style={{ width: '100%', maxWidth: 520, aspectRatio: '1 / 1' }}
       />
       <BoardToolbar
         fen={currentFen}
         orientation={flip ? 'black' : 'white'}
-        onFlip={onToggleFlip}
       />
     </div>
   );

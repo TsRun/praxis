@@ -307,7 +307,7 @@ function PositionEditor({
 
       <PalettePanel brush={brush} onPick={setBrush} />
 
-      <div style={{ position: 'relative', width: '100%', maxWidth: 460 }}>
+      <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
         <SetupBoard
           fen={currentFen}
           onSquareClick={(sq) => applyBrush(sq as Square)}
@@ -559,7 +559,7 @@ function SolutionEditor({
       <h2 className="t-h2" style={{ margin: 0 }}>Solution</h2>
 
       {liveChess ? (
-        <div style={{ position: 'relative', width: '100%', maxWidth: 460 }}>
+        <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
           <SolutionBoard
             startFen={fen}
             playedSans={solutionSan}

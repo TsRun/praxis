@@ -19,13 +19,9 @@ interface FenBoardProps {
   className?: string;
   /** When false, hides chessground coordinate labels (used by mini thumbnails). */
   coordinates?: boolean;
-  /** Show the floating board toolbar (copy / optional flip). Opt-in
-   * because tiny preview thumbnails don't need it. */
+  /** Show the side board toolbar (copy diagram, paste FEN when wired).
+   * Opt-in because tiny preview thumbnails don't need it. */
   toolbar?: boolean;
-  /** Called when the user clicks the flip button in the toolbar — the
-   * parent owns the flip state. Only rendered if `toolbar` is true and
-   * a handler is provided. */
-  onFlip?: () => void;
 }
 
 function parseLast(uci: string | null | undefined): [Key, Key] | undefined {
@@ -44,7 +40,6 @@ export function FenBoard({
   className = '',
   coordinates = true,
   toolbar = false,
-  onFlip,
 }: FenBoardProps) {
   const ref = useRef<HTMLDivElement | null>(null);
   const apiRef = useRef<Api | null>(null);
@@ -89,14 +84,13 @@ export function FenBoard({
   return (
     <div
       className={className}
-      style={{ width: '100%', maxWidth: size, position: 'relative' }}
+      style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}
     >
-      <div ref={ref} style={{ width: '100%', aspectRatio: '1 / 1' }} />
-      <BoardToolbar
-        fen={fen}
-        orientation={flip ? 'black' : 'white'}
-        onFlip={onFlip}
+      <div
+        ref={ref}
+        style={{ width: '100%', maxWidth: size, aspectRatio: '1 / 1' }}
       />
+      <BoardToolbar fen={fen} orientation={flip ? 'black' : 'white'} />
     </div>
   );
 }

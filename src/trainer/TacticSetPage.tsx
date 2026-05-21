@@ -274,12 +274,7 @@ function PuzzleRow({
           orientation={
             (puzzle.fen.split(' ')[1] ?? 'w') === 'w' ? 'white' : 'black'
           }
-          style={{
-            position: 'static',
-            top: 'auto',
-            right: 'auto',
-            zIndex: 'auto',
-          }}
+          style={{ flexDirection: 'row' }}
         />
         <button
           type="button"

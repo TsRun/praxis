@@ -1,29 +1,26 @@
 import { useState, type CSSProperties } from 'react';
 import { Chess } from 'chess.js';
 import { copyBoardImage } from '../lib/board-image';
-import { IconCopy, IconCheck, IconFlip, IconClipboard, IconAlert } from './ui/Icons';
+import { IconCopy, IconCheck, IconClipboard, IconAlert } from './ui/Icons';
 
 /**
- * Compact floating board widget. Three small circular icon buttons at the
- * top-right of a board container: paste a FEN from the clipboard, flip
- * the board orientation, copy the diagram as a PNG. Each button is
- * optional — only the ones the caller plumbs a handler for are rendered.
+ * Compact board-side widget. Two small round icon buttons (paste FEN +
+ * copy diagram) stacked in a vertical column. Designed to sit to the
+ * RIGHT of the board, not overlapping it — wrap the board + this
+ * widget in a horizontal flex container.
  *
- * Sits inside a `position: relative` parent (the board wrapper) at
- * top-right so it overlays the board without taking a row in the layout.
+ * Paste is only rendered when the caller plumbs `onPasteFen`; copy is
+ * always available.
  */
 export function BoardToolbar({
   fen,
   orientation = 'white',
-  onFlip,
   onPasteFen,
   style,
 }: {
   fen: string;
   /** Side at the bottom of the rendered diagram. Affects copy output. */
   orientation?: 'white' | 'black';
-  /** When provided, a flip button is rendered. Caller toggles its own state. */
-  onFlip?: () => void;
   /** When provided, a paste button is rendered. Receives the trimmed FEN
    * from the clipboard, already validated against chess.js. */
   onPasteFen?: (fen: string) => void;
@@ -32,20 +29,14 @@ export function BoardToolbar({
   return (
     <div
       style={{
-        position: 'absolute',
-        top: 8,
-        right: 8,
-        zIndex: 3,
-        display: 'inline-flex',
+        display: 'flex',
+        flexDirection: 'column',
         gap: 6,
+        flexShrink: 0,
         ...style,
       }}
-      // Keep clicks from leaking through to the chessground board behind us.
-      onMouseDown={(e) => e.stopPropagation()}
-      onClick={(e) => e.stopPropagation()}
     >
       {onPasteFen && <PasteButton onPaste={onPasteFen} />}
-      {onFlip && <RoundBtn title="Flip board" onClick={onFlip} icon={<IconFlip size={13} strokeWidth={2.4} />} />}
       <CopyButton fen={fen} orientation={orientation} />
     </div>
   );
@@ -149,8 +140,8 @@ function RoundBtn({
       onClick={onClick}
       disabled={disabled}
       style={{
-        width: 30,
-        height: 30,
+        width: 32,
+        height: 32,
         borderRadius: '50%',
         background: 'var(--card-bg)',
         border: `1px solid ${border}`,
