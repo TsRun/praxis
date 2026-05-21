@@ -17,6 +17,7 @@ export function TrainerLayout() {
   const isTrainer = user?.roles.includes('trainer') ?? false;
   const links = [
     { to: '/trainer/studies', label: 'Studies', match: (p: string) => p.startsWith('/trainer/studies') },
+    { to: '/trainer/games', label: 'Games', match: (p: string) => p.startsWith('/trainer/games') },
     ...(isTrainer
       ? [
           {
@@ -34,6 +35,7 @@ export function TrainerLayout() {
         <Route path="students" element={<StudentsPage />} />
         <Route path="students/:id" element={<StudentDetailPage />} />
         <Route path="studies" element={<StudiesPage />} />
+        <Route path="games" element={<ImportGamesPage />} />
         <Route path="studies/opening/:id" element={<OpeningStudyEditor />} />
         <Route path="studies/opening/:id/import" element={<ImportGamesPage />} />
         <Route path="studies/game/:id" element={<GameStudyEditor />} />

@@ -789,7 +789,7 @@ export async function trainerRoutes(app: FastifyInstance, opts: { pool: Pool }) 
 
   app.post<{
     Params: { id: string };
-    Body: { username?: string; max?: number } & FetchFilterBody;
+    Body: { username?: string } & FetchFilterBody;
   }>(
     '/api/trainer/studies/opening/:id/fetch-chesscom',
     { preHandler: requireAuthor },
@@ -797,11 +797,11 @@ export async function trainerRoutes(app: FastifyInstance, opts: { pool: Pool }) 
       const uid = req.user!.id;
       const studyId = Number(req.params.id);
       const username = (req.body?.username ?? '').trim();
-      const max = clampMax(req.body?.max);
       if (!username) return reply.code(400).send({ error: 'username required' });
       let pgn: string;
       try {
-        pgn = await fetchChessComGames(username, max);
+        // Internal cap lives in import-sources.ts; trainers can't bump it.
+        pgn = await fetchChessComGames(username);
       } catch (e) {
         return reply.code(502).send({ error: (e as Error).message });
       }
@@ -814,7 +814,7 @@ export async function trainerRoutes(app: FastifyInstance, opts: { pool: Pool }) 
 
   app.post<{
     Params: { id: string };
-    Body: { username?: string; max?: number } & FetchFilterBody;
+    Body: { username?: string } & FetchFilterBody;
   }>(
     '/api/trainer/studies/opening/:id/fetch-lichess',
     { preHandler: requireAuthor },
@@ -822,11 +822,11 @@ export async function trainerRoutes(app: FastifyInstance, opts: { pool: Pool }) 
       const uid = req.user!.id;
       const studyId = Number(req.params.id);
       const username = (req.body?.username ?? '').trim();
-      const max = clampMax(req.body?.max);
       if (!username) return reply.code(400).send({ error: 'username required' });
       let pgn: string;
       try {
-        pgn = await fetchLichessUserGames(username, max);
+        // Internal cap lives in import-sources.ts; trainers can't bump it.
+        pgn = await fetchLichessUserGames(username);
       } catch (e) {
         return reply.code(502).send({ error: (e as Error).message });
       }
@@ -973,12 +973,6 @@ export async function trainerRoutes(app: FastifyInstance, opts: { pool: Pool }) 
       };
     },
   );
-
-  function clampMax(n: unknown): number {
-    const v = Number(n);
-    if (!Number.isFinite(v) || v <= 0) return 30;
-    return Math.min(100, Math.floor(v));
-  }
 
   // ─── Tactical sets (author = trainer or self-trainer) ────────────────────
   app.get('/api/trainer/studies/tactic', { preHandler: requireAuthor }, async (req) => {
