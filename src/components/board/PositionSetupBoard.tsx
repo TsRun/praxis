@@ -240,7 +240,7 @@ function PaletteButton({
   const glyphStyle = isWhite
     ? { color: '#f7f3e3', WebkitTextStroke: '1px #1a1a1a' as const }
     : isBlack
-      ? { color: '#1a1a1a' }
+      ? { color: '#1a1a1a', WebkitTextStroke: '1px #f7f3e3' as const }
       : { color: 'var(--text)' };
   return (
     <button

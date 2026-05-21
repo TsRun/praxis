@@ -137,63 +137,84 @@ export function GameStudyEditor() {
         </div>
       </div>
 
-      <div className="three-pane">
-        <ChessBoard />
-        <Card style={{ padding: 16, overflow: 'auto', maxHeight: '80vh' }}>
-          <h2 className="t-h3" style={{ margin: '0 0 10px' }}>
-            Move list
-          </h2>
-          <PlyList study={study} currentPly={currentPly} onJump={goToPly} />
-        </Card>
-        <Card style={{ padding: 16, display: 'flex', flexDirection: 'column', gap: 12, width: '100%', maxWidth: 360 }}>
-          <h3 className="t-h3" style={{ margin: 0 }}>
-            Annotation at ply {currentPly || 0}
-          </h3>
-          {currentPly === 0 ? (
-            <p className="meta">
-              Move to a ply via the move list or → to annotate it.
-            </p>
-          ) : (
-            <>
-              <label
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 8,
-                  fontSize: 13.5,
-                }}
-              >
-                <input
-                  type="checkbox"
-                  checked={annAtPly?.is_quiz ?? false}
+      {/* 2-pane: board on the left, move list + annotation on the right.
+          Annotation lives OUTSIDE the board column so growing the comment
+          textarea can never push the board's pixel position. */}
+      <div className="study-pane-2">
+        <div
+          className="pane-center"
+          style={{ display: 'flex', flexDirection: 'column', gap: 12 }}
+        >
+          <ChessBoard />
+        </div>
+        <div
+          className="pane-right"
+          style={{ display: 'flex', flexDirection: 'column', gap: 16 }}
+        >
+          <Card style={{ padding: 16, overflow: 'auto', maxHeight: '60vh' }}>
+            <h2 className="t-h3" style={{ margin: '0 0 10px' }}>
+              Move list
+            </h2>
+            <PlyList study={study} currentPly={currentPly} onJump={goToPly} />
+          </Card>
+          <Card
+            style={{
+              padding: 16,
+              display: 'flex',
+              flexDirection: 'column',
+              gap: 12,
+            }}
+          >
+            <h3 className="t-h3" style={{ margin: 0 }}>
+              Annotation at ply {currentPly || 0}
+            </h3>
+            {currentPly === 0 ? (
+              <p className="meta">
+                Move to a ply via the move list or → to annotate it.
+              </p>
+            ) : (
+              <>
+                <label
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 8,
+                    fontSize: 13.5,
+                  }}
+                >
+                  <input
+                    type="checkbox"
+                    checked={annAtPly?.is_quiz ?? false}
+                    onChange={(e) =>
+                      upsertAnnotation({ is_quiz: e.target.checked })
+                    }
+                  />
+                  Quiz here (student must find the played move)
+                </label>
+                <textarea
+                  rows={8}
+                  placeholder="markdown comment for this move…"
+                  value={annAtPly?.comment_md ?? ''}
                   onChange={(e) =>
-                    upsertAnnotation({ is_quiz: e.target.checked })
+                    upsertAnnotation({ comment_md: e.target.value || null })
                   }
+                  style={{
+                    background: 'var(--inset-bg)',
+                    border: '1px solid var(--inset-border)',
+                    borderRadius: 10,
+                    padding: '12px 14px',
+                    fontSize: 14,
+                    lineHeight: 1.5,
+                    color: 'var(--text)',
+                    outline: 'none',
+                    resize: 'vertical',
+                    minHeight: 160,
+                  }}
                 />
-                Quiz here (student must find the played move)
-              </label>
-              <textarea
-                rows={8}
-                className="font-mono"
-                placeholder="markdown comment for this move…"
-                value={annAtPly?.comment_md ?? ''}
-                onChange={(e) =>
-                  upsertAnnotation({ comment_md: e.target.value || null })
-                }
-                style={{
-                  background: 'var(--inset-bg)',
-                  border: '1px solid var(--inset-border)',
-                  borderRadius: 10,
-                  padding: '10px 12px',
-                  fontSize: 12.5,
-                  color: 'var(--text)',
-                  outline: 'none',
-                  resize: 'vertical',
-                }}
-              />
-            </>
-          )}
-        </Card>
+              </>
+            )}
+          </Card>
+        </div>
       </div>
 
       <AssignStudyDialog

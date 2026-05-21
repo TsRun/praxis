@@ -17,6 +17,8 @@ export interface EditableTitleProps {
   style?: CSSProperties;
   /** Validate before saving; return error message or null. */
   validate?: (next: string) => string | null;
+  /** Start in edit mode and focus the input on mount. */
+  autoEdit?: boolean;
 }
 
 /**
@@ -72,8 +74,9 @@ export function EditableTitle({
   className,
   style,
   validate,
+  autoEdit = false,
 }: EditableTitleProps) {
-  const [editing, setEditing] = useState(false);
+  const [editing, setEditing] = useState(autoEdit);
   const [draft, setDraft] = useState(value);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);

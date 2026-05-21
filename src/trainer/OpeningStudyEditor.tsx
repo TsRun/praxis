@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { Chessground } from 'chessground';
 import type { Api as CGApi } from 'chessground/api';
@@ -15,6 +15,7 @@ import { ConfirmDialog } from '../components/ui/ConfirmDialog';
 import { BoardToolbar } from '../components/BoardToolbar';
 import { EditableTitle } from '../components/ui/EditableTitle';
 import { useOpeningTreeNav } from '../hooks/useOpeningTreeNav';
+import { useDebouncedCallback } from '../hooks/useDebouncedCallback';
 import { ImportLichessDialog } from './ImportLichessDialog';
 import { AssignStudyDialog } from './AssignStudyDialog';
 import {
@@ -172,7 +173,13 @@ export function OpeningStudyEditor() {
     );
 
   const path = pathToNode(study.nodes, currentNodeId);
-  const chaptersSet = new Set(study.chapters.map((c) => c.node_id));
+  // Only count rows with real content as chapters for the various
+  // chapter-marker UIs — empty drafts shouldn't show as published chapters.
+  const chaptersSet = new Set(
+    study.chapters
+      .filter((c) => (c.title && c.title.trim()) || c.body_md)
+      .map((c) => c.node_id),
+  );
   const transpositions = currentNode
     ? study.nodes.filter(
         (n) => n.id !== currentNode.id && n.fen === currentNode.fen,
@@ -251,6 +258,36 @@ export function OpeningStudyEditor() {
       setBusy(false);
     }
   }
+
+  /**
+   * Persist the chapter for the current node. Used by ChapterCard's
+   * debounced auto-save. Both title and body are written in one PUT so
+   * the server never sees a partial update with a stale half.
+   *
+   * `title === null` is the sentinel for "remove chapter": we also clear
+   * body_md and drop the row from local state. An empty string title still
+   * keeps the chapter (so "create an empty draft" works while typing).
+   */
+  const saveChapter = useCallback(
+    async (title: string | null, body_md: string) => {
+      const s = study;
+      if (!s || !currentNode) return;
+      await trainerStudies.saveChapter(s.id, currentNode.id, title, body_md);
+      const nodeId = currentNode.id;
+      setStudy((prev) => {
+        if (!prev) return prev;
+        const others = prev.chapters.filter((c) => c.node_id !== nodeId);
+        const removing = title === null && !body_md;
+        return {
+          ...prev,
+          chapters: removing
+            ? others
+            : [...others, { node_id: nodeId, title, body_md }],
+        };
+      });
+    },
+    [study, currentNode],
+  );
 
   async function toggleMain(n: OpeningNode) {
     const s = study;
@@ -436,26 +473,43 @@ export function OpeningStudyEditor() {
       )}
 
       {mode === 'tree' ? (
-        <div className="editor-grid">
-          {/* LEFT: board */}
+        <div className="study-pane">
+          {/* LEFT: chapter quick-nav */}
+          <div className="pane-left">
+            <ChapterNav
+              study={study}
+              currentNodeId={currentNodeId}
+              onJumpTo={setCurrentNodeId}
+            />
+          </div>
+
+          {/* CENTER: board with stable header + below-board controls */}
           <div
+            className="pane-center"
             style={{
               display: 'flex',
               flexDirection: 'column',
-              gap: 14,
+              gap: 12,
             }}
           >
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <span className="meta-strong" style={{ fontFamily: 'var(--font-mono)' }}>
+            {/* Reserve the header row even when there's no move yet so the
+                board's pixel position never jumps between selections. */}
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 8,
+                minHeight: 28,
+              }}
+            >
+              <span
+                className="meta-strong"
+                style={{ fontFamily: 'var(--font-mono)' }}
+              >
                 {currentNode
                   ? `After ${plyLabel(currentNode.ply)} ${currentNode.san}`
                   : 'Start position'}
               </span>
-              <div style={{ flex: 1 }} />
-              <Btn variant="ghost" size="sm" onClick={() => setFlip((f) => !f)}>
-                <IconFlip size={12} strokeWidth={2.4} />
-                Flip
-              </Btn>
             </div>
 
             <BoardWithBuild
@@ -467,21 +521,17 @@ export function OpeningStudyEditor() {
               flip={flip}
             />
 
-            {currentNode && (
-              <ChapterCard
-                key={currentNode.id}
-                study={study}
-                currentNode={currentNode}
-                ownChapter={currentChapter}
-                busy={busy}
-                onSaveTitle={saveTitle}
-                onJumpTo={setCurrentNodeId}
-              />
-            )}
+            <BoardNavRow
+              study={study}
+              currentNodeId={currentNodeId}
+              onSelect={setCurrentNodeId}
+              onFlip={() => setFlip((f) => !f)}
+            />
           </div>
 
-          {/* RIGHT: candidates + line so far */}
+          {/* RIGHT: candidates / siblings / chapter editor */}
           <div
+            className="pane-right"
             style={{
               display: 'flex',
               flexDirection: 'column',
@@ -505,6 +555,17 @@ export function OpeningStudyEditor() {
               chaptersSet={chaptersSet}
               onSelect={setCurrentNodeId}
             />
+            {currentNode && (
+              <ChapterCard
+                key={currentNode.id}
+                study={study}
+                currentNode={currentNode}
+                ownChapter={currentChapter}
+                onSaveTitle={saveTitle}
+                onSaveChapter={saveChapter}
+                onJumpTo={setCurrentNodeId}
+              />
+            )}
           </div>
         </div>
       ) : (
@@ -1335,112 +1396,487 @@ function ReadOnlyBoard({
   );
 }
 
-/* ────────────────────────── Chapter card (under board) ─────────────────── */
+/* ────────────────────────── Chapter card (right pane) ─────────────────── */
 
 function ChapterCard({
   study,
   currentNode,
   ownChapter,
-  busy,
   onSaveTitle,
+  onSaveChapter,
   onJumpTo,
 }: {
   study: OpeningStudyFull;
   currentNode: OpeningNode;
   ownChapter: OpeningChapter | null;
-  busy: boolean;
-  onSaveTitle: (value: string) => void;
+  onSaveTitle: (value: string) => Promise<void> | void;
+  onSaveChapter: (title: string | null, body_md: string) => Promise<void>;
   onJumpTo: (id: number) => void;
 }) {
   const owns = ownChapter != null;
-  // Look upstream from the parent so we only ever describe the chapter we
-  // inherit — if this node already owns one, the inherited copy is itself.
   const inherited =
     !owns && currentNode.parent_id != null
       ? makeChapterLookup(study)(currentNode.parent_id)
       : null;
 
+  // Empty state — only show "Make this position a chapter" CTA so the
+  // trainer doesn't have to remember that typing a title creates one.
+  if (!owns) {
+    return (
+      <Card
+        style={{
+          padding: '16px 18px',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 10,
+          borderLeft: inherited
+            ? '3px solid var(--accent-ring)'
+            : '3px solid transparent',
+        }}
+      >
+        {inherited && (
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 8,
+              fontSize: 12,
+              color: 'var(--text-dim)',
+            }}
+          >
+            <span className="dot-chapter" />
+            In chapter
+            <button
+              type="button"
+              onClick={() => onJumpTo(inherited.node.id)}
+              className="link"
+              style={{
+                background: 'transparent',
+                border: 0,
+                padding: 0,
+                cursor: 'pointer',
+                fontWeight: 500,
+              }}
+            >
+              {inherited.chapter.title}
+            </button>
+            <span className="meta" style={{ fontSize: 11 }}>
+              (starts at {plyLabel(inherited.node.ply)} {inherited.node.san})
+            </span>
+          </div>
+        )}
+        <h2 className="t-h3" style={{ margin: 0 }}>
+          No chapter at this position
+        </h2>
+        <p className="meta" style={{ margin: 0 }}>
+          Chapters group sub-lines under a title and a comment. Start one
+          here to add notes for this position.
+        </p>
+        <div>
+          <Btn
+            variant="primary"
+            size="sm"
+            onClick={() => {
+              // Create the chapter with an empty title then focus the
+              // title field on the next render.
+              void onSaveChapter('', '');
+            }}
+          >
+            <IconPlus size={12} strokeWidth={2.4} />
+            Make this position a chapter
+          </Btn>
+        </div>
+      </Card>
+    );
+  }
+
+  return (
+    <ChapterCardEditor
+      key={currentNode.id}
+      ownChapter={ownChapter!}
+      onSaveTitle={onSaveTitle}
+      onSaveChapter={onSaveChapter}
+    />
+  );
+}
+
+function ChapterCardEditor({
+  ownChapter,
+  onSaveTitle,
+  onSaveChapter,
+}: {
+  ownChapter: OpeningChapter;
+  onSaveTitle: (value: string) => Promise<void> | void;
+  onSaveChapter: (title: string | null, body_md: string) => Promise<void>;
+}) {
+  const [title, setTitle] = useState<string>(ownChapter.title ?? '');
+  const [body, setBody] = useState<string>(ownChapter.body_md ?? '');
+  const [status, setStatus] = useState<
+    | { kind: 'idle' }
+    | { kind: 'saving' }
+    | { kind: 'saved'; at: string }
+    | { kind: 'error' }
+  >({ kind: 'idle' });
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  // Auto-edit only on the very first mount when the chapter is brand new
+  // (just created via "Make this position a chapter"). Re-renders driven
+  // by parent updates should not re-trigger edit mode.
+  const [autoEditTitle] = useState(() => !ownChapter.title);
+
+  // Always read the latest values from refs inside the debounced callback —
+  // otherwise the closure captures stale title/body and overwrites one half.
+  const titleRef = useRef(title);
+  titleRef.current = title;
+  const bodyRef = useRef(body);
+  bodyRef.current = body;
+
+  const doSave = useCallback(async () => {
+    setStatus({ kind: 'saving' });
+    try {
+      // Pass the trimmed title (may be ''); the explicit "Remove chapter"
+      // action is what passes null. Empty drafts stay around so the user
+      // can keep typing without the card vanishing.
+      await onSaveChapter(titleRef.current.trim(), bodyRef.current);
+      setStatus({
+        kind: 'saved',
+        at: new Date().toLocaleTimeString([], {
+          hour: 'numeric',
+          minute: '2-digit',
+        }),
+      });
+    } catch {
+      setStatus({ kind: 'error' });
+    }
+  }, [onSaveChapter]);
+
+  const debouncedSave = useDebouncedCallback(doSave, 600);
+
+  function onTitleChange(v: string) {
+    setTitle(v);
+    debouncedSave.call();
+  }
+  function onBodyChange(v: string) {
+    setBody(v);
+    debouncedSave.call();
+  }
+
   return (
     <Card
       style={{
-        padding: '14px 16px',
+        padding: '16px 18px',
         display: 'flex',
         flexDirection: 'column',
-        gap: 10,
-        borderLeft: owns
-          ? '3px solid var(--success)'
-          : inherited
-            ? '3px solid var(--accent-ring)'
-            : '3px solid transparent',
+        gap: 12,
+        borderLeft: '3px solid var(--success)',
       }}
     >
-      {inherited && (
-        <div
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          gap: 10,
+        }}
+      >
+        <h2 className="t-h2" style={{ margin: 0, color: 'var(--text-dim)' }}>
+          Chapter
+        </h2>
+        <SaveIndicator status={status} onRetry={() => void doSave()} />
+      </div>
+
+      <EditableTitle
+        level="h2"
+        value={title}
+        placeholder="Untitled chapter"
+        autoEdit={autoEditTitle}
+        onSave={async (next) => {
+          setTitle(next);
+          // Cancel any in-flight debounced run so the explicit save wins.
+          debouncedSave.cancel();
+          await onSaveTitle(next);
+          setStatus({
+            kind: 'saved',
+            at: new Date().toLocaleTimeString([], {
+              hour: 'numeric',
+              minute: '2-digit',
+            }),
+          });
+        }}
+      />
+
+      <textarea
+        rows={8}
+        placeholder="Add comments, sample lines, ideas… (markdown supported)"
+        value={body}
+        onChange={(e) => onBodyChange(e.target.value)}
+        onBlur={() => debouncedSave.flush()}
+        style={{
+          width: '100%',
+          background: 'var(--inset-bg)',
+          border: '1px solid var(--inset-border)',
+          borderRadius: 10,
+          padding: '12px 14px',
+          fontSize: 14,
+          lineHeight: 1.5,
+          color: 'var(--text)',
+          outline: 'none',
+          resize: 'vertical',
+          fontFamily: 'var(--font-sans)',
+          minHeight: 160,
+        }}
+      />
+      <div>
+        <button
+          type="button"
+          className="link"
+          onClick={() => setConfirmDelete(true)}
           style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: 8,
-            fontSize: 12,
-            color: 'var(--text-dim)',
-          }}
-        >
-          <span className="dot-chapter" />
-          In chapter
-          <button
-            type="button"
-            onClick={() => onJumpTo(inherited.node.id)}
-            className="link"
-            style={{
-              background: 'transparent',
-              border: 0,
-              padding: 0,
-              cursor: 'pointer',
-              fontWeight: 500,
-            }}
-          >
-            {inherited.chapter.title}
-          </button>
-          <span className="meta" style={{ fontSize: 11 }}>
-            (starts at {plyLabel(inherited.node.ply)} {inherited.node.san})
-          </span>
-        </div>
-      )}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-        <input
-          className="font-mono"
-          placeholder={
-            inherited
-              ? 'Start a new chapter at this position…'
-              : 'untitled chapter'
-          }
-          defaultValue={ownChapter?.title ?? ''}
-          onBlur={(e) => {
-            const v = e.target.value.trim();
-            if (v !== (ownChapter?.title ?? '')) onSaveTitle(v);
-          }}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter') (e.target as HTMLInputElement).blur();
-          }}
-          style={{
-            flex: 1,
             background: 'transparent',
             border: 0,
-            color: 'var(--text)',
-            fontSize: 17,
-            fontWeight: 600,
-            letterSpacing: '-0.01em',
-            outline: 'none',
             padding: 0,
-            fontFamily: 'var(--font-sans)',
+            cursor: 'pointer',
+            fontSize: 12,
+            color: 'var(--text-faint)',
           }}
-        />
-        {busy && (
-          <span className="meta" style={{ fontSize: 11 }}>
-            Saving…
-          </span>
-        )}
+        >
+          Tap to remove chapter
+        </button>
       </div>
+
+      <ConfirmDialog
+        open={confirmDelete}
+        title="Remove this chapter?"
+        body="The position and its sub-lines stay; only the title and notes are deleted."
+        confirmLabel="Remove chapter"
+        destructive
+        onClose={() => setConfirmDelete(false)}
+        onConfirm={async () => {
+          debouncedSave.cancel();
+          setTitle('');
+          setBody('');
+          await onSaveChapter(null, '');
+        }}
+      />
     </Card>
+  );
+}
+
+function SaveIndicator({
+  status,
+  onRetry,
+}: {
+  status:
+    | { kind: 'idle' }
+    | { kind: 'saving' }
+    | { kind: 'saved'; at: string }
+    | { kind: 'error' };
+  onRetry: () => void;
+}) {
+  if (status.kind === 'saving')
+    return <span className="meta" style={{ fontSize: 11 }}>Saving…</span>;
+  if (status.kind === 'saved')
+    return (
+      <span className="meta" style={{ fontSize: 11 }}>
+        Saved · {status.at}
+      </span>
+    );
+  if (status.kind === 'error')
+    return (
+      <span style={{ fontSize: 11, color: 'var(--danger)' }}>
+        Couldn’t save ·{' '}
+        <button
+          type="button"
+          onClick={onRetry}
+          style={{
+            background: 'transparent',
+            border: 0,
+            padding: 0,
+            cursor: 'pointer',
+            color: 'var(--accent)',
+            textDecoration: 'underline',
+            fontSize: 11,
+          }}
+        >
+          retry
+        </button>
+      </span>
+    );
+  return null;
+}
+
+/* ────────────────────────── Left pane: chapter nav ───────────────────── */
+
+function ChapterNav({
+  study,
+  currentNodeId,
+  onJumpTo,
+}: {
+  study: OpeningStudyFull;
+  currentNodeId: number | null;
+  onJumpTo: (id: number) => void;
+}) {
+  const chapters = useMemo(() => {
+    const titleByNode = new Map(
+      study.chapters.map((c) => [c.node_id, c.title] as const),
+    );
+    return study.nodes
+      .filter((n) => titleByNode.has(n.id))
+      .map((n) => ({ node: n, title: titleByNode.get(n.id) ?? '' }))
+      .sort((a, b) => a.node.ply - b.node.ply || a.node.id - b.node.id);
+  }, [study]);
+
+  // Highlight whichever chapter owns the current node (inclusive ancestor).
+  const activeId = useMemo(() => {
+    if (currentNodeId == null) return null;
+    return makeChapterLookup(study)(currentNodeId)?.node.id ?? null;
+  }, [study, currentNodeId]);
+
+  return (
+    <Card className="chapter-nav" style={{ padding: 10 }}>
+      <div
+        style={{
+          padding: '6px 10px 10px',
+          borderBottom: '1px solid var(--hairline)',
+          marginBottom: 8,
+        }}
+      >
+        <h2 className="t-h3" style={{ margin: 0 }}>
+          Chapters
+        </h2>
+        <div className="meta" style={{ fontSize: 12 }}>
+          {chapters.length === 0
+            ? 'No chapters yet'
+            : `${chapters.length} chapter${chapters.length === 1 ? '' : 's'}`}
+        </div>
+      </div>
+      {chapters.length === 0 ? (
+        <div
+          className="meta"
+          style={{
+            padding: 14,
+            textAlign: 'center',
+            fontSize: 12,
+          }}
+        >
+          Add a title under the board to start one.
+        </div>
+      ) : (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+          {chapters.map(({ node, title }) => {
+            const active = node.id === activeId;
+            return (
+              <button
+                key={node.id}
+                type="button"
+                onClick={() => onJumpTo(node.id)}
+                style={{
+                  display: 'grid',
+                  gridTemplateColumns: '1fr auto',
+                  alignItems: 'center',
+                  gap: 8,
+                  padding: '8px 10px',
+                  borderRadius: 8,
+                  cursor: 'pointer',
+                  background: active ? 'var(--accent-soft)' : 'transparent',
+                  border: 0,
+                  textAlign: 'left',
+                  color: 'inherit',
+                  width: '100%',
+                  transition: 'background 120ms ease',
+                }}
+              >
+                <div style={{ minWidth: 0 }}>
+                  <div
+                    style={{
+                      fontSize: 13.5,
+                      color: title ? 'var(--text)' : 'var(--text-faint)',
+                      fontWeight: 500,
+                      whiteSpace: 'nowrap',
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                    }}
+                  >
+                    {title || `${plyLabel(node.ply)} ${node.san}`}
+                  </div>
+                  <div
+                    className="mono"
+                    style={{
+                      fontSize: 11,
+                      color: 'var(--text-faint)',
+                      marginTop: 2,
+                    }}
+                  >
+                    {plyLabel(node.ply)} {node.san}
+                  </div>
+                </div>
+                {active && (
+                  <span
+                    style={{
+                      width: 6,
+                      height: 6,
+                      borderRadius: 999,
+                      background: 'var(--accent)',
+                      boxShadow: '0 0 8px var(--accent-glow)',
+                    }}
+                  />
+                )}
+              </button>
+            );
+          })}
+        </div>
+      )}
+    </Card>
+  );
+}
+
+/* ────────────────────────── Below-board nav row ───────────────────── */
+
+function BoardNavRow({
+  study,
+  currentNodeId,
+  onSelect,
+  onFlip,
+}: {
+  study: OpeningStudyFull;
+  currentNodeId: number | null;
+  onSelect: (id: number | null) => void;
+  onFlip: () => void;
+}) {
+  const cur =
+    currentNodeId != null
+      ? study.nodes.find((n) => n.id === currentNodeId) ?? null
+      : null;
+  const onPrev = () => {
+    if (!cur) return;
+    onSelect(cur.parent_id);
+  };
+  const onNext = () => {
+    const parentId = cur?.id ?? null;
+    const kids = study.nodes
+      .filter((n) => n.parent_id === parentId)
+      .sort((a, b) => Number(b.is_main) - Number(a.is_main) || a.id - b.id);
+    if (kids[0]) onSelect(kids[0].id);
+  };
+  return (
+    <div
+      style={{
+        display: 'flex',
+        alignItems: 'center',
+        gap: 8,
+        justifyContent: 'center',
+      }}
+    >
+      <Btn variant="ghost" size="sm" onClick={onPrev} disabled={!cur}>
+        <IconArrowL size={12} strokeWidth={2.4} />
+      </Btn>
+      <Btn variant="ghost" size="sm" onClick={onNext}>
+        <IconArrowR size={12} strokeWidth={2.4} />
+      </Btn>
+      <Btn variant="ghost" size="sm" onClick={onFlip}>
+        <IconFlip size={12} strokeWidth={2.4} />
+        Flip
+      </Btn>
+    </div>
   );
 }
 
@@ -1539,6 +1975,3 @@ function TranspositionBar({
 
 /* unused exports kept for direct prop typing */
 export type { OpeningStudyFull };
-
-void IconArrowL;
-void IconArrowR;

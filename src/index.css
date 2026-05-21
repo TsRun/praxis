@@ -572,6 +572,50 @@ input[type='range']::-moz-range-thumb {
   .three-pane { grid-template-columns: 1fr; }
 }
 
+/* Lichess-inspired 3-pane study editor:
+   LEFT chapter nav | CENTER board | RIGHT candidates + comment.
+   Below 1024px we stack: center → right → left so the board stays first. */
+.study-pane {
+  display: grid;
+  grid-template-columns: 260px minmax(0, 520px) minmax(0, 1fr);
+  gap: 24px;
+  align-items: start;
+}
+.study-pane > .pane-left   { min-width: 0; }
+.study-pane > .pane-center { min-width: 0; }
+.study-pane > .pane-right  { min-width: 0; max-width: 420px; width: 100%; }
+@media (max-width: 1200px) {
+  .study-pane { grid-template-columns: 220px minmax(0, 480px) minmax(0, 1fr); gap: 18px; }
+}
+@media (max-width: 1024px) {
+  .study-pane { grid-template-columns: 1fr; }
+  .study-pane > .pane-center { order: 1; }
+  .study-pane > .pane-right  { order: 2; max-width: none; }
+  .study-pane > .pane-left   { order: 3; }
+}
+
+/* Two-pane variant (no chapter nav, e.g. game studies):
+   CENTER board | RIGHT moves+comment. */
+.study-pane-2 {
+  display: grid;
+  grid-template-columns: minmax(0, 520px) minmax(0, 1fr);
+  gap: 24px;
+  align-items: start;
+}
+.study-pane-2 > .pane-center { min-width: 0; }
+.study-pane-2 > .pane-right  { min-width: 0; }
+@media (max-width: 1024px) {
+  .study-pane-2 { grid-template-columns: 1fr; }
+}
+
+.chapter-nav {
+  max-height: calc(100vh - 200px);
+  overflow-y: auto;
+}
+@media (max-width: 1024px) {
+  .chapter-nav { max-height: none; }
+}
+
 /* Tour stage: 2-pane scenes */
 .tour-stage {
   display: grid;
