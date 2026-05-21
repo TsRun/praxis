@@ -5,7 +5,7 @@ Phase 1 of the agent loop. The loop picks the next unchecked area each hour, aud
 ## Areas
 
 - [ ] Landing + auth (email/password + Google sign-in) — `src/pages/Landing*`, `src/pages/SignIn*`, `server/routes-auth*`
-- [ ] Tour route (90-second standalone) — `src/tour/*`, route `/tour`
+- [ ] Tour route (90-second standalone) — `src/tour/*`, route `/tour` <!-- claimed: in-progress -->
 - [ ] Trainer: opening studies list — `src/trainer/OpeningStudies*`, list page + create flow
 - [ ] Trainer: opening study editor (chapters + tree modes) — `src/trainer/OpeningStudyEditor.tsx`, `src/components/opening/*`
 - [ ] Trainer: students + assign — `src/trainer/Students*`, `src/trainer/Assign*`
