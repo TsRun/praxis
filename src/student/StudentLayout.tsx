@@ -3,6 +3,7 @@ import { TopBar } from '../components/ui/TopBar';
 import { DashboardPage } from './DashboardPage';
 import { OpeningStudyViewer } from './OpeningStudyViewer';
 import { GameStudyViewer } from './GameStudyViewer';
+import { TacticSetViewer } from './TacticSetViewer';
 import { useKeyboardNav } from '../hooks/useKeyboardNav';
 
 export function StudentLayout() {
@@ -21,6 +22,7 @@ export function StudentLayout() {
         <Route path="dashboard" element={<DashboardPage />} />
         <Route path="study/opening/:id" element={<OpeningStudyViewer />} />
         <Route path="study/game/:id" element={<GameStudyViewer />} />
+        <Route path="study/tactic/:id" element={<TacticSetViewer />} />
         <Route path="*" element={<Navigate to="dashboard" replace />} />
       </Routes>
     </div>

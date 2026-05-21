@@ -43,7 +43,7 @@ export function TopBar({ links = [], right }: TopBarProps) {
         </Link>
 
         {showSwitch && (
-          <div className="segmented accent">
+          <div className="segmented accent hide-mobile">
             <Link to="/trainer" className={inCoach ? 'active' : ''}>
               Coach
             </Link>
@@ -53,7 +53,7 @@ export function TopBar({ links = [], right }: TopBarProps) {
           </div>
         )}
 
-        <div style={{ display: 'flex', gap: 4, marginLeft: 8 }}>
+        <div className="hide-mobile" style={{ display: 'flex', gap: 4, marginLeft: 8 }}>
           {links.map((l) => {
             const active = l.match
               ? l.match(loc.pathname)

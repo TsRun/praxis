@@ -7,6 +7,7 @@ import {
   type ImportChapterPreview,
   type ImportResult,
   type OpeningStudyFull,
+  type OpeningStudySummary,
   type BaseSearchFilters,
   type SourceFetchFilters,
   type TimeControlBucket,
@@ -52,7 +53,7 @@ const DEFAULT_FILTERS: Filters = {
   minElo: '',
   timeControls: new Set<TimeControlBucket>(['bullet', 'blitz', 'rapid', 'classical']),
   positionFen: NORM_START,
-  positionEnabled: false,
+  positionEnabled: true,
 };
 
 type Stage =
@@ -63,6 +64,9 @@ type Stage =
       games: ResultGame[];
       selected: Set<string>;
       total: number;
+    }
+  | {
+      kind: 'choose-study';
     }
   | {
       kind: 'picking';
@@ -93,11 +97,15 @@ interface ResultGame {
   /** Whether this chapter starts from a position that matches the study root.
    * Drives the "can't import" disabled-row state for chess.com/lichess. */
   matchesStudyRoot: boolean;
+  /** Opening name when known (DB games only) — shown under players line. */
+  opening?: string | null;
 }
 
 export function ImportGamesPage() {
-  const { id } = useParams();
-  const studyId = Number(id);
+  const { id } = useParams<{ id: string }>();
+  // When `id` is undefined we're in top-level browse mode: no study to import
+  // into yet, the trainer picks one after selecting games.
+  const scopedStudyId = id ? Number(id) : null;
   const nav = useNavigate();
   const [study, setStudy] = useState<OpeningStudyFull | null>(null);
   const [source, setSource] = useState<Source>('chesscom');
@@ -114,21 +122,42 @@ export function ImportGamesPage() {
     useState<Extract<Stage, { kind: 'results' }> | null>(null);
   // chess.com / lichess inputs
   const [ccUsername, setCcUsername] = useState('');
-  const [ccMax, setCcMax] = useState(30);
   const [liUsername, setLiUsername] = useState('');
-  const [liMax, setLiMax] = useState(30);
+  // Browse-mode-only: the study the trainer chose to import INTO.
+  const [targetStudyId, setTargetStudyId] = useState<number | null>(scopedStudyId);
+  const [targetStudy, setTargetStudy] = useState<OpeningStudyFull | null>(null);
+  const [studies, setStudies] = useState<OpeningStudySummary[] | null>(null);
 
   useEffect(() => {
-    trainerStudies.get(studyId).then(setStudy).catch(() => {});
-  }, [studyId]);
+    if (scopedStudyId != null) {
+      trainerStudies.get(scopedStudyId).then(setStudy).catch(() => {});
+    }
+  }, [scopedStudyId]);
 
+  // For the active import-target (browse-mode path), we need root_fen so
+  // chapter matchesStudyRoot is checked correctly.
+  useEffect(() => {
+    if (targetStudyId != null) {
+      trainerStudies.get(targetStudyId).then(setTargetStudy).catch(() => {});
+    } else {
+      setTargetStudy(null);
+    }
+  }, [targetStudyId]);
+
+  const activeStudy = scopedStudyId != null ? study : targetStudy;
   const studyRootNorm = useMemo(
-    () => (study ? normFen(study.root_fen) : NORM_START),
-    [study],
+    () => (activeStudy ? normFen(activeStudy.root_fen) : NORM_START),
+    [activeStudy],
   );
 
   function back() {
-    nav(`/trainer/studies/opening/${studyId}`);
+    if (scopedStudyId != null) {
+      nav(`/trainer/studies/opening/${scopedStudyId}`);
+    } else if (targetStudyId != null) {
+      nav(`/trainer/studies/opening/${targetStudyId}`);
+    } else {
+      nav('/trainer/studies');
+    }
   }
 
   async function search() {
@@ -157,6 +186,17 @@ export function ImportGamesPage() {
           games: res.games.map((g) => baseGameToResult(g)),
         });
       } else {
+        // In browse mode we don't have a study yet; chess.com / lichess fetch
+        // endpoints currently need an :id to preview against. We still need a
+        // valid id to hit the endpoint, so when browsing-mode we send the
+        // first available study (the chapter previews never actually depend
+        // on it for matchesStudyRoot — we re-check after the trainer picks).
+        const probeId = scopedStudyId ?? (await ensureProbeStudyId());
+        if (probeId == null) {
+          setErr('Create an opening study first to use Chess.com / Lichess.');
+          setStage(null);
+          return;
+        }
         const fetchFilters: SourceFetchFilters = {
           color: filters.color,
           results: filters.results.size === 3 ? undefined : Array.from(filters.results),
@@ -169,7 +209,6 @@ export function ImportGamesPage() {
           position_fen: filters.positionEnabled ? filters.positionFen : undefined,
         };
         const username = (source === 'chesscom' ? ccUsername : liUsername).trim();
-        const max = source === 'chesscom' ? ccMax : liMax;
         if (!username) {
           setErr('Enter a username first.');
           setStage(null);
@@ -179,7 +218,7 @@ export function ImportGamesPage() {
           source === 'chesscom'
             ? trainerStudies.fetchChessCom
             : trainerStudies.fetchLichessUser;
-        const { pgn, chapters } = await fetcher(studyId, username, max, fetchFilters);
+        const { pgn, chapters } = await fetcher(probeId, username, fetchFilters);
         setCachedPgn(pgn);
         setStage({
           kind: 'results',
@@ -197,16 +236,52 @@ export function ImportGamesPage() {
     }
   }
 
-  async function goToPicker() {
+  // Helper: when browsing-top-level we still need *some* study id to call the
+  // chess.com / lichess fetch endpoints. Lazily load the list and use the
+  // first one. (We re-check fen match after the trainer picks a real target.)
+  async function ensureProbeStudyId(): Promise<number | null> {
+    if (studies && studies[0]) return studies[0].id;
+    const list = await trainerStudies.list();
+    setStudies(list);
+    return list[0]?.id ?? null;
+  }
+
+  async function onResultsContinue() {
     if (stage?.kind !== 'results') return;
-    const selectedKeys = Array.from(stage.selected);
-    if (selectedKeys.length === 0) return;
+    if (stage.selected.size === 0) return;
     setLastResults(stage);
+    if (scopedStudyId == null && targetStudyId == null) {
+      // Browse mode: ask the trainer which study to import into first.
+      try {
+        if (!studies) {
+          setBusy(true);
+          const list = await trainerStudies.list();
+          setStudies(list);
+        }
+      } catch (e) {
+        setErr((e as Error).message);
+      } finally {
+        setBusy(false);
+      }
+      setStage({ kind: 'choose-study' });
+    } else {
+      await goToPicker(targetStudyId ?? scopedStudyId!);
+    }
+  }
+
+  async function chooseStudyAndContinue(sid: number) {
+    setTargetStudyId(sid);
+    await goToPicker(sid);
+  }
+
+  async function goToPicker(studyId: number) {
+    const results = lastResults;
+    if (!results) return;
     setBusy(true);
     setErr(null);
     try {
-      if (stage.source === 'base') {
-        const ids = selectedKeys.map((k) => Number(k));
+      if (results.source === 'base') {
+        const ids = Array.from(results.selected).map((k) => Number(k));
         const { pgn, chapters } = await trainerStudies.fetchBaseGames(studyId, ids);
         const picked = new Set(
           chapters.filter((c) => c.matches_study_root).map((c) => c.index),
@@ -216,28 +291,22 @@ export function ImportGamesPage() {
         // chess.com / lichess: we already have the full PGN cached; restrict
         // the picker preview to the selected indexes. The server's `/import`
         // endpoint takes chapter indexes against the full PGN, so we keep the
-        // PGN intact and only re-shape the preview list.
-        const indexes = new Set(stage.games
-          .filter((g) => stage.selected.has(g.key) && g.chapterIndex != null)
-          .map((g) => g.chapterIndex as number));
-        // Re-derive chapter previews from the original fetch; we stored them
-        // implicitly inside `stage.games` so reconstruct shape-compatible
-        // entries.
-        const chapters: ImportChapterPreview[] = stage.games
-          .filter((g) => indexes.has(g.chapterIndex ?? -1))
-          .map((g) => ({
-            index: g.chapterIndex as number,
-            name: chapterName(g),
-            mainline_move_count: 0,
-            root_fen: '',
-            matches_study_root: g.matchesStudyRoot,
-          }));
+        // PGN intact and only re-shape the preview list. Re-run the preview
+        // against the chosen study so matches_study_root reflects the actual
+        // target (the original preview was against the probe study).
+        const indexes = new Set(
+          results.games
+            .filter((g) => results.selected.has(g.key) && g.chapterIndex != null)
+            .map((g) => g.chapterIndex as number),
+        );
+        const all = await trainerStudies.importPreview(studyId, cachedPgn);
+        const chapters = all.chapters.filter((c) => indexes.has(c.index));
         const picked = new Set(
           chapters.filter((c) => c.matches_study_root).map((c) => c.index),
         );
         setStage({
           kind: 'picking',
-          source: stage.source,
+          source: results.source,
           pgn: cachedPgn,
           chapters,
           picked,
@@ -252,6 +321,8 @@ export function ImportGamesPage() {
 
   async function runImport() {
     if (stage?.kind !== 'picking') return;
+    const studyId = targetStudyId ?? scopedStudyId;
+    if (studyId == null) return;
     setBusy(true);
     setErr(null);
     const stashed = stage;
@@ -271,6 +342,11 @@ export function ImportGamesPage() {
     }
   }
 
+  const browseMode = scopedStudyId == null;
+  const headerTitle = browseMode
+    ? 'Browse games'
+    : `Import games${study ? ` into "${study.name}"` : ''}`;
+
   return (
     <div className="page-wrap" style={{ paddingTop: 24, paddingBottom: 80 }}>
       <div
@@ -282,13 +358,13 @@ export function ImportGamesPage() {
           flexWrap: 'wrap',
         }}
       >
-        <Btn variant="ghost" size="sm" onClick={back}>
-          <IconArrowL size={13} strokeWidth={2.4} />
-          Back to study
-        </Btn>
-        <h1 className="t-h1" style={{ margin: 0 }}>
-          Import games{study ? ` into "${study.name}"` : ''}
-        </h1>
+        {!browseMode && (
+          <Btn variant="ghost" size="sm" onClick={back}>
+            <IconArrowL size={13} strokeWidth={2.4} />
+            Back to study
+          </Btn>
+        )}
+        <h1 className="t-h1" style={{ margin: 0 }}>{headerTitle}</h1>
       </div>
 
       <div className="grid-import-page">
@@ -301,8 +377,6 @@ export function ImportGamesPage() {
                 label="Chess.com username"
                 username={ccUsername}
                 setUsername={setCcUsername}
-                max={ccMax}
-                setMax={setCcMax}
               />
             )}
             {source === 'lichess' && (
@@ -310,8 +384,6 @@ export function ImportGamesPage() {
                 label="Lichess username"
                 username={liUsername}
                 setUsername={setLiUsername}
-                max={liMax}
-                setMax={setLiMax}
               />
             )}
             {source === 'base' && (
@@ -356,10 +428,11 @@ export function ImportGamesPage() {
             {filters.positionEnabled && (
               <PositionFilter
                 fen={filters.positionFen}
-                study={study}
+                study={browseMode ? null : study}
                 onFen={(fen) =>
                   setFilters((f) => ({ ...f, positionFen: normFen(fen) }))
                 }
+                allowNodePicker={!browseMode}
               />
             )}
           </Card>
@@ -395,7 +468,7 @@ export function ImportGamesPage() {
           )}
 
           {stage?.kind === 'results' && (
-            <ResultsList
+            <ResultsView
               stage={stage}
               studyRoot={studyRootNorm}
               onToggle={(k) => {
@@ -413,8 +486,17 @@ export function ImportGamesPage() {
                 })
               }
               onClear={() => setStage({ ...stage, selected: new Set() })}
-              onContinue={goToPicker}
+              onContinue={onResultsContinue}
               busy={busy}
+            />
+          )}
+
+          {stage?.kind === 'choose-study' && (
+            <ChooseStudyPanel
+              studies={studies}
+              busy={busy}
+              onBack={() => lastResults && setStage(lastResults)}
+              onChoose={chooseStudyAndContinue}
             />
           )}
 
@@ -451,6 +533,9 @@ export function ImportGamesPage() {
 function baseGameToResult(g: BaseGame): ResultGame {
   return {
     key: `db-${g.id}`,
+    // v1: thumbnail shows the game's final position via parent_fen of the
+    // last move — server doesn't expose that yet, so we fall back to the
+    // start FEN. TODO: surface a `preview_fen` from the API.
     fen: START_FEN,
     whiteName: g.white_name,
     whiteElo: g.white_elo,
@@ -462,6 +547,7 @@ function baseGameToResult(g: BaseGame): ResultGame {
     chapterIndex: null,
     dbId: g.id,
     matchesStudyRoot: true,
+    opening: null,
   };
 }
 
@@ -485,10 +571,6 @@ function chapterToResult(c: ImportChapterPreview): ResultGame {
     dbId: null,
     matchesStudyRoot: c.matches_study_root,
   };
-}
-
-function chapterName(g: ResultGame): string {
-  return g.event ?? `Chapter ${(g.chapterIndex ?? 0) + 1}`;
 }
 
 function prettyResult(r: string): string {
@@ -523,39 +605,20 @@ function UserInputs({
   label,
   username,
   setUsername,
-  max,
-  setMax,
 }: {
   label: string;
   username: string;
   setUsername: (v: string) => void;
-  max: number;
-  setMax: (n: number) => void;
 }) {
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-        <label className="meta" style={{ fontSize: 12 }}>{label}</label>
-        <input
-          value={username}
-          onChange={(e) => setUsername(e.target.value)}
-          placeholder="e.g. Hikaru"
-          style={inputStyle}
-        />
-      </div>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 6, width: 180 }}>
-        <label className="meta" style={{ fontSize: 12 }}>Max games (1–200)</label>
-        <input
-          type="number"
-          min={1}
-          max={200}
-          value={max}
-          onChange={(e) =>
-            setMax(Math.max(1, Math.min(200, Number(e.target.value) || 1)))
-          }
-          style={inputStyle}
-        />
-      </div>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+      <label className="meta" style={{ fontSize: 12 }}>{label}</label>
+      <input
+        value={username}
+        onChange={(e) => setUsername(e.target.value)}
+        placeholder="e.g. Hikaru"
+        style={inputStyle}
+      />
     </div>
   );
 }
@@ -594,7 +657,7 @@ function FilterControls({
 
       <div
         style={{ display: 'flex', gap: 10 }}
-        title={yearEnabled ? undefined : 'Use the Max games slider for chess.com / lichess'}
+        title={yearEnabled ? undefined : 'Only available for the database source'}
       >
         <div style={{ display: 'flex', flexDirection: 'column', gap: 6, flex: 1 }}>
           <label className="meta" style={{ fontSize: 12 }}>Year from</label>
@@ -709,22 +772,35 @@ function PositionFilter({
   fen,
   study,
   onFen,
+  allowNodePicker,
 }: {
   fen: string;
   study: OpeningStudyFull | null;
   onFen: (fen: string) => void;
+  allowNodePicker: boolean;
 }) {
-  const [mode, setMode] = useState<PositionMode>('free');
+  // Default mode is "play" — the trainer plays moves on the start board to
+  // narrow the filter. "Pick study node" only makes sense when we have a
+  // study context (i.e. we're in the per-study importer).
+  const [mode, setMode] = useState<PositionMode>('play');
+  const atStart = normFen(fen) === NORM_START;
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
       <Segmented
         value={mode}
         onChange={setMode}
-        options={[
-          { value: 'free', label: 'Free editor' },
-          { value: 'play', label: 'Play moves' },
-          { value: 'node', label: 'Pick study node' },
-        ]}
+        options={
+          allowNodePicker
+            ? [
+                { value: 'free', label: 'Free editor' },
+                { value: 'play', label: 'Play moves' },
+                { value: 'node', label: 'Pick study node' },
+              ]
+            : [
+                { value: 'free', label: 'Free editor' },
+                { value: 'play', label: 'Play moves' },
+              ]
+        }
       />
       {mode === 'free' && (
         <PositionSetupBoard
@@ -736,12 +812,17 @@ function PositionFilter({
       {mode === 'play' && (
         <PlayFromStartBoard onFen={onFen} maxBoardWidth={360} />
       )}
-      {mode === 'node' && (
+      {mode === 'node' && allowNodePicker && (
         <StudyNodePicker
           study={study}
           selectedFen={fen}
           onPick={onFen}
         />
+      )}
+      {atStart && (
+        <div className="meta" style={{ fontSize: 12 }}>
+          All games match — play moves on the board to filter.
+        </div>
       )}
       <div className="meta" style={{ fontSize: 11.5, fontFamily: 'var(--font-mono)' }}>
         Filter FEN: {fen}
@@ -750,7 +831,7 @@ function PositionFilter({
   );
 }
 
-function ResultsList({
+function ResultsView({
   stage,
   studyRoot,
   onToggle,
@@ -767,6 +848,7 @@ function ResultsList({
   onContinue: () => void;
   busy: boolean;
 }) {
+  const useGrid = stage.source === 'base';
   return (
     <Card style={{ padding: 14, display: 'flex', flexDirection: 'column', gap: 10 }}>
       <div
@@ -778,9 +860,11 @@ function ResultsList({
           flexWrap: 'wrap',
         }}
       >
-        <div className="meta" style={{ fontSize: 13 }}>
-          Showing {stage.games.length} of {stage.total.toLocaleString()} games
-          {stage.source === 'base' ? '' : ' (post-filtered)'}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <Chip>Showing {stage.games.length} of {stage.total.toLocaleString()}</Chip>
+          {stage.source !== 'base' && (
+            <span className="meta" style={{ fontSize: 12 }}>post-filtered</span>
+          )}
         </div>
         <div style={{ display: 'flex', gap: 6 }}>
           <Btn variant="ghost" size="sm" onClick={onSelectAll} disabled={busy}>
@@ -791,78 +875,11 @@ function ResultsList({
           </Btn>
         </div>
       </div>
-      <div
-        className="scroll-thin"
-        style={{
-          maxHeight: '60vh',
-          overflow: 'auto',
-          display: 'flex',
-          flexDirection: 'column',
-          gap: 6,
-        }}
-      >
-        {stage.games.length === 0 && (
-          <div className="meta" style={{ padding: 18, fontSize: 13, textAlign: 'center' }}>
-            No games match those filters.
-          </div>
-        )}
-        {stage.games.map((g) => {
-          const checked = stage.selected.has(g.key);
-          const disabled = !g.matchesStudyRoot;
-          return (
-            <label
-              key={g.key}
-              title={
-                disabled
-                  ? `This chapter starts from a different position than the study root (${studyRoot})`
-                  : undefined
-              }
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 12,
-                padding: 10,
-                borderRadius: 10,
-                border: `1px solid ${checked ? 'var(--accent-ring)' : 'var(--inset-border)'}`,
-                background: checked ? 'var(--accent-soft)' : 'var(--inset-bg)',
-                cursor: disabled ? 'not-allowed' : 'pointer',
-                opacity: disabled ? 0.55 : 1,
-              }}
-            >
-              <FenBoard fen={g.fen} size={56} coordinates={false} />
-              <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 3 }}>
-                {g.whiteName || g.blackName ? (
-                  <div style={{ fontSize: 13.5 }}>
-                    <strong>{g.whiteName ?? '?'}</strong>
-                    {g.whiteElo ? ` (${g.whiteElo})` : ''}
-                    {' vs '}
-                    <strong>{g.blackName ?? '?'}</strong>
-                    {g.blackElo ? ` (${g.blackElo})` : ''}
-                  </div>
-                ) : (
-                  <div style={{ fontSize: 13.5, fontWeight: 600 }}>{g.event ?? ''}</div>
-                )}
-                <div className="meta" style={{ fontSize: 11.5 }}>
-                  {g.whiteName || g.blackName ? (g.event ?? '') : null}
-                  {g.event && g.date ? ' · ' : ''}
-                  {g.date ? g.date.slice(0, 10) : ''}
-                </div>
-              </div>
-              {g.result && (
-                <Chip variant="mono" mono>
-                  {g.result}
-                </Chip>
-              )}
-              <input
-                type="checkbox"
-                checked={checked}
-                disabled={disabled}
-                onChange={() => onToggle(g.key)}
-              />
-            </label>
-          );
-        })}
-      </div>
+      {useGrid ? (
+        <DbCardGrid stage={stage} onToggle={onToggle} />
+      ) : (
+        <SourceList stage={stage} studyRoot={studyRoot} onToggle={onToggle} />
+      )}
       <div
         style={{
           display: 'flex',
@@ -879,6 +896,277 @@ function ResultsList({
         >
           <IconDownload size={13} strokeWidth={2.4} />
           Import {stage.selected.size} selected →
+        </Btn>
+      </div>
+    </Card>
+  );
+}
+
+function DbCardGrid({
+  stage,
+  onToggle,
+}: {
+  stage: Extract<Stage, { kind: 'results' }>;
+  onToggle: (k: string) => void;
+}) {
+  if (stage.games.length === 0) {
+    return (
+      <div className="meta" style={{ padding: 24, fontSize: 13, textAlign: 'center' }}>
+        No games match those filters.
+      </div>
+    );
+  }
+  return (
+    <div
+      className="scroll-thin"
+      style={{
+        maxHeight: '64vh',
+        overflow: 'auto',
+        display: 'grid',
+        gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))',
+        gap: 16,
+        padding: 2,
+      }}
+    >
+      {stage.games.map((g) => {
+        const checked = stage.selected.has(g.key);
+        return (
+          <button
+            key={g.key}
+            type="button"
+            onClick={() => onToggle(g.key)}
+            style={{
+              display: 'flex',
+              flexDirection: 'column',
+              gap: 8,
+              padding: 12,
+              borderRadius: 12,
+              border: `1px solid ${checked ? 'var(--accent-ring)' : 'var(--inset-border)'}`,
+              background: checked ? 'var(--accent-soft)' : 'var(--inset-bg)',
+              cursor: 'pointer',
+              textAlign: 'left',
+              color: 'var(--text)',
+              font: 'inherit',
+            }}
+          >
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                gap: 8,
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                {g.result && (
+                  <Chip variant="mono" mono>{g.result}</Chip>
+                )}
+                <span className="meta" style={{ fontSize: 11.5 }}>
+                  {g.date ? g.date.slice(0, 10) : ''}
+                </span>
+              </div>
+              <input
+                type="checkbox"
+                checked={checked}
+                onChange={() => onToggle(g.key)}
+                onClick={(e) => e.stopPropagation()}
+              />
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'center' }}>
+              <FenBoard fen={g.fen} size={140} coordinates={false} />
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+              <div style={{ fontSize: 13 }}>
+                <strong>{g.whiteName ?? '?'}</strong>
+                {g.whiteElo ? ` (${g.whiteElo})` : ''}
+              </div>
+              <div style={{ fontSize: 13 }}>
+                <strong>{g.blackName ?? '?'}</strong>
+                {g.blackElo ? ` (${g.blackElo})` : ''}
+              </div>
+              {(g.event || g.opening) && (
+                <div
+                  className="meta"
+                  style={{
+                    fontSize: 11.5,
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    whiteSpace: 'nowrap',
+                  }}
+                >
+                  {g.event ?? ''}
+                  {g.event && g.opening ? ' · ' : ''}
+                  {g.opening ?? ''}
+                </div>
+              )}
+            </div>
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+function SourceList({
+  stage,
+  studyRoot,
+  onToggle,
+}: {
+  stage: Extract<Stage, { kind: 'results' }>;
+  studyRoot: string;
+  onToggle: (k: string) => void;
+}) {
+  return (
+    <div
+      className="scroll-thin"
+      style={{
+        maxHeight: '60vh',
+        overflow: 'auto',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: 6,
+      }}
+    >
+      {stage.games.length === 0 && (
+        <div className="meta" style={{ padding: 18, fontSize: 13, textAlign: 'center' }}>
+          No games match those filters.
+        </div>
+      )}
+      {stage.games.map((g) => {
+        const checked = stage.selected.has(g.key);
+        const disabled = !g.matchesStudyRoot;
+        return (
+          <label
+            key={g.key}
+            title={
+              disabled
+                ? `This chapter starts from a different position than the study root (${studyRoot})`
+                : undefined
+            }
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 12,
+              padding: 10,
+              borderRadius: 10,
+              border: `1px solid ${checked ? 'var(--accent-ring)' : 'var(--inset-border)'}`,
+              background: checked ? 'var(--accent-soft)' : 'var(--inset-bg)',
+              cursor: disabled ? 'not-allowed' : 'pointer',
+              opacity: disabled ? 0.55 : 1,
+            }}
+          >
+            <FenBoard fen={g.fen} size={56} coordinates={false} />
+            <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 3 }}>
+              {g.whiteName || g.blackName ? (
+                <div style={{ fontSize: 13.5 }}>
+                  <strong>{g.whiteName ?? '?'}</strong>
+                  {g.whiteElo ? ` (${g.whiteElo})` : ''}
+                  {' vs '}
+                  <strong>{g.blackName ?? '?'}</strong>
+                  {g.blackElo ? ` (${g.blackElo})` : ''}
+                </div>
+              ) : (
+                <div style={{ fontSize: 13.5, fontWeight: 600 }}>{g.event ?? ''}</div>
+              )}
+              <div className="meta" style={{ fontSize: 11.5 }}>
+                {g.whiteName || g.blackName ? (g.event ?? '') : null}
+                {g.event && g.date ? ' · ' : ''}
+                {g.date ? g.date.slice(0, 10) : ''}
+              </div>
+            </div>
+            {g.result && (
+              <Chip variant="mono" mono>
+                {g.result}
+              </Chip>
+            )}
+            <input
+              type="checkbox"
+              checked={checked}
+              disabled={disabled}
+              onChange={() => onToggle(g.key)}
+            />
+          </label>
+        );
+      })}
+    </div>
+  );
+}
+
+function ChooseStudyPanel({
+  studies,
+  busy,
+  onBack,
+  onChoose,
+}: {
+  studies: OpeningStudySummary[] | null;
+  busy: boolean;
+  onBack: () => void;
+  onChoose: (id: number) => void;
+}) {
+  return (
+    <Card style={{ padding: 14, display: 'flex', flexDirection: 'column', gap: 10 }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+        <h2 style={{ margin: 0, fontSize: 16, fontWeight: 600 }}>Choose a study to import into</h2>
+        <p className="meta" style={{ margin: 0, fontSize: 12 }}>
+          The picked games will be appended to this opening study.
+        </p>
+      </div>
+      <div
+        className="scroll-thin"
+        style={{
+          maxHeight: '60vh',
+          overflow: 'auto',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 6,
+        }}
+      >
+        {studies == null && (
+          <div className="meta" style={{ padding: 18, fontSize: 13, textAlign: 'center' }}>
+            Loading…
+          </div>
+        )}
+        {studies != null && studies.length === 0 && (
+          <div className="meta" style={{ padding: 18, fontSize: 13, textAlign: 'center' }}>
+            You don't have any opening studies yet.
+          </div>
+        )}
+        {(studies ?? []).map((s) => (
+          <div
+            key={s.id}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 12,
+              padding: 12,
+              borderRadius: 10,
+              border: '1px solid var(--inset-border)',
+              background: 'var(--inset-bg)',
+            }}
+          >
+            <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 2 }}>
+              <div style={{ fontSize: 14, fontWeight: 600 }}>{s.name}</div>
+              <div className="meta" style={{ fontSize: 11.5 }}>
+                {s.side === 'w' ? 'White' : 'Black'}
+                {s.eco ? ` · ${s.eco}` : ''}
+                {' · '}
+                {s.annotation_count} chapter{s.annotation_count === 1 ? '' : 's'}
+              </div>
+            </div>
+            <Btn
+              variant="primary"
+              size="sm"
+              disabled={busy}
+              onClick={() => onChoose(s.id)}
+            >
+              Choose
+            </Btn>
+          </div>
+        ))}
+      </div>
+      <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
+        <Btn variant="ghost" onClick={onBack} disabled={busy}>
+          Back
         </Btn>
       </div>
     </Card>

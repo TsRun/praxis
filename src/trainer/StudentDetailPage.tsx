@@ -4,9 +4,11 @@ import {
   trainerStudent,
   trainerStudies,
   trainerGames,
+  trainerTactics,
   type StudentDetail,
   type OpeningStudySummary,
   type GameStudySummary,
+  type TacticSetSummary,
 } from '../lib/api';
 import { Card, Btn, Chip, Avatar } from '../components/ui/atoms';
 import { IconCheck, IconClock } from '../components/ui/Icons';
@@ -17,6 +19,7 @@ export function StudentDetailPage() {
   const [detail, setDetail] = useState<StudentDetail | null>(null);
   const [opens, setOpens] = useState<OpeningStudySummary[]>([]);
   const [games, setGames] = useState<GameStudySummary[]>([]);
+  const [tactics, setTactics] = useState<TacticSetSummary[]>([]);
 
   async function refresh() {
     setDetail(await trainerStudent.get(numId));
@@ -27,9 +30,10 @@ export function StudentDetailPage() {
   useEffect(() => {
     trainerStudies.list().then(setOpens);
     trainerGames.list().then(setGames);
+    trainerTactics.list().then(setTactics);
   }, []);
 
-  async function assign(kind: 'opening' | 'game', studyId: number) {
+  async function assign(kind: 'opening' | 'game' | 'tactic', studyId: number) {
     await trainerStudent.assign(numId, kind, studyId);
     refresh();
   }
@@ -45,10 +49,10 @@ export function StudentDetailPage() {
 
   return (
     <div
+      className="page-wrap"
       style={{
-        maxWidth: 1400,
-        margin: '0 auto',
-        padding: '32px 28px 100px',
+        paddingTop: 32,
+        paddingBottom: 100,
         display: 'flex',
         flexDirection: 'column',
         gap: 24,
@@ -60,14 +64,15 @@ export function StudentDetailPage() {
           display: 'flex',
           alignItems: 'center',
           gap: 18,
+          flexWrap: 'wrap',
         }}
       >
         <Avatar name={detail.name} size="xl" />
-        <div style={{ flex: 1 }}>
+        <div style={{ flex: 1, minWidth: 200 }}>
           <h1 className="t-h1" style={{ margin: 0 }}>{detail.name}</h1>
           <div className="meta" style={{ marginTop: 6 }}>{detail.email}</div>
         </div>
-        <div style={{ display: 'flex', gap: 10 }}>
+        <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
           <Chip variant="success">● Linked</Chip>
           <Chip mono>{detail.assignments.length} assigned</Chip>
         </div>
@@ -95,11 +100,12 @@ export function StudentDetailPage() {
                   display: 'flex',
                   alignItems: 'center',
                   gap: 12,
+                  flexWrap: 'wrap',
                 }}
               >
                 <Chip variant="mono">{a.study_kind.toUpperCase()}</Chip>
-                <strong style={{ fontSize: 14 }}>{a.name}</strong>
-                <span style={{ marginLeft: 'auto' }} className="meta">
+                <strong style={{ fontSize: 14, minWidth: 0, flex: '1 1 auto' }}>{a.name}</strong>
+                <span style={{ marginLeft: 'auto' }} className="meta hide-mobile">
                   {a.completed_at ? (
                     <span style={{ color: 'var(--success)', display: 'inline-flex', alignItems: 'center', gap: 6 }}>
                       <IconCheck size={14} strokeWidth={2.6} />
@@ -122,7 +128,7 @@ export function StudentDetailPage() {
         <h2 className="t-h2" style={{ margin: '0 0 12px' }}>
           Assign new
         </h2>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+        <div className="grid-2" style={{ alignItems: 'start', gap: 16 }}>
           <Card style={{ padding: 14 }}>
             <h3 className="t-h3" style={{ margin: '0 0 10px' }}>Opening studies</h3>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
@@ -189,6 +195,43 @@ export function StudentDetailPage() {
                       size="sm"
                       disabled={already}
                       onClick={() => assign('game', s.id)}
+                    >
+                      {already ? 'Assigned' : '+ Assign'}
+                    </Btn>
+                  </div>
+                );
+              })}
+            </div>
+          </Card>
+          <Card style={{ padding: 14 }}>
+            <h3 className="t-h3" style={{ margin: '0 0 10px' }}>Tactical sets</h3>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+              {tactics.length === 0 && (
+                <div className="meta" style={{ padding: 10 }}>
+                  No tactical sets.
+                </div>
+              )}
+              {tactics.map((s) => {
+                const already = assignedIds.has(`tactic:${s.id}`);
+                return (
+                  <div
+                    key={s.id}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 10,
+                      padding: '8px 10px',
+                      borderRadius: 8,
+                      background: 'var(--inset-bg)',
+                      border: '1px solid var(--inset-border)',
+                    }}
+                  >
+                    <span style={{ flex: 1, fontSize: 13.5 }}>{s.name}</span>
+                    <Btn
+                      variant={already ? 'ghost' : 'secondary'}
+                      size="sm"
+                      disabled={already}
+                      onClick={() => assign('tactic', s.id)}
                     >
                       {already ? 'Assigned' : '+ Assign'}
                     </Btn>

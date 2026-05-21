@@ -59,13 +59,7 @@ export function DashboardPage() {
   const top = active[0];
 
   return (
-    <div
-      style={{
-        maxWidth: 1400,
-        margin: '0 auto',
-        padding: '32px 28px 100px',
-      }}
-    >
+    <div className="page-wrap" style={{ paddingTop: 32, paddingBottom: 100 }}>
       {/* greeting */}
       <div
         style={{
@@ -73,6 +67,7 @@ export function DashboardPage() {
           alignItems: 'flex-end',
           gap: 24,
           marginBottom: 28,
+          flexWrap: 'wrap',
         }}
       >
         <div style={{ flex: 1 }}>
@@ -86,16 +81,14 @@ export function DashboardPage() {
           </div>
         </div>
         <div style={{ display: 'flex', gap: 14 }}>
-          <MiniStat value="—" label="day streak" accent />
-          <MiniStat value={active.length} label="active" />
+          <MiniStat value={active.length} label="active" accent />
           <MiniStat value={done.length} label="completed" />
         </div>
       </div>
 
       <div
+        className="grid-2"
         style={{
-          display: 'grid',
-          gridTemplateColumns: '1.05fr 1fr',
           gap: 24,
           alignItems: 'start',
         }}
@@ -184,7 +177,11 @@ export function DashboardPage() {
                   }}
                 >
                   <Chip variant="mono" style={{ height: 20, padding: '0 6px' }}>
-                    {top.study_kind === 'opening' ? 'OPENING' : 'GAME'}
+                    {top.study_kind === 'opening'
+                      ? 'OPENING'
+                      : top.study_kind === 'game'
+                        ? 'GAME'
+                        : 'TACTIC'}
                   </Chip>
                   assigned {relativeDate(top.assigned_at)}
                 </div>
@@ -192,23 +189,27 @@ export function DashboardPage() {
 
               <div
                 style={{
-                  display: 'grid',
-                  gridTemplateColumns: '220px 1fr',
+                  display: 'flex',
+                  flexWrap: 'wrap',
                   gap: 22,
                   alignItems: 'center',
                   position: 'relative',
                 }}
               >
-                <FenBoard
-                  fen={START_FEN}
-                  size={220}
-                  coordinates={false}
-                />
+                <div style={{ width: 'min(220px, 100%)', aspectRatio: '1 / 1', flexShrink: 0 }}>
+                  <FenBoard
+                    fen={START_FEN}
+                    size={220}
+                    coordinates={false}
+                  />
+                </div>
                 <div
                   style={{
                     display: 'flex',
                     flexDirection: 'column',
                     gap: 16,
+                    flex: '1 1 260px',
+                    minWidth: 0,
                   }}
                 >
                   <div className="meta" style={{ fontSize: 14, lineHeight: 1.55 }}>
@@ -216,9 +217,8 @@ export function DashboardPage() {
                     positions you've seen before.
                   </div>
                   <div
+                    className="grid-3"
                     style={{
-                      display: 'grid',
-                      gridTemplateColumns: '1fr 1fr 1fr',
                       gap: 10,
                     }}
                   >
@@ -226,12 +226,10 @@ export function DashboardPage() {
                     <BreakdownTile l="New today" v="—" />
                     <BreakdownTile l="Reviewing" v="—" />
                   </div>
-                  <div style={{ display: 'flex', gap: 10 }}>
+                  <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
                     <Link
                       to={
-                        top.study_kind === 'opening'
-                          ? `/student/study/opening/${top.study_id}`
-                          : `/student/study/game/${top.study_id}`
+                        `/student/study/${top.study_kind}/${top.study_id}`
                       }
                     >
                       <Btn variant="primary" size="lg">
@@ -240,9 +238,7 @@ export function DashboardPage() {
                     </Link>
                     <Link
                       to={
-                        top.study_kind === 'opening'
-                          ? `/student/study/opening/${top.study_id}`
-                          : `/student/study/game/${top.study_id}`
+                        `/student/study/${top.study_kind}/${top.study_id}`
                       }
                     >
                       <Btn variant="secondary" size="lg">Explore tree</Btn>
@@ -323,9 +319,6 @@ export function DashboardPage() {
                 {active.length} studies assigned to you
               </div>
             </div>
-            <Btn variant="secondary" size="sm">
-              Message
-            </Btn>
           </Card>
 
           <Card style={{ padding: 18 }}>
@@ -540,10 +533,7 @@ function BreakdownTile({
 }
 
 function AssignmentRowCard({ a }: { a: AssignmentRow }) {
-  const path =
-    a.study_kind === 'opening'
-      ? `/student/study/opening/${a.study_id}`
-      : `/student/study/game/${a.study_id}`;
+  const path = `/student/study/${a.study_kind}/${a.study_id}`;
   const isDone = a.completed_at != null;
   return (
     <Link to={path} style={{ textDecoration: 'none', color: 'inherit' }}>
@@ -596,7 +586,7 @@ function AssignmentRowCard({ a }: { a: AssignmentRow }) {
             {isDone && <span>· completed {relativeDate(a.completed_at!)}</span>}
           </div>
         </div>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+        <div className="hide-mobile" style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
           <div
             style={{
               display: 'flex',

@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Navigate, useNavigate } from 'react-router-dom';
 import { useAuth } from './AuthContext';
 import { defaultLandingForRoles } from './routing';
-import { ALL_ROLES, type Role } from '../lib/api';
+import { ALL_ROLES, type CurrentUser, type Role } from '../lib/api';
 import { Card, Btn } from '../components/ui/atoms';
 import { IconMortar, IconUser, IconClock } from '../components/ui/Icons';
 
@@ -13,17 +13,16 @@ const ROLE_LABELS: Record<Role, { title: string; sub: string; Icon: typeof IconM
 };
 
 /**
- * Shown after first sign-in for users who have no roles yet (currently:
- * brand-new accounts from the Google OAuth callback). Once they commit, the
- * AuthContext picks up the new roles and routing.ts decides where to land.
+ * Onboarding page for first-time accounts with empty roles[] — currently
+ * brand-new Google OAuth sign-ins. The OAuth callback gives us a sane default
+ * nickname (Google profile name or email prefix), but trainers find students
+ * by nickname, so we let the user edit it before committing. We save the
+ * profile change first so a nickname conflict surfaces before the roles
+ * commit — picking roles with a dup name would land them on a dashboard with
+ * a no-op trainer-link link.
  */
 export function RolePicker() {
-  const { user, loading, setRoles } = useAuth();
-  const navigate = useNavigate();
-  const [picked, setPicked] = useState<Set<Role>>(new Set());
-  const [busy, setBusy] = useState(false);
-  const [err, setErr] = useState<string | null>(null);
-
+  const { user, loading } = useAuth();
   if (loading) {
     return <div style={{ padding: 32, color: 'var(--text-faint)' }}>Loading…</div>;
   }
@@ -32,6 +31,19 @@ export function RolePicker() {
   if (user.roles.length > 0) {
     return <Navigate to={defaultLandingForRoles(user.roles)} replace />;
   }
+  // The inner form takes the loaded user as a prop so its useState defaults
+  // can safely initialise from user.name (initialising from useAuth() inside
+  // the same component sees null on the first render).
+  return <OnboardingForm user={user} />;
+}
+
+function OnboardingForm({ user }: { user: CurrentUser }) {
+  const { setRoles, updateProfile } = useAuth();
+  const navigate = useNavigate();
+  const [name, setName] = useState(user.name);
+  const [picked, setPicked] = useState<Set<Role>>(new Set());
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
 
   function toggle(r: Role) {
     setPicked((prev) => {
@@ -43,6 +55,11 @@ export function RolePicker() {
   }
 
   async function commit() {
+    const trimmed = name.trim();
+    if (!trimmed) {
+      setErr('Pick a nickname.');
+      return;
+    }
     if (picked.size === 0) {
       setErr('Pick at least one role.');
       return;
@@ -50,6 +67,9 @@ export function RolePicker() {
     setBusy(true);
     setErr(null);
     try {
+      if (trimmed !== user.name) {
+        await updateProfile({ name: trimmed });
+      }
       await setRoles([...picked]);
       navigate(defaultLandingForRoles([...picked]), { replace: true });
     } catch (e) {
@@ -66,20 +86,37 @@ export function RolePicker() {
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        padding: 32,
+        padding: 'clamp(16px, 5vw, 32px)',
       }}
     >
-      <Card style={{ padding: 32, maxWidth: 520, width: '100%' }}>
+      <Card style={{ padding: 'clamp(20px, 5vw, 32px)', maxWidth: 520, width: '100%' }}>
         <h1 style={{ fontSize: 22, fontWeight: 600, margin: '0 0 6px', letterSpacing: '-0.01em' }}>
-          Welcome, {user.name}
+          Welcome to Praxis
         </h1>
         <p style={{ fontSize: 14, color: 'var(--text-dim)', margin: '0 0 22px', lineHeight: 1.5 }}>
-          Pick how you plan to use Praxis. You can be a trainer for some
-          students and a student for someone else — combinations are allowed,
-          and you can change this later.
+          Pick a nickname and how you plan to use Praxis. Trainers find students
+          by nickname, so make it something you don't mind sharing. You can be a
+          trainer for some students and a student for someone else — and you
+          can change all of this later.
         </p>
 
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 10, marginBottom: 22 }}>
+        <label
+          style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 18 }}
+        >
+          <span style={{ fontSize: 13, color: 'var(--text-dim)' }}>Nickname</span>
+          <input
+            className="input"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            placeholder="e.g. magnusfan_42"
+            autoFocus
+          />
+        </label>
+
+        <div style={{ fontSize: 13, color: 'var(--text-dim)', marginBottom: 8 }}>
+          Your roles
+        </div>
+        <div className="grid-3" style={{ gap: 10, marginBottom: 22 }}>
           {ALL_ROLES.map((r) => {
             const on = picked.has(r);
             const { Icon, title, sub } = ROLE_LABELS[r];
@@ -113,7 +150,7 @@ export function RolePicker() {
           variant="primary"
           size="lg"
           onClick={commit}
-          disabled={busy || picked.size === 0}
+          disabled={busy || picked.size === 0 || !name.trim()}
           style={{ width: '100%', justifyContent: 'center' }}
         >
           {busy ? 'Saving…' : 'Continue →'}

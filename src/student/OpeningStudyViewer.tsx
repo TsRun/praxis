@@ -12,6 +12,7 @@ import {
 import { pathToNode } from '../lib/opening-tree';
 import { useOpeningTreeNav } from '../hooks/useOpeningTreeNav';
 import { ChapterWalker } from '../components/opening/ChapterWalker';
+import { BoardToolbar } from '../components/BoardToolbar';
 import {
   Card,
   Btn,
@@ -78,13 +79,7 @@ export function OpeningStudyViewer() {
   const pct = totalChapters > 0 ? Math.round((seen / totalChapters) * 100) : 0;
 
   return (
-    <div
-      style={{
-        maxWidth: 1400,
-        margin: '0 auto',
-        padding: '24px 28px 80px',
-      }}
-    >
+    <div className="page-wrap" style={{ paddingTop: 24, paddingBottom: 80 }}>
       {/* progress hero */}
       <Card
         style={{
@@ -150,16 +145,17 @@ export function OpeningStudyViewer() {
             alignItems: 'center',
             color: 'var(--text-dim)',
             fontSize: 13,
+            flexShrink: 0,
           }}
         >
-          <IconArrowL size={14} /> Dashboard
+          <IconArrowL size={14} /> <span className="hide-mobile">Dashboard</span>
         </Link>
       </Card>
 
       {/* mode tabs */}
       <div
+        className="scroll-row"
         style={{
-          display: 'flex',
           alignItems: 'center',
           gap: 14,
           margin: '18px 0',
@@ -313,9 +309,8 @@ function DrillView({
   const turn = study.side === 'w' ? 'w' : 'b';
   return (
     <div
+      className="editor-grid"
       style={{
-        display: 'grid',
-        gridTemplateColumns: '520px 1fr',
         gap: 24,
         alignItems: 'start',
       }}
@@ -342,7 +337,18 @@ function DrillView({
           </span>
         </div>
 
-        <div ref={boardRef} style={{ width: 520, height: 520 }} />
+        <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
+          <div
+            ref={boardRef}
+            style={{ width: '100%', maxWidth: 520, aspectRatio: '1 / 1' }}
+          />
+          {card && (
+            <BoardToolbar
+              fen={`${card.parent_fen} 0 1`}
+              orientation={flip ? 'black' : 'white'}
+            />
+          )}
+        </div>
 
         <Card
           style={{
@@ -410,7 +416,7 @@ function DrillView({
             </span>
           </div>
           <Btn variant="ghost" size="sm" onClick={() => setFlip(!flip)}>
-            <IconFlip size={12} strokeWidth={2.4} /> Flip
+            <IconFlip size={12} strokeWidth={2.4} />
           </Btn>
         </Card>
       </div>
@@ -418,9 +424,8 @@ function DrillView({
       {/* right: stats + feedback + up-next */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
         <div
+          className="grid-3"
           style={{
-            display: 'grid',
-            gridTemplateColumns: '1fr 1fr 1fr',
             gap: 10,
           }}
         >
@@ -748,9 +753,8 @@ function TreeMode({
 
   return (
     <div
+      className="editor-grid"
       style={{
-        display: 'grid',
-        gridTemplateColumns: '520px 1fr',
         gap: 24,
         alignItems: 'start',
       }}
@@ -766,10 +770,14 @@ function TreeMode({
               : 'Start position'}
           </span>
           <Btn variant="ghost" size="sm" onClick={() => setFlip(!flip)}>
-            <IconFlip size={12} strokeWidth={2.4} /> Flip
+            <IconFlip size={12} strokeWidth={2.4} />
           </Btn>
         </div>
-        <FixedReadOnlyBoard fen={fen} lastMove={lastMove} flip={flip} />
+        <FixedReadOnlyBoard
+          fen={fen}
+          lastMove={lastMove}
+          flip={flip}
+        />
         {currentChapter && (
           <Card
             style={{
@@ -981,7 +989,12 @@ function FixedReadOnlyBoard({
     });
   }, [fen, lastMove, flip]);
 
-  return <div ref={ref} style={{ width: 520, height: 520 }} />;
+  return (
+    <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
+      <div ref={ref} style={{ width: '100%', maxWidth: 520, aspectRatio: '1 / 1' }} />
+      <BoardToolbar fen={fen} orientation={flip ? 'black' : 'white'} />
+    </div>
+  );
 }
 
 /* ─────────────────────────── Chapters view (student) ────────────────────────── */

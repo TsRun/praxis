@@ -2,6 +2,7 @@ import { useEffect, useRef } from 'react';
 import { Chessground } from 'chessground';
 import type { Api } from 'chessground/api';
 import type { Color, Key } from 'chessground/types';
+import { BoardToolbar } from '../BoardToolbar';
 
 interface FenBoardProps {
   fen: string;
@@ -9,11 +10,18 @@ interface FenBoardProps {
   lastMove?: string | null;
   /** Show board from black's perspective. */
   flip?: boolean;
-  /** Width in pixels. Square. */
+  /**
+   * Cap width in pixels (board is square). The board fills the parent up to
+   * this cap, so the parent's width controls actual rendered size on small
+   * viewports. Use a fixed-size wrapper if you need a strict square.
+   */
   size?: number;
   className?: string;
   /** When false, hides chessground coordinate labels (used by mini thumbnails). */
   coordinates?: boolean;
+  /** Show the side board toolbar (copy diagram, paste FEN when wired).
+   * Opt-in because tiny preview thumbnails don't need it. */
+  toolbar?: boolean;
 }
 
 function parseLast(uci: string | null | undefined): [Key, Key] | undefined {
@@ -31,6 +39,7 @@ export function FenBoard({
   size = 480,
   className = '',
   coordinates = true,
+  toolbar = false,
 }: FenBoardProps) {
   const ref = useRef<HTMLDivElement | null>(null);
   const apiRef = useRef<Api | null>(null);
@@ -63,11 +72,25 @@ export function FenBoard({
     });
   }, [fen, lastMove, flip]);
 
+  if (!toolbar) {
+    return (
+      <div
+        ref={ref}
+        className={className}
+        style={{ width: '100%', maxWidth: size, aspectRatio: '1 / 1' }}
+      />
+    );
+  }
   return (
     <div
-      ref={ref}
       className={className}
-      style={{ width: size, height: size }}
-    />
+      style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}
+    >
+      <div
+        ref={ref}
+        style={{ width: '100%', maxWidth: size, aspectRatio: '1 / 1' }}
+      />
+      <BoardToolbar fen={fen} orientation={flip ? 'black' : 'white'} />
+    </div>
   );
 }

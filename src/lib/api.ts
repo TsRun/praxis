@@ -51,6 +51,26 @@ export const auth = {
     }),
 };
 
+export interface ApiKeyRow {
+  id: number;
+  name: string;
+  key_prefix: string;
+  created_at: string;
+  last_used_at: string | null;
+}
+
+export interface ApiKeyMinted extends ApiKeyRow {
+  /** Returned ONCE on mint; never shown again. */
+  key: string;
+}
+
+export const apiKeys = {
+  list: () => api.get<ApiKeyRow[]>('/api/auth/api-keys'),
+  create: (name: string) =>
+    api.post<ApiKeyMinted>('/api/auth/api-keys', { name }),
+  revoke: (id: number) => api.del<{ ok: true }>(`/api/auth/api-keys/${id}`),
+};
+
 export interface InviteInfo {
   token: string;
   expires_at: string;
@@ -116,7 +136,7 @@ export const trainer = {
 
 export const trainerStudent = {
   get: (id: number) => api.get<StudentDetail>(`/api/trainer/students/${id}`),
-  assign: (id: number, study_kind: 'opening' | 'game', study_id: number) =>
+  assign: (id: number, study_kind: 'opening' | 'game' | 'tactic', study_id: number) =>
     api.post<{ ok: true }>(`/api/trainer/students/${id}/assignments`, { study_kind, study_id }),
 };
 
@@ -184,7 +204,7 @@ export const trainerStudies = {
       body_md,
     }),
   importPreview: (id: number, pgn: string) =>
-    api.post<{ chapters: LichessChapterPreview[] }>(
+    api.post<{ chapters: ImportChapterPreview[] }>(
       `/api/trainer/studies/opening/${id}/import-preview`,
       { pgn },
     ),
@@ -193,14 +213,111 @@ export const trainerStudies = {
       `/api/trainer/studies/opening/${id}/import`,
       { pgn, chapter_indexes },
     ),
+  fetchChessCom: (
+    id: number,
+    username: string,
+    filters?: SourceFetchFilters,
+  ) =>
+    api.post<{ pgn: string; chapters: ImportChapterPreview[] }>(
+      `/api/trainer/studies/opening/${id}/fetch-chesscom`,
+      { username, ...serializeSourceFilters(filters) },
+    ),
+  fetchLichessUser: (
+    id: number,
+    username: string,
+    filters?: SourceFetchFilters,
+  ) =>
+    api.post<{ pgn: string; chapters: ImportChapterPreview[] }>(
+      `/api/trainer/studies/opening/${id}/fetch-lichess`,
+      { username, ...serializeSourceFilters(filters) },
+    ),
+  fetchBaseGames: (id: number, game_ids: number[]) =>
+    api.post<{ pgn: string; chapters: ImportChapterPreview[] }>(
+      `/api/trainer/studies/opening/${id}/fetch-base`,
+      { game_ids },
+    ),
+  searchBaseGames: (params: BaseSearchFilters) => {
+    const q = new URLSearchParams();
+    if (params.player) q.set('player', params.player);
+    if (params.color && params.color !== 'either') q.set('color', params.color);
+    if (params.year_from != null) q.set('year_from', String(params.year_from));
+    if (params.year_to != null) q.set('year_to', String(params.year_to));
+    if (params.results && params.results.length > 0) {
+      q.set('result', params.results.join(','));
+    }
+    if (params.eco) q.set('eco', params.eco);
+    if (params.min_elo != null) q.set('min_elo', String(params.min_elo));
+    if (params.position_fen) q.set('position_fen', params.position_fen);
+    if (params.limit != null) q.set('limit', String(params.limit));
+    if (params.offset != null) q.set('offset', String(params.offset));
+    const qs = q.toString();
+    return api.get<BaseSearchResult>(
+      `/api/trainer/games${qs ? `?${qs}` : ''}`,
+    );
+  },
 };
 
-export interface LichessChapterPreview {
+export type TimeControlBucket = 'bullet' | 'blitz' | 'rapid' | 'classical';
+
+export interface BaseSearchFilters {
+  player?: string;
+  color?: 'white' | 'black' | 'either';
+  year_from?: number;
+  year_to?: number;
+  results?: string[]; // '1-0' | '0-1' | '1/2-1/2'
+  eco?: string;
+  min_elo?: number;
+  position_fen?: string;
+  limit?: number;
+  offset?: number;
+}
+
+export interface SourceFetchFilters {
+  color?: 'white' | 'black' | 'either';
+  results?: string[];
+  eco?: string;
+  min_elo?: number;
+  time_control?: TimeControlBucket[];
+  position_fen?: string;
+}
+
+function serializeSourceFilters(f?: SourceFetchFilters) {
+  if (!f) return {};
+  const out: Record<string, unknown> = {};
+  if (f.color && f.color !== 'either') out.color = f.color;
+  if (f.results && f.results.length > 0) out.result = f.results;
+  if (f.eco) out.eco = f.eco;
+  if (f.min_elo != null && f.min_elo > 0) out.min_elo = f.min_elo;
+  if (f.time_control && f.time_control.length > 0) out.time_control = f.time_control;
+  if (f.position_fen) out.position_fen = f.position_fen;
+  return out;
+}
+
+export interface ImportChapterPreview {
   index: number;
   name: string;
   mainline_move_count: number;
   root_fen: string;
   matches_study_root: boolean;
+}
+
+/** @deprecated Use ImportChapterPreview. Kept as an alias for downstream code. */
+export type LichessChapterPreview = ImportChapterPreview;
+
+export interface BaseGame {
+  id: number;
+  white_name: string | null;
+  black_name: string | null;
+  event: string | null;
+  event_date: string | null;
+  result: string;
+  white_elo: number | null;
+  black_elo: number | null;
+}
+
+export interface BaseSearchResult {
+  games: BaseGame[];
+  total: number;
 }
 
 export interface ImportResult {
@@ -244,11 +361,70 @@ export const trainerGames = {
     api.put<{ ok: true; count: number }>(`/api/trainer/studies/game/${id}/annotations`, { annotations }),
 };
 
+// ─── Tactical sets (trainer-authored) ────────────────────────────────────────
+
+export interface TacticSetSummary {
+  id: number;
+  name: string;
+  created_at: string;
+  updated_at: string;
+  puzzle_count: number;
+}
+
+export interface TacticPuzzle {
+  id: number;
+  ord: number;
+  fen: string;
+  solution_san: string[];
+  comment_md: string;
+}
+
+export interface TacticSetFull {
+  id: number;
+  name: string;
+  created_at: string;
+  updated_at: string;
+  puzzles: TacticPuzzle[];
+}
+
+export interface TacticSetForStudent {
+  id: number;
+  name: string;
+  puzzles: TacticPuzzle[];
+  solved_ids: number[];
+}
+
+export const trainerTactics = {
+  list: () => api.get<TacticSetSummary[]>('/api/trainer/studies/tactic'),
+  create: (name: string) =>
+    api.post<{ id: number }>('/api/trainer/studies/tactic', { name }),
+  get: (id: number) => api.get<TacticSetFull>(`/api/trainer/studies/tactic/${id}`),
+  rename: (id: number, name: string) =>
+    api.put<{ ok: true }>(`/api/trainer/studies/tactic/${id}`, { name }),
+  delete: (id: number) =>
+    api.del<{ ok: true }>(`/api/trainer/studies/tactic/${id}`),
+  addPuzzle: (
+    id: number,
+    body: { fen: string; solution_san: string[]; comment_md?: string },
+  ) => api.post<{ id: number }>(`/api/trainer/studies/tactic/${id}/puzzles`, body),
+  updatePuzzle: (
+    id: number,
+    pid: number,
+    body: { fen: string; solution_san: string[]; comment_md?: string },
+  ) =>
+    api.put<{ ok: true }>(
+      `/api/trainer/studies/tactic/${id}/puzzles/${pid}`,
+      body,
+    ),
+  deletePuzzle: (id: number, pid: number) =>
+    api.del<{ ok: true }>(`/api/trainer/studies/tactic/${id}/puzzles/${pid}`),
+};
+
 // ─── Student / any-user API ───────────────────────────────────────────────────
 
 export interface AssignmentRow {
   id: number;
-  study_kind: 'opening' | 'game';
+  study_kind: 'opening' | 'game' | 'tactic';
   study_id: number;
   name: string;
   assigned_at: string;
@@ -310,4 +486,11 @@ export const student = {
       expected_san: string;
       chapter: { title: string | null; body_md: string } | null;
     }>(`/api/student/studies/opening/${id}/quiz/attempt`, { node_id, attempted_san }),
+  tactic: (id: number) =>
+    api.get<TacticSetForStudent>(`/api/student/studies/tactic/${id}`),
+  tacticAttempt: (id: number, puzzle_id: number, correct: boolean) =>
+    api.post<{ ok: true }>(`/api/student/studies/tactic/${id}/attempt`, {
+      puzzle_id,
+      correct,
+    }),
 };

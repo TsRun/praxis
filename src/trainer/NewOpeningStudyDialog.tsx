@@ -6,9 +6,12 @@ interface Props {
   open: boolean;
   onClose: () => void;
   onCreate: (input: { name: string; side: 'w' | 'b' }) => Promise<void>;
+  // When true, the dialog frames itself as the first step of a Lichess
+  // import — title + CTA tell the user the next screen will prompt for PGN.
+  lichessHint?: boolean;
 }
 
-export function NewOpeningStudyDialog({ open, onClose, onCreate }: Props) {
+export function NewOpeningStudyDialog({ open, onClose, onCreate, lichessHint }: Props) {
   const [name, setName] = useState('');
   const [side, setSide] = useState<'w' | 'b'>('w');
   const [busy, setBusy] = useState(false);
@@ -38,14 +41,20 @@ export function NewOpeningStudyDialog({ open, onClose, onCreate }: Props) {
     <Dialog
       open={open}
       onClose={busy ? () => {} : onClose}
-      title="New opening study"
+      title={lichessHint ? 'Import from Lichess' : 'New opening study'}
     >
+      {lichessHint && (
+        <p className="meta" style={{ marginBottom: 12 }}>
+          Name the study and pick the student's side. The next screen will ask
+          for the Lichess PGN.
+        </p>
+      )}
       <form
         onSubmit={submit}
         style={{ display: 'flex', flexDirection: 'column', gap: 14 }}
       >
         <label style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-          <span className="overline">Study name</span>
+          <span>Study name</span>
           <input
             autoFocus
             className="input"
@@ -56,8 +65,8 @@ export function NewOpeningStudyDialog({ open, onClose, onCreate }: Props) {
         </label>
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-          <span className="overline">Which side does the student play?</span>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+          <span>Which side does the student play?</span>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 8 }}>
             <SideOption
               picked={side === 'w'}
               onClick={() => setSide('w')}
@@ -93,7 +102,11 @@ export function NewOpeningStudyDialog({ open, onClose, onCreate }: Props) {
             type="submit"
             disabled={busy || !name.trim()}
           >
-            {busy ? 'Creating…' : 'Create study'}
+            {busy
+              ? 'Creating…'
+              : lichessHint
+                ? 'Create + import PGN →'
+                : 'Create study'}
           </Btn>
         </div>
       </form>

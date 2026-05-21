@@ -7,7 +7,7 @@ import { IconCheck } from '../components/ui/Icons';
 interface Props {
   open: boolean;
   onClose: () => void;
-  studyKind: 'opening' | 'game';
+  studyKind: 'opening' | 'game' | 'tactic';
   studyId: number;
   studyName: string;
 }

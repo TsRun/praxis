@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { Chessground } from 'chessground';
 import type { Api as CGApi } from 'chessground/api';
 import type { Key } from 'chessground/types';
@@ -12,6 +12,7 @@ import {
 } from '../lib/api';
 import { pathToNode, findChildBySan } from '../lib/opening-tree';
 import { ConfirmDialog } from '../components/ui/ConfirmDialog';
+import { BoardToolbar } from '../components/BoardToolbar';
 import { useOpeningTreeNav } from '../hooks/useOpeningTreeNav';
 import { ChapterWalker } from '../components/opening/ChapterWalker';
 import { ImportLichessDialog } from './ImportLichessDialog';
@@ -108,6 +109,8 @@ function chaptersInSubtree(
 export function OpeningStudyEditor() {
   const { id } = useParams();
   const numId = Number(id);
+  const nav = useNavigate();
+  const [search, setSearch] = useSearchParams();
   const [study, setStudy] = useState<OpeningStudyFull | null>(null);
   const [currentNodeId, setCurrentNodeId] = useState<number | null>(null);
   const [busy, setBusy] = useState(false);
@@ -125,6 +128,17 @@ export function OpeningStudyEditor() {
       setFlip(s.side === 'b');
     });
   }, [numId]);
+
+  // When opened with ?import=lichess (e.g. from the "Import from Lichess"
+  // button on the studies list), auto-open the import dialog and strip the
+  // param so a refresh doesn't re-open it.
+  useEffect(() => {
+    if (search.get('import') === 'lichess') {
+      setShowImport(true);
+      search.delete('import');
+      setSearch(search, { replace: true });
+    }
+  }, [search, setSearch]);
 
   const currentFen = useMemo(() => {
     if (!study)
@@ -273,10 +287,10 @@ export function OpeningStudyEditor() {
 
   return (
     <div
+      className="page-wrap"
       style={{
-        maxWidth: 1400,
-        margin: '0 auto',
-        padding: '24px 28px 80px',
+        paddingTop: 24,
+        paddingBottom: 80,
         display: 'flex',
         flexDirection: 'column',
         gap: 20,
@@ -289,6 +303,7 @@ export function OpeningStudyEditor() {
           alignItems: 'flex-start',
           gap: 24,
           paddingBottom: 6,
+          flexWrap: 'wrap',
         }}
       >
         <div>
@@ -321,6 +336,7 @@ export function OpeningStudyEditor() {
             display: 'flex',
             alignItems: 'center',
             gap: 10,
+            flexWrap: 'wrap',
           }}
         >
           <Segmented<ViewMode>
@@ -333,7 +349,14 @@ export function OpeningStudyEditor() {
           />
           <Btn variant="secondary" onClick={() => setShowImport(true)}>
             <IconDownload size={13} strokeWidth={2.4} />
-            Import
+            Import from Lichess
+          </Btn>
+          <Btn
+            variant="secondary"
+            onClick={() => nav(`/trainer/studies/opening/${numId}/import`)}
+          >
+            <IconDownload size={13} strokeWidth={2.4} />
+            Import games
           </Btn>
           <Btn variant="primary" onClick={() => setShowAssign(true)}>
             <IconAssign size={13} strokeWidth={2.4} />
@@ -380,6 +403,7 @@ export function OpeningStudyEditor() {
           ))}
         </div>
         <div
+          className="hide-tablet"
           style={{
             display: 'flex',
             gap: 14,
@@ -412,22 +436,13 @@ export function OpeningStudyEditor() {
       )}
 
       {mode === 'tree' ? (
-        <div
-          style={{
-            display: 'grid',
-            gridTemplateColumns: '520px 1fr',
-            gap: 24,
-            alignItems: 'start',
-          }}
-        >
+        <div className="editor-grid">
           {/* LEFT: board */}
           <div
             style={{
               display: 'flex',
               flexDirection: 'column',
               gap: 14,
-              position: 'sticky',
-              top: 72,
             }}
           >
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -472,6 +487,7 @@ export function OpeningStudyEditor() {
               flexDirection: 'column',
               gap: 16,
               minWidth: 0,
+              width: '100%',
             }}
           >
             <CandidatesCard
@@ -680,7 +696,18 @@ function BoardWithBuild({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentFen, currentNode?.id]);
 
-  return <div ref={boardRef} style={{ width: 520, height: 520 }} />;
+  return (
+    <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
+      <div
+        ref={boardRef}
+        style={{ width: '100%', maxWidth: 520, aspectRatio: '1 / 1' }}
+      />
+      <BoardToolbar
+        fen={currentFen}
+        orientation={flip ? 'black' : 'white'}
+      />
+    </div>
+  );
 }
 
 /* ────────────────────────── Candidates card ───────────────────────────── */
