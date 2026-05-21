@@ -45,4 +45,4 @@ This is **Phase 1**. The loop is read-only: it explores the Praxis UI and codeba
 
 ## Promotion to Phase 2
 
-The audit becomes the queue manually. When the user is happy with the findings, they pull the audit PRs, copy actionable items from `audit.md` into `docs/agents/queue.md` (under `## ui`, `## back`, `## chores`), and write `## Audit complete — <date>` themselves OR let the loop write it when every area is ticked. Either way, the next run after that marker switches to `RUNBOOK.md`.
+The audit becomes the queue manually. When the user is happy with the findings, they pull the audit PRs, open `docs/agents/queue.html` in a browser, add actionable items from `audit.md` under `ui` / `back` / `chores`, and write `## Audit complete — <date>` themselves OR let the loop write it when every area is ticked. Either way, the next run after that marker switches to `RUNBOOK.md`.
