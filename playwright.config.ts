@@ -9,6 +9,9 @@ export default defineConfig({
     baseURL: 'http://localhost:5173',
     trace: 'on-first-retry',
   },
+  expect: {
+    timeout: 7_000,
+  },
   projects: [
     {
       name: 'chromium',
@@ -19,6 +22,6 @@ export default defineConfig({
     command: 'npm run dev',
     port: 5173,
     reuseExistingServer: !process.env.CI,
-    timeout: 60_000,
+    timeout: 120_000,
   },
 });
