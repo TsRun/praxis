@@ -13,6 +13,7 @@ import {
 import { pathToNode, findChildBySan } from '../lib/opening-tree';
 import { ConfirmDialog } from '../components/ui/ConfirmDialog';
 import { BoardToolbar } from '../components/BoardToolbar';
+import { EditableTitle } from '../components/ui/EditableTitle';
 import { useOpeningTreeNav } from '../hooks/useOpeningTreeNav';
 import { ImportLichessDialog } from './ImportLichessDialog';
 import { AssignStudyDialog } from './AssignStudyDialog';
@@ -298,8 +299,15 @@ export function OpeningStudyEditor() {
           flexWrap: 'wrap',
         }}
       >
-        <div>
-          <h1 className="t-h1" style={{ margin: 0 }}>{study.name}</h1>
+        <div style={{ minWidth: 240, flex: 1 }}>
+          <EditableTitle
+            level="h1"
+            value={study.name}
+            onSave={async (next) => {
+              await trainerStudies.renameOpening(study.id, next);
+              setStudy((prev) => (prev ? { ...prev, name: next } : prev));
+            }}
+          />
           <div
             style={{
               display: 'flex',
