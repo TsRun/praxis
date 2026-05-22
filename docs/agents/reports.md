@@ -15,6 +15,10 @@ If a run finds nothing to do, it appends a single line `## YYYY-MM-DD HH:MM — 
 
 ---
 
+## 2026-05-22 17:40 — idle (still waiting; same 3 PRs in flight: #56 #57 #58)
+- Both queue items still in awaiting_confirmation via open PRs. Nothing fresh to claim.
+
+
 ## 2026-05-22 17:38 — idle (all queue items claimed by open PRs)
 - Open PRs: #56 + #57 (item: full UI update) and #58 (item: language+theme)
 - Both queue items are taken; nothing fresh to claim this fire. Loop will resume picking items once PRs are merged (which flips state to done) or new items are added.
