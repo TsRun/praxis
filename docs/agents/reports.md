@@ -14,3 +14,8 @@ Each entry is:
 If a run finds nothing to do, it appends a single line `## YYYY-MM-DD HH:MM — idle (queue empty)` and stops.
 
 ---
+
+## 2026-05-22 17:38 — idle (all queue items claimed by open PRs)
+- Open PRs: #56 + #57 (item: full UI update) and #58 (item: language+theme)
+- Both queue items are taken; nothing fresh to claim this fire. Loop will resume picking items once PRs are merged (which flips state to done) or new items are added.
+
