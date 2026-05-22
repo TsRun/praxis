@@ -58,14 +58,47 @@ export function StudiesPage() {
   const [view, setView] = useState<View>('grid');
   const [q, setQ] = useState('');
   const [menuOpen, setMenuOpen] = useState(false);
+  const [openErr, setOpenErr] = useState<string | null>(null);
+  const [gameErr, setGameErr] = useState<string | null>(null);
+  const [tacticErr, setTacticErr] = useState<string | null>(null);
   const menuRef = useRef<HTMLDivElement | null>(null);
   const nav = useNavigate();
 
+  async function loadOpens() {
+    setOpenErr(null);
+    try {
+      setOpens(await trainerStudies.list());
+    } catch (e) {
+      setOpens(null);
+      setOpenErr((e as Error).message || 'Could not load opening studies');
+    }
+  }
+  async function loadGames() {
+    setGameErr(null);
+    try {
+      setGames(await trainerGames.list());
+    } catch (e) {
+      setGames(null);
+      setGameErr((e as Error).message || 'Could not load game studies');
+    }
+  }
+  async function loadTactics() {
+    setTacticErr(null);
+    try {
+      setTactics(await trainerTactics.list());
+    } catch (e) {
+      setTactics(null);
+      setTacticErr((e as Error).message || 'Could not load tactical sets');
+    }
+  }
+
   useEffect(() => {
-    trainerStudies.list().then(setOpens);
-    trainerGames.list().then(setGames);
-    trainerTactics.list().then(setTactics);
-    trainer.students().then((rows) => setStudentCount(rows.length));
+    void loadOpens();
+    void loadGames();
+    void loadTactics();
+    trainer.students()
+      .then((rows) => setStudentCount(rows.length))
+      .catch(() => {});
   }, []);
 
   useEffect(() => {
@@ -264,7 +297,9 @@ export function StudiesPage() {
         <Section
           title="Opening studies"
           count={filteredOpens.length}
-          loading={opens == null}
+          loading={opens == null && !openErr}
+          error={openErr}
+          onRetry={loadOpens}
         >
           {opens != null && (
             <div
@@ -294,7 +329,9 @@ export function StudiesPage() {
         <Section
           title="Game studies"
           count={filteredGames.length}
-          loading={games == null}
+          loading={games == null && !gameErr}
+          error={gameErr}
+          onRetry={loadGames}
         >
           {games != null && (
             <div
@@ -324,7 +361,9 @@ export function StudiesPage() {
         <Section
           title="Tactical sets"
           count={filteredTactics.length}
-          loading={tactics == null}
+          loading={tactics == null && !tacticErr}
+          error={tacticErr}
+          onRetry={loadTactics}
         >
           {tactics != null && (
             <div
@@ -509,11 +548,15 @@ function Section({
   title,
   count,
   loading,
+  error,
+  onRetry,
   children,
 }: {
   title: string;
   count: number;
   loading: boolean;
+  error?: string | null;
+  onRetry?: () => void;
   children: React.ReactNode;
 }) {
   return (
@@ -536,7 +579,31 @@ function Section({
           </span>
         </div>
       </div>
-      {loading ? (
+      {error ? (
+        <div className="meta" style={{ color: 'var(--danger)' }}>
+          {error}
+          {onRetry && (
+            <>
+              {' '}
+              <button
+                type="button"
+                onClick={onRetry}
+                style={{
+                  background: 'transparent',
+                  border: 0,
+                  color: 'var(--accent)',
+                  cursor: 'pointer',
+                  padding: 0,
+                  font: 'inherit',
+                  textDecoration: 'underline',
+                }}
+              >
+                Retry
+              </button>
+            </>
+          )}
+        </div>
+      ) : loading ? (
         <div className="meta">Loading…</div>
       ) : (
         children
