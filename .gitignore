@@ -19,3 +19,5 @@ modern-*.png
 move-selection-*.png
 .superpowers/
 .claude/
+tests/audit/screenshots/
+.auth/
