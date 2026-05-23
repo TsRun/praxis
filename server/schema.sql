@@ -10,11 +10,7 @@ CREATE TABLE IF NOT EXISTS player (
   name          TEXT NOT NULL,
   country       TEXT,
   title         TEXT,
-  sex           CHAR(1),
   rating        INTEGER,
-  rapid_rating  INTEGER,
-  blitz_rating  INTEGER,
-  birth_year    INTEGER,
   origin        TEXT NOT NULL DEFAULT 'fide'
 );
 
@@ -150,14 +146,6 @@ CREATE TABLE IF NOT EXISTS opening_study (
   updated_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
-CREATE TABLE IF NOT EXISTS opening_annotation (
-  id          BIGSERIAL PRIMARY KEY,
-  study_id    BIGINT NOT NULL REFERENCES opening_study(id) ON DELETE CASCADE,
-  fen         TEXT NOT NULL,
-  comment_md  TEXT NOT NULL,
-  UNIQUE (study_id, fen)
-);
-
 -- A node in the opening tree. parent_id NULL = a top-level child of the
 -- study's root_fen. Two nodes can never share (study_id, parent_id, san):
 -- if a child with the same move already exists, the trainer's "make a
@@ -229,7 +217,7 @@ CREATE TABLE IF NOT EXISTS game_annotation (
 CREATE TABLE IF NOT EXISTS assignment (
   id           BIGSERIAL PRIMARY KEY,
   assignee_id  BIGINT NOT NULL REFERENCES app_user(id) ON DELETE CASCADE,
-  study_kind   TEXT NOT NULL CHECK (study_kind IN ('opening','game')),
+  study_kind   TEXT NOT NULL CHECK (study_kind IN ('opening','game','tactic')),
   study_id     BIGINT NOT NULL,
   assigned_at  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   completed_at TIMESTAMPTZ,
@@ -247,10 +235,53 @@ CREATE TABLE IF NOT EXISTS quiz_attempt (
 );
 CREATE INDEX IF NOT EXISTS idx_quiz_attempt ON quiz_attempt(user_id, game_study_id);
 
-CREATE TABLE IF NOT EXISTS opening_visit (
-  user_id     BIGINT NOT NULL REFERENCES app_user(id) ON DELETE CASCADE,
-  study_id    BIGINT NOT NULL REFERENCES opening_study(id) ON DELETE CASCADE,
-  fen         TEXT NOT NULL,
-  visited_at  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  PRIMARY KEY (user_id, study_id, fen)
+-- ─── Tactical sets ──────────────────────────────────────────────────────────
+-- A flat collection of puzzles. Each puzzle is a FEN + a solution line of
+-- SAN moves; the student plays their plies on a Chessground board and the
+-- viewer auto-plays the expected opponent plies in between. Attempts are
+-- logged in tactic_attempt; "progress" is distinct puzzles answered
+-- correctly at least once.
+CREATE TABLE IF NOT EXISTS tactic_set (
+  id          BIGSERIAL PRIMARY KEY,
+  owner_id    BIGINT NOT NULL REFERENCES app_user(id) ON DELETE CASCADE,
+  name        TEXT NOT NULL,
+  created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
+
+CREATE TABLE IF NOT EXISTS tactic_puzzle (
+  id            BIGSERIAL PRIMARY KEY,
+  set_id        BIGINT NOT NULL REFERENCES tactic_set(id) ON DELETE CASCADE,
+  ord           INTEGER NOT NULL,
+  fen           TEXT NOT NULL,
+  solution_san  TEXT[] NOT NULL,
+  comment_md    TEXT NOT NULL DEFAULT '',
+  created_at    TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS idx_tactic_puzzle_set ON tactic_puzzle(set_id, ord);
+
+CREATE TABLE IF NOT EXISTS tactic_attempt (
+  id            BIGSERIAL PRIMARY KEY,
+  user_id       BIGINT NOT NULL REFERENCES app_user(id) ON DELETE CASCADE,
+  puzzle_id     BIGINT NOT NULL REFERENCES tactic_puzzle(id) ON DELETE CASCADE,
+  correct       BOOLEAN NOT NULL,
+  attempted_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS idx_tactic_attempt_user_puzzle
+  ON tactic_attempt(user_id, puzzle_id);
+
+-- Per-user API keys for programmatic access (MCP server, CI). The full
+-- key is shown ONCE at mint time; only the SHA-256 hash is stored. The
+-- prefix (first 12 chars of the issued key) is kept verbatim so the
+-- user can recognise their own keys in the list.
+CREATE TABLE IF NOT EXISTS api_key (
+  id            BIGSERIAL PRIMARY KEY,
+  user_id       BIGINT NOT NULL REFERENCES app_user(id) ON DELETE CASCADE,
+  name          TEXT NOT NULL,
+  key_hash      TEXT NOT NULL UNIQUE,
+  key_prefix    TEXT NOT NULL,
+  created_at    TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  last_used_at  TIMESTAMPTZ
+);
+CREATE INDEX IF NOT EXISTS idx_api_key_user ON api_key(user_id);
+CREATE INDEX IF NOT EXISTS idx_api_key_hash ON api_key(key_hash);

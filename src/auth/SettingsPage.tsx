@@ -1,10 +1,25 @@
-import { useState, type FormEvent } from 'react';
+import { useEffect, useState, type FormEvent } from 'react';
 import { Link, Navigate } from 'react-router-dom';
 import { useAuth } from './AuthContext';
-import { ALL_ROLES, type Role } from '../lib/api';
+import {
+  ALL_ROLES,
+  apiKeys,
+  type ApiKeyRow,
+  type Role,
+} from '../lib/api';
 import { Card, Btn, Chip } from '../components/ui/atoms';
 import { TopBar } from '../components/ui/TopBar';
-import { IconArrowL, IconMortar, IconUser, IconClock, IconCheck } from '../components/ui/Icons';
+import { ConfirmDialog } from '../components/ui/ConfirmDialog';
+import { Dialog } from '../components/ui/Dialog';
+import {
+  IconArrowL,
+  IconMortar,
+  IconUser,
+  IconClock,
+  IconCheck,
+  IconPlus,
+  IconTrash,
+} from '../components/ui/Icons';
 
 const ROLE_LABELS: Record<Role, { title: string; sub: string; Icon: typeof IconMortar }> = {
   trainer: { title: 'Trainer', sub: 'I coach others',     Icon: IconMortar },
@@ -71,6 +86,8 @@ export function SettingsPage() {
         <RolesCard initial={user.roles} onSave={setRoles} />
 
         <PasswordCard onSave={updatePassword} />
+
+        <ApiKeysCard />
       </div>
     </div>
   );
@@ -351,6 +368,262 @@ function PasswordCard({
       </form>
     </Card>
   );
+}
+
+/* ─────────────────────────── API keys card ────────────────────────── */
+
+function ApiKeysCard() {
+  const [keys, setKeys] = useState<ApiKeyRow[] | null>(null);
+  const [showCreate, setShowCreate] = useState(false);
+  const [revoking, setRevoking] = useState<ApiKeyRow | null>(null);
+  // The freshly-minted key is rendered once and copyable; null otherwise.
+  const [mintedKey, setMintedKey] = useState<{ name: string; key: string } | null>(null);
+
+  async function refresh() {
+    setKeys(await apiKeys.list());
+  }
+  useEffect(() => {
+    refresh();
+  }, []);
+
+  return (
+    <Card style={{ padding: 18, display: 'flex', flexDirection: 'column', gap: 14 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
+        <div>
+          <h2 className="t-h2" style={{ margin: 0 }}>API keys</h2>
+          <div className="meta" style={{ marginTop: 4, fontSize: 12 }}>
+            Programmatic access for the MCP server, scripts, or CI. Each key
+            authenticates as you with all of your roles.
+          </div>
+        </div>
+        <Btn variant="secondary" size="sm" onClick={() => setShowCreate(true)}>
+          <IconPlus size={13} strokeWidth={2.4} />
+          New key
+        </Btn>
+      </div>
+
+      {keys == null ? (
+        <div className="meta" style={{ fontSize: 13 }}>Loading…</div>
+      ) : keys.length === 0 ? (
+        <div className="meta" style={{ fontSize: 13 }}>
+          No keys yet. Mint one to plug into the Praxis MCP server.
+        </div>
+      ) : (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+          {keys.map((k) => (
+            <div
+              key={k.id}
+              style={{
+                display: 'flex',
+                gap: 10,
+                alignItems: 'center',
+                padding: '10px 12px',
+                background: 'var(--inset-bg)',
+                border: '1px solid var(--inset-border)',
+                borderRadius: 8,
+              }}
+            >
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontSize: 13, color: 'var(--text)' }}>{k.name}</div>
+                <div
+                  className="mono meta"
+                  style={{ fontSize: 11, marginTop: 2 }}
+                  title={k.key_prefix}
+                >
+                  {k.key_prefix}…
+                </div>
+              </div>
+              <div className="meta" style={{ fontSize: 11, textAlign: 'right' }}>
+                <div>created {fmtDate(k.created_at)}</div>
+                <div>
+                  {k.last_used_at
+                    ? `last used ${fmtDate(k.last_used_at)}`
+                    : 'never used'}
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setRevoking(k)}
+                title="Revoke key"
+                style={{
+                  background: 'transparent',
+                  border: 0,
+                  cursor: 'pointer',
+                  color: 'var(--text-dim)',
+                  padding: 6,
+                }}
+              >
+                <IconTrash size={13} strokeWidth={2.4} />
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {showCreate && (
+        <NewKeyDialog
+          onClose={() => setShowCreate(false)}
+          onCreated={async (mint) => {
+            setShowCreate(false);
+            setMintedKey({ name: mint.name, key: mint.key });
+            await refresh();
+          }}
+        />
+      )}
+
+      {mintedKey && (
+        <MintedKeyDialog
+          name={mintedKey.name}
+          token={mintedKey.key}
+          onClose={() => setMintedKey(null)}
+        />
+      )}
+
+      {revoking && (
+        <ConfirmDialog
+          open
+          title={`Revoke "${revoking.name}"?`}
+          body="Any client using this key will start getting 401s on its next call. Cannot be undone."
+          confirmLabel="Revoke"
+          destructive
+          onClose={() => setRevoking(null)}
+          onConfirm={async () => {
+            await apiKeys.revoke(revoking.id);
+            setRevoking(null);
+            await refresh();
+          }}
+        />
+      )}
+    </Card>
+  );
+}
+
+function NewKeyDialog({
+  onClose,
+  onCreated,
+}: {
+  onClose: () => void;
+  onCreated: (mint: { name: string; key: string }) => void;
+}) {
+  const [name, setName] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
+
+  async function submit(e: FormEvent) {
+    e.preventDefault();
+    if (!name.trim()) return;
+    setBusy(true);
+    setErr(null);
+    try {
+      const mint = await apiKeys.create(name.trim());
+      onCreated({ name: mint.name, key: mint.key });
+    } catch (e) {
+      setErr((e as Error).message);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <Dialog open onClose={busy ? () => {} : onClose} title="New API key">
+      <form onSubmit={submit} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+        <Field label="Label">
+          <input
+            className="input"
+            placeholder="e.g. Claude Code MCP"
+            autoFocus
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+          />
+        </Field>
+        {err && <span style={{ fontSize: 12, color: 'var(--danger)' }}>{err}</span>}
+        <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
+          <Btn variant="ghost" type="button" onClick={onClose} disabled={busy}>
+            Cancel
+          </Btn>
+          <Btn variant="primary" type="submit" disabled={busy || !name.trim()}>
+            {busy ? 'Minting…' : 'Mint key'}
+          </Btn>
+        </div>
+      </form>
+    </Dialog>
+  );
+}
+
+function MintedKeyDialog({
+  name,
+  token,
+  onClose,
+}: {
+  name: string;
+  token: string;
+  onClose: () => void;
+}) {
+  const [copied, setCopied] = useState(false);
+  return (
+    <Dialog open onClose={onClose} title={`Key minted: ${name}`}>
+      <p className="meta" style={{ marginTop: 0 }}>
+        Copy the key now — Praxis won't show it again. Treat it like a
+        password.
+      </p>
+      <div
+        className="mono"
+        style={{
+          fontSize: 12,
+          padding: 12,
+          background: 'var(--inset-bg)',
+          border: '1px solid var(--inset-border)',
+          borderRadius: 8,
+          wordBreak: 'break-all',
+          color: 'var(--text)',
+        }}
+      >
+        {token}
+      </div>
+      <p className="meta" style={{ marginTop: 12, fontSize: 12 }}>
+        To plug this into Claude Code, run:
+      </p>
+      <div
+        className="mono"
+        style={{
+          fontSize: 11,
+          padding: 10,
+          marginTop: 6,
+          background: 'var(--inset-bg)',
+          border: '1px solid var(--inset-border)',
+          borderRadius: 8,
+          wordBreak: 'break-all',
+          color: 'var(--text-dim)',
+          whiteSpace: 'pre-wrap',
+        }}
+      >
+        {`claude mcp add --transport http praxis ${window.location.origin}/api/mcp --header "Authorization: Bearer ${token}"`}
+      </div>
+      <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 12 }}>
+        <Btn
+          variant="secondary"
+          onClick={async () => {
+            await navigator.clipboard.writeText(token);
+            setCopied(true);
+            setTimeout(() => setCopied(false), 1500);
+          }}
+        >
+          {copied ? 'Copied' : 'Copy'}
+        </Btn>
+        <Btn variant="primary" onClick={onClose}>Done</Btn>
+      </div>
+    </Dialog>
+  );
+}
+
+function fmtDate(iso: string): string {
+  const d = new Date(iso);
+  const now = Date.now();
+  const ms = now - d.getTime();
+  if (ms < 60_000) return 'just now';
+  if (ms < 3_600_000) return `${Math.floor(ms / 60_000)}m ago`;
+  if (ms < 86_400_000) return `${Math.floor(ms / 3_600_000)}h ago`;
+  return d.toLocaleDateString();
 }
 
 /* ─────────────────────────── Field / FormFooter ───────────────────── */

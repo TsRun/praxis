@@ -1,13 +1,17 @@
 import { useEffect, useState, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import {
+  trainer,
   trainerStudies,
   trainerGames,
+  trainerTactics,
   type OpeningStudySummary,
   type GameStudySummary,
+  type TacticSetSummary,
 } from '../lib/api';
 import { NewOpeningStudyDialog } from './NewOpeningStudyDialog';
 import { NewGameStudyDialog } from './NewGameStudyDialog';
+import { NewTacticSetDialog } from './NewTacticSetDialog';
 import { Card, Btn, Chip, Segmented } from '../components/ui/atoms';
 import { FenBoard } from '../components/board/FenBoard';
 import {
@@ -42,8 +46,14 @@ function relativeDate(iso: string): string {
 export function StudiesPage() {
   const [opens, setOpens] = useState<OpeningStudySummary[] | null>(null);
   const [games, setGames] = useState<GameStudySummary[] | null>(null);
+  const [tactics, setTactics] = useState<TacticSetSummary[] | null>(null);
+  const [studentCount, setStudentCount] = useState<number | null>(null);
   const [openOpenDialog, setOpenOpenDialog] = useState(false);
   const [openGameDialog, setOpenGameDialog] = useState(false);
+  const [openTacticDialog, setOpenTacticDialog] = useState(false);
+  // When true, the next "Create study" lands directly in the Lichess import
+  // dialog inside the editor (via ?import=lichess on the redirect URL).
+  const [lichessIntent, setLichessIntent] = useState(false);
   const [filter, setFilter] = useState<Filter>('all');
   const [view, setView] = useState<View>('grid');
   const [q, setQ] = useState('');
@@ -54,6 +64,8 @@ export function StudiesPage() {
   useEffect(() => {
     trainerStudies.list().then(setOpens);
     trainerGames.list().then(setGames);
+    trainerTactics.list().then(setTactics);
+    trainer.students().then((rows) => setStudentCount(rows.length));
   }, []);
 
   useEffect(() => {
@@ -72,6 +84,9 @@ export function StudiesPage() {
     (s.eco ?? '').toLowerCase().includes(q.toLowerCase()),
   );
   const filteredGames = (games ?? []).filter((s) =>
+    s.name.toLowerCase().includes(q.toLowerCase()),
+  );
+  const filteredTactics = (tactics ?? []).filter((s) =>
     s.name.toLowerCase().includes(q.toLowerCase()),
   );
 
@@ -95,7 +110,13 @@ export function StudiesPage() {
           </div>
         </div>
         <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-          <Btn variant="secondary">
+          <Btn
+            variant="secondary"
+            onClick={() => {
+              setLichessIntent(true);
+              setOpenOpenDialog(true);
+            }}
+          >
             <IconDownload size={13} strokeWidth={2.4} />
             Import from Lichess
           </Btn>
@@ -144,13 +165,13 @@ export function StudiesPage() {
                 />
                 <NewStudyMenuItem
                   Icon={IconBolt}
-                  iconBg="var(--tactic-bg)"
-                  iconColor="var(--tactic)"
-                  title="Tactical study"
-                  sub="Flat collection of puzzles by theme"
+                  iconBg="rgba(248,113,113,0.10)"
+                  iconColor="#f87171"
+                  title="Tactical set"
+                  sub="Flat collection of puzzles to drill"
                   onClick={() => {
                     setMenuOpen(false);
-                    /* TODO route to tactical editor */
+                    setOpenTacticDialog(true);
                   }}
                 />
               </div>
@@ -174,9 +195,12 @@ export function StudiesPage() {
           value={(opens?.length ?? 0) + (games?.length ?? 0)}
           label="studies authored"
         />
-        <StatTile Icon={IconUsers} value="—" label="students assigned" />
+        <StatTile
+          Icon={IconUsers}
+          value={studentCount ?? '—'}
+          label="students linked"
+        />
         <StatTile Icon={IconList} value={totalChapters} label="chapters total" />
-        <StatTile Icon={IconBolt} value="—" label="drills this week" />
       </div>
 
       {/* filter bar */}
@@ -297,36 +321,53 @@ export function StudiesPage() {
       )}
 
       {showTactics && (
-        <Section title="Tactical sets" count={0} loading={false}>
-          <div
-            className={view === 'grid' ? 'grid-3' : ''}
-            style={
-              view === 'grid'
-                ? { gap: 16 }
-                : { display: 'grid', gridTemplateColumns: '1fr', gap: 16 }
-            }
-          >
-            <EmptyAddCard
-              title="New tactical set"
-              sub="Pick a theme (mate-in-N, pins, endgames) and pull a batch from Lichess by rating band."
-              onClick={() => {/* TODO */}}
-              accent="var(--tactic)"
-              accentBg="var(--tactic-bg)"
-            />
-          </div>
+        <Section
+          title="Tactical sets"
+          count={filteredTactics.length}
+          loading={tactics == null}
+        >
+          {tactics != null && (
+            <div
+              className={view === 'grid' ? 'grid-3' : ''}
+              style={
+                view === 'grid'
+                  ? { gap: 16 }
+                  : { display: 'grid', gridTemplateColumns: '1fr', gap: 16 }
+              }
+            >
+              {filteredTactics.map((s) => (
+                <TacticSetCard key={s.id} set={s} />
+              ))}
+              <EmptyAddCard
+                title="New tactical set"
+                sub="Author puzzles by hand from FEN + solution moves."
+                onClick={() => setOpenTacticDialog(true)}
+                accent="#f87171"
+                accentBg="rgba(248,113,113,0.10)"
+              />
+            </div>
+          )}
         </Section>
       )}
 
       <NewOpeningStudyDialog
         open={openOpenDialog}
-        onClose={() => setOpenOpenDialog(false)}
+        onClose={() => {
+          setOpenOpenDialog(false);
+          setLichessIntent(false);
+        }}
+        lichessHint={lichessIntent}
         onCreate={async ({ name, side }) => {
           const { id } = await trainerStudies.create({
             name,
             root_fen: START_FEN,
             side,
           });
-          nav(`/trainer/studies/opening/${id}`);
+          const url = lichessIntent
+            ? `/trainer/studies/opening/${id}?import=lichess`
+            : `/trainer/studies/opening/${id}`;
+          setLichessIntent(false);
+          nav(url);
         }}
       />
       <NewGameStudyDialog
@@ -335,6 +376,14 @@ export function StudiesPage() {
         onCreate={async ({ name, pgn }) => {
           const { id } = await trainerGames.create(name, pgn);
           nav(`/trainer/studies/game/${id}`);
+        }}
+      />
+      <NewTacticSetDialog
+        open={openTacticDialog}
+        onClose={() => setOpenTacticDialog(false)}
+        onCreate={async ({ name }) => {
+          const { id } = await trainerTactics.create(name);
+          nav(`/trainer/studies/tactic/${id}`);
         }}
       />
     </div>
@@ -624,6 +673,77 @@ function GameStudyCard({ study }: { study: GameStudySummary }) {
             notes
           </span>
           <span style={{ marginLeft: 'auto' }}>updated {relativeDate(study.updated_at)}</span>
+        </div>
+      </Card>
+    </Link>
+  );
+}
+
+function TacticSetCard({ set }: { set: TacticSetSummary }) {
+  return (
+    <Link
+      to={`/trainer/studies/tactic/${set.id}`}
+      style={{ textDecoration: 'none', color: 'inherit' }}
+    >
+      <Card
+        style={{
+          padding: 18,
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 14,
+          cursor: 'pointer',
+        }}
+      >
+        <div style={{ display: 'flex', alignItems: 'flex-start', gap: 14 }}>
+          <div
+            style={{
+              width: 110,
+              height: 110,
+              flexShrink: 0,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              borderRadius: 10,
+              background: 'rgba(248,113,113,0.10)',
+              color: '#f87171',
+            }}
+          >
+            <IconBolt size={42} strokeWidth={1.8} />
+          </div>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div
+              style={{
+                fontSize: 16,
+                fontWeight: 600,
+                letterSpacing: '-0.01em',
+                lineHeight: 1.3,
+                marginBottom: 8,
+              }}
+            >
+              {set.name}
+            </div>
+            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+              <Chip variant="mono">Tactic</Chip>
+            </div>
+          </div>
+        </div>
+        <div
+          style={{
+            display: 'flex',
+            gap: 12,
+            paddingTop: 14,
+            borderTop: '1px solid var(--hairline)',
+            fontSize: 12,
+            color: 'var(--text-dim)',
+          }}
+        >
+          <span>
+            <strong className="mono" style={{ color: 'var(--text)', marginRight: 2 }}>
+              {set.puzzle_count}
+            </strong>
+            puzzles
+          </span>
+          <span style={{ marginLeft: 'auto' }}>updated {relativeDate(set.updated_at)}</span>
         </div>
       </Card>
     </Link>

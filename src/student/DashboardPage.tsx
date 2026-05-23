@@ -81,8 +81,7 @@ export function DashboardPage() {
           </div>
         </div>
         <div style={{ display: 'flex', gap: 14 }}>
-          <MiniStat value="—" label="day streak" accent />
-          <MiniStat value={active.length} label="active" />
+          <MiniStat value={active.length} label="active" accent />
           <MiniStat value={done.length} label="completed" />
         </div>
       </div>
@@ -178,7 +177,11 @@ export function DashboardPage() {
                   }}
                 >
                   <Chip variant="mono" style={{ height: 20, padding: '0 6px' }}>
-                    {top.study_kind === 'opening' ? 'OPENING' : 'GAME'}
+                    {top.study_kind === 'opening'
+                      ? 'OPENING'
+                      : top.study_kind === 'game'
+                        ? 'GAME'
+                        : 'TACTIC'}
                   </Chip>
                   assigned {relativeDate(top.assigned_at)}
                 </div>
@@ -226,9 +229,7 @@ export function DashboardPage() {
                   <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
                     <Link
                       to={
-                        top.study_kind === 'opening'
-                          ? `/student/study/opening/${top.study_id}`
-                          : `/student/study/game/${top.study_id}`
+                        `/student/study/${top.study_kind}/${top.study_id}`
                       }
                     >
                       <Btn variant="primary" size="lg">
@@ -237,9 +238,7 @@ export function DashboardPage() {
                     </Link>
                     <Link
                       to={
-                        top.study_kind === 'opening'
-                          ? `/student/study/opening/${top.study_id}`
-                          : `/student/study/game/${top.study_id}`
+                        `/student/study/${top.study_kind}/${top.study_id}`
                       }
                     >
                       <Btn variant="secondary" size="lg">Explore tree</Btn>
@@ -320,9 +319,6 @@ export function DashboardPage() {
                 {active.length} studies assigned to you
               </div>
             </div>
-            <Btn variant="secondary" size="sm">
-              Message
-            </Btn>
           </Card>
 
           <Card style={{ padding: 18 }}>
@@ -537,10 +533,7 @@ function BreakdownTile({
 }
 
 function AssignmentRowCard({ a }: { a: AssignmentRow }) {
-  const path =
-    a.study_kind === 'opening'
-      ? `/student/study/opening/${a.study_id}`
-      : `/student/study/game/${a.study_id}`;
+  const path = `/student/study/${a.study_kind}/${a.study_id}`;
   const isDone = a.completed_at != null;
   return (
     <Link to={path} style={{ textDecoration: 'none', color: 'inherit' }}>

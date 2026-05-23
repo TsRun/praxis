@@ -26,6 +26,7 @@ export async function studentRoutes(app: FastifyInstance, opts: { pool: Pool }) 
                 CASE a.study_kind
                   WHEN 'opening' THEN (SELECT name FROM opening_study WHERE id = a.study_id)
                   WHEN 'game'    THEN (SELECT name FROM game_study WHERE id = a.study_id)
+                  WHEN 'tactic'  THEN (SELECT name FROM tactic_set WHERE id = a.study_id)
                 END AS name
            FROM assignment a
           WHERE a.assignee_id = $1
@@ -33,13 +34,30 @@ export async function studentRoutes(app: FastifyInstance, opts: { pool: Pool }) 
        SELECT b.*,
          CASE b.study_kind
            WHEN 'opening' THEN (
-             SELECT CASE WHEN (SELECT COUNT(*) FROM opening_annotation WHERE study_id = b.study_id) = 0
-                         THEN '0'
-                         ELSE (100.0 * (SELECT COUNT(*) FROM opening_visit
-                                          WHERE user_id = $1 AND study_id = b.study_id)
-                               /
-                               (SELECT COUNT(*) FROM opening_annotation WHERE study_id = b.study_id))::text
+             -- numerator: quizzable nodes the student has answered correctly at
+             -- least once (correct_streak >= 1). denominator: all quizzable
+             -- nodes — those where it's the student's side to move at parent_fen
+             -- (study.side='w' ⇒ odd ply, 'b' ⇒ even ply, matching quiz/next).
+             SELECT CASE WHEN total = 0 THEN '0'
+                         ELSE (100.0 * done / total)::text
                     END
+               FROM (
+                 SELECT
+                   (SELECT COUNT(*) FROM opening_node n
+                      JOIN opening_study s ON s.id = n.study_id
+                      WHERE n.study_id = b.study_id
+                        AND ((s.side = 'w' AND n.ply % 2 = 1)
+                          OR (s.side = 'b' AND n.ply % 2 = 0))
+                   ) AS total,
+                   (SELECT COUNT(*) FROM node_quiz_state q
+                      JOIN opening_node n  ON n.id = q.node_id
+                      JOIN opening_study s ON s.id = n.study_id
+                      WHERE q.user_id = $1 AND n.study_id = b.study_id
+                        AND q.correct_streak >= 1
+                        AND ((s.side = 'w' AND n.ply % 2 = 1)
+                          OR (s.side = 'b' AND n.ply % 2 = 0))
+                   ) AS done
+               ) x
            )
            WHEN 'game' THEN (
              SELECT CASE WHEN (SELECT COUNT(*) FROM game_annotation WHERE study_id = b.study_id AND is_quiz) = 0
@@ -49,6 +67,21 @@ export async function studentRoutes(app: FastifyInstance, opts: { pool: Pool }) 
                                /
                                (SELECT COUNT(*) FROM game_annotation WHERE study_id = b.study_id AND is_quiz))::text
                     END
+           )
+           WHEN 'tactic' THEN (
+             -- numerator: distinct puzzles answered correctly at least once;
+             -- denominator: all puzzles in the set.
+             SELECT CASE WHEN total = 0 THEN '0'
+                         ELSE (100.0 * done / total)::text
+                    END
+               FROM (
+                 SELECT
+                   (SELECT COUNT(*) FROM tactic_puzzle p WHERE p.set_id = b.study_id) AS total,
+                   (SELECT COUNT(DISTINCT a.puzzle_id) FROM tactic_attempt a
+                      JOIN tactic_puzzle p ON p.id = a.puzzle_id
+                      WHERE a.user_id = $1 AND a.correct = TRUE AND p.set_id = b.study_id
+                   ) AS done
+               ) x
            )
          END AS progress_pct
          FROM base b
@@ -342,6 +375,82 @@ export async function studentRoutes(app: FastifyInstance, opts: { pool: Pool }) 
         [id, ply],
       );
       return { correct, expected_san: expected, comment_md: a[0]?.comment_md ?? null };
+    },
+  );
+
+  // ─── Tactical sets ───────────────────────────────────────────────────────
+  app.get<{ Params: { id: string } }>(
+    '/api/student/studies/tactic/:id',
+    { preHandler: requireUser },
+    async (req, reply) => {
+      const uid = req.user!.id;
+      const id = Number(req.params.id);
+      const access = await pool.query(
+        `SELECT 1 FROM tactic_set ts
+          WHERE ts.id = $1
+            AND (ts.owner_id = $2
+                 OR EXISTS(SELECT 1 FROM assignment a
+                            WHERE a.assignee_id = $2 AND a.study_kind = 'tactic' AND a.study_id = $1))`,
+        [id, uid],
+      );
+      if (!access.rowCount) return reply.code(404).send({ error: 'not assigned' });
+      const { rows: s } = await pool.query<{ id: number; name: string }>(
+        `SELECT id, name FROM tactic_set WHERE id = $1`,
+        [id],
+      );
+      const { rows: puzzles } = await pool.query<{
+        id: number;
+        ord: number;
+        fen: string;
+        solution_san: string[];
+        comment_md: string;
+      }>(
+        `SELECT id, ord, fen, solution_san, comment_md FROM tactic_puzzle
+          WHERE set_id = $1 ORDER BY ord, id`,
+        [id],
+      );
+      const { rows: solved } = await pool.query<{ puzzle_id: number }>(
+        `SELECT DISTINCT puzzle_id FROM tactic_attempt
+          WHERE user_id = $1 AND correct = TRUE AND puzzle_id = ANY($2)`,
+        [uid, puzzles.map((p) => p.id)],
+      );
+      return {
+        ...s[0],
+        puzzles,
+        solved_ids: solved.map((r) => r.puzzle_id),
+      };
+    },
+  );
+
+  app.post<{
+    Params: { id: string };
+    Body: { puzzle_id: number; correct: boolean };
+  }>(
+    '/api/student/studies/tactic/:id/attempt',
+    { preHandler: requireUser },
+    async (req, reply) => {
+      const uid = req.user!.id;
+      const id = Number(req.params.id);
+      const { puzzle_id, correct } = req.body ?? ({} as never);
+      if (!puzzle_id || typeof correct !== 'boolean')
+        return reply.code(400).send({ error: 'missing fields' });
+      // Verify the puzzle belongs to the set, and the student has access
+      // (assignment or ownership).
+      const access = await pool.query(
+        `SELECT 1 FROM tactic_puzzle p
+           JOIN tactic_set ts ON ts.id = p.set_id
+          WHERE p.id = $1 AND ts.id = $2
+            AND (ts.owner_id = $3
+                 OR EXISTS(SELECT 1 FROM assignment a
+                            WHERE a.assignee_id = $3 AND a.study_kind = 'tactic' AND a.study_id = ts.id))`,
+        [puzzle_id, id, uid],
+      );
+      if (!access.rowCount) return reply.code(404).send({ error: 'not found' });
+      await pool.query(
+        `INSERT INTO tactic_attempt (user_id, puzzle_id, correct) VALUES ($1, $2, $3)`,
+        [uid, puzzle_id, correct],
+      );
+      return { ok: true };
     },
   );
 }

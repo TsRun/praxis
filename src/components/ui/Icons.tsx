@@ -42,6 +42,14 @@ export const IconDownload = makeIcon([
   'M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4',
   'M7 10l5 5 5-5M12 15V3',
 ]);
+export const IconCopy     = makeIcon([
+  'M20 9h-9a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h9a2 2 0 0 0 2-2v-9a2 2 0 0 0-2-2z',
+  'M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1',
+]);
+export const IconClipboard = makeIcon([
+  'M9 2h6a1 1 0 0 1 1 1v2H8V3a1 1 0 0 1 1-1z',
+  'M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2',
+]);
 export const IconAssign   = makeIcon([
   'M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2',
   'M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8z',
@@ -54,8 +62,8 @@ export const IconSearch   = makeIcon([
 export const IconCheck    = makeIcon('M20 6L9 17l-5-5');
 export const IconX        = makeIcon('M18 6L6 18M6 6l12 12');
 export const IconFlip     = makeIcon([
-  'M21 7H3M3 7l4-4M3 7l4 4',
-  'M3 17h18M21 17l-4-4M21 17l-4 4',
+  'M7 21V3M3 7l4-4 4 4',
+  'M17 3v18M21 17l-4 4-4-4',
 ]);
 export const IconTrash    = makeIcon([
   'M3 6h18',

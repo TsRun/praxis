@@ -4,6 +4,7 @@ import type { Api } from 'chessground/api';
 import type { Key } from 'chessground/types';
 import { Chess } from 'chess.js';
 import { useGameStore } from '../../store/gameStore';
+import { BoardToolbar } from '../BoardToolbar';
 
 function toDestsMap(c: Chess): Map<Key, Key[]> {
   const dests = new Map<Key, Key[]>();
@@ -101,9 +102,12 @@ export function ChessBoard() {
   }, [fen, lastMove]);
 
   return (
-    <div
-      ref={ref}
-      style={{ width: '100%', maxWidth: 480, aspectRatio: '1 / 1' }}
-    />
+    <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
+      <div
+        ref={ref}
+        style={{ width: '100%', maxWidth: 480, aspectRatio: '1 / 1' }}
+      />
+      <BoardToolbar fen={fen} />
+    </div>
   );
 }

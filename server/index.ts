@@ -12,6 +12,7 @@ import { inviteRoutes } from './routes-invites.js';
 import { oauthRoutes } from './routes-oauth.js';
 import { trainerRoutes } from './routes-trainer.js';
 import { studentRoutes } from './routes-student.js';
+import { mcpRoutes } from './routes-mcp.js';
 
 const app = Fastify({ logger: false, trustProxy: true });
 
@@ -46,12 +47,26 @@ if (process.env.NODE_ENV !== 'production' || process.env.RUN_ENSURE_SCHEMA === '
   await ensureSchema(pool);
 }
 
+// Surface uncaught route errors. Default Fastify replies with the opaque
+// "Internal Server Error" message, which leaves the client (and us, reading
+// Railway logs after the fact) with nothing actionable. Log the full error
+// server-side and return the message in the JSON body so the SPA's API
+// client surfaces it instead of "Internal Server Error".
+app.setErrorHandler((err: Error & { statusCode?: number }, req, reply) => {
+  if (err.statusCode && err.statusCode < 500) {
+    return reply.code(err.statusCode).send({ error: err.message });
+  }
+  console.error(`[err] ${req.method} ${req.url}:`, err);
+  return reply.code(500).send({ error: err.message || 'Internal Server Error' });
+});
+
 app.addHook('onRequest', makeAuthHook(pool));
 await app.register(authRoutes, { pool });
 await app.register(inviteRoutes, { pool });
 await app.register(oauthRoutes, { pool });
 await app.register(trainerRoutes, { pool });
 await app.register(studentRoutes, { pool });
+await mcpRoutes(app);
 
 interface ExplorerQuery {
   fen?: string;

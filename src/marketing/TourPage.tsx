@@ -28,7 +28,7 @@ export function TourPage() {
     if (paused) return;
     let last = performance.now();
     const tick = (now: number) => {
-      const dt = now - last;
+      const dt = Math.max(0, now - last);
       last = now;
       setState((prev) => {
         const dur = SCENES[prev.idx].duration;

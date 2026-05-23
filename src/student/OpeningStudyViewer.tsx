@@ -11,10 +11,11 @@ import {
 } from '../lib/api';
 import { pathToNode } from '../lib/opening-tree';
 import { useOpeningTreeNav } from '../hooks/useOpeningTreeNav';
+import { ChapterWalker } from '../components/opening/ChapterWalker';
+import { BoardToolbar } from '../components/BoardToolbar';
 import {
   Card,
   Btn,
-  Chip,
   MoveChip,
   Segmented,
   Kbd,
@@ -336,10 +337,18 @@ function DrillView({
           </span>
         </div>
 
-        <div
-          ref={boardRef}
-          style={{ width: '100%', maxWidth: 520, aspectRatio: '1 / 1' }}
-        />
+        <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
+          <div
+            ref={boardRef}
+            style={{ width: '100%', maxWidth: 520, aspectRatio: '1 / 1' }}
+          />
+          {card && (
+            <BoardToolbar
+              fen={`${card.parent_fen} 0 1`}
+              orientation={flip ? 'black' : 'white'}
+            />
+          )}
+        </div>
 
         <Card
           style={{
@@ -407,7 +416,7 @@ function DrillView({
             </span>
           </div>
           <Btn variant="ghost" size="sm" onClick={() => setFlip(!flip)}>
-            <IconFlip size={12} strokeWidth={2.4} /> Flip
+            <IconFlip size={12} strokeWidth={2.4} />
           </Btn>
         </Card>
       </div>
@@ -761,10 +770,14 @@ function TreeMode({
               : 'Start position'}
           </span>
           <Btn variant="ghost" size="sm" onClick={() => setFlip(!flip)}>
-            <IconFlip size={12} strokeWidth={2.4} /> Flip
+            <IconFlip size={12} strokeWidth={2.4} />
           </Btn>
         </div>
-        <FixedReadOnlyBoard fen={fen} lastMove={lastMove} flip={flip} />
+        <FixedReadOnlyBoard
+          fen={fen}
+          lastMove={lastMove}
+          flip={flip}
+        />
         {currentChapter && (
           <Card
             style={{
@@ -977,10 +990,10 @@ function FixedReadOnlyBoard({
   }, [fen, lastMove, flip]);
 
   return (
-    <div
-      ref={ref}
-      style={{ width: '100%', maxWidth: 520, aspectRatio: '1 / 1' }}
-    />
+    <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
+      <div ref={ref} style={{ width: '100%', maxWidth: 520, aspectRatio: '1 / 1' }} />
+      <BoardToolbar fen={fen} orientation={flip ? 'black' : 'white'} />
+    </div>
   );
 }
 
@@ -996,68 +1009,120 @@ function ChaptersView({
   setFlip: (v: boolean) => void;
 }) {
   const chapters = useMemo(() => {
-    const byNode = new Map(
-      study.chapters.map((c) => [c.node_id, c.title] as const),
+    const titled = study.chapters.filter(
+      (c) => c.title != null && c.title.trim().length > 0,
     );
+    const byNode = new Map(titled.map((c) => [c.node_id, c] as const));
     return study.nodes
       .filter((n) => byNode.has(n.id))
-      .map((n) => ({ node: n, title: byNode.get(n.id) ?? '' }))
+      .map((n) => ({ node: n, chapter: byNode.get(n.id)! }))
       .sort((a, b) => a.node.ply - b.node.ply || a.node.id - b.node.id);
   }, [study]);
 
-  const [sel, setSel] = useState<number | null>(chapters[0]?.node.id ?? null);
-  const selChap = chapters.find((c) => c.node.id === sel);
-  const node = selChap?.node ?? null;
+  const [selectedChapterAnchorId, setSelectedChapterAnchorId] = useState<number | null>(
+    chapters[0]?.node.id ?? null,
+  );
+  const [currentNodeId, setCurrentNodeId] = useState<number | null>(
+    chapters[0]?.node.id ?? null,
+  );
+
+  function selectChapter(anchorId: number) {
+    setSelectedChapterAnchorId(anchorId);
+    setCurrentNodeId(anchorId);
+  }
 
   return (
     <div
-      className="editor-grid-rev"
       style={{
+        display: 'grid',
+        gridTemplateColumns: '260px 1fr',
         gap: 24,
         alignItems: 'start',
       }}
     >
-      <Card style={{ padding: '14px 18px' }}>
-        <h2 className="t-h2" style={{ margin: '4px 0 12px' }}>
-          Chapters · {chapters.length}
-        </h2>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+      <Card style={{ padding: 0, position: 'sticky', top: 72 }}>
+        <div
+          style={{
+            padding: '14px 16px',
+            borderBottom: '1px solid var(--hairline)',
+          }}
+        >
+          <h2 className="t-h2" style={{ margin: 0, fontSize: 15 }}>Chapters</h2>
+          <div className="meta">
+            {chapters.length} {chapters.length === 1 ? 'chapter' : 'chapters'}
+          </div>
+        </div>
+        <div style={{ padding: 6, maxHeight: '70vh', overflowY: 'auto' }}>
           {chapters.length === 0 ? (
-            <div className="meta" style={{ padding: 12 }}>
+            <div
+              className="meta"
+              style={{ padding: 16, fontSize: 12.5, lineHeight: 1.5 }}
+            >
               No chapters in this study yet.
             </div>
           ) : (
-            chapters.map((c) => {
-              const active = c.node.id === sel;
+            chapters.map(({ node, chapter }, i) => {
+              const active = node.id === selectedChapterAnchorId;
               return (
                 <button
+                  key={node.id}
                   type="button"
-                  key={c.node.id}
-                  onClick={() => setSel(c.node.id)}
-                  className="row-link"
+                  onClick={() => selectChapter(node.id)}
                   style={{
                     display: 'grid',
-                    gridTemplateColumns: '24px 1fr auto',
-                    gap: 12,
+                    gridTemplateColumns: '24px 1fr',
+                    alignItems: 'baseline',
+                    gap: 10,
+                    padding: '8px 12px',
+                    borderRadius: 8,
+                    cursor: 'pointer',
                     background: active ? 'var(--accent-soft)' : 'transparent',
+                    border: 0,
                     textAlign: 'left',
+                    color: 'inherit',
+                    width: '100%',
+                    marginBottom: 2,
                   }}
                 >
-                  <span className="dot-chapter" />
-                  <div>
-                    <div style={{ fontWeight: 500, fontSize: 14.5 }}>{c.title}</div>
+                  <span
+                    className="mono"
+                    style={{
+                      color: active ? 'var(--accent)' : 'var(--text-faint)',
+                      fontSize: 11,
+                      textAlign: 'right',
+                    }}
+                  >
+                    {String(i + 1).padStart(2, '0')}
+                  </span>
+                  <div style={{ minWidth: 0 }}>
+                    <div
+                      style={{
+                        fontSize: 13.5,
+                        color: 'var(--text)',
+                        fontWeight: 500,
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        whiteSpace: 'nowrap',
+                      }}
+                    >
+                      {chapter.title || '(untitled)'}
+                    </div>
                     <div
                       className="mono"
-                      style={{ fontSize: 12, color: 'var(--text-dim)', marginTop: 2 }}
+                      style={{
+                        fontSize: 11,
+                        color: 'var(--text-faint)',
+                        marginTop: 2,
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        whiteSpace: 'nowrap',
+                      }}
                     >
-                      {pathToNode(study.nodes, c.node.id)
+                      {pathToNode(study.nodes, node.id)
                         .map((n) => n.san)
-                        .join(' ')}
+                        .join(' ') || `ply ${node.ply}`}
                     </div>
                   </div>
-                  <Chip variant="mono" style={{ height: 22 }}>
-                    ply {c.node.ply}
-                  </Chip>
                 </button>
               );
             })
@@ -1065,32 +1130,28 @@ function ChaptersView({
         </div>
       </Card>
 
-      <div
-        style={{
-          display: 'flex',
-          flexDirection: 'column',
-          gap: 14,
-          position: 'sticky',
-          top: 72,
-        }}
-      >
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <span
-            className="meta-strong"
-            style={{ flex: 1, fontSize: 14, letterSpacing: '-0.005em' }}
-          >
-            {selChap?.title ?? 'No chapter selected'}
-          </span>
-          <Btn variant="ghost" size="sm" onClick={() => setFlip(!flip)}>
-            <IconFlip size={12} strokeWidth={2.4} /> Flip
-          </Btn>
-        </div>
-        <FixedReadOnlyBoard
-          fen={node?.fen ?? study.root_fen}
-          lastMove={node?.uci ?? null}
+      {selectedChapterAnchorId != null ? (
+        <ChapterWalker
+          studyRootFen={study.root_fen}
+          nodes={study.nodes}
+          chapters={study.chapters}
+          chapterNodeId={selectedChapterAnchorId}
+          currentNodeId={currentNodeId}
+          setCurrentNodeId={setCurrentNodeId}
           flip={flip}
+          setFlip={setFlip}
         />
-      </div>
+      ) : (
+        <Card
+          style={{
+            padding: 32,
+            textAlign: 'center',
+            color: 'var(--text-dim)',
+          }}
+        >
+          No chapters in this study yet — your trainer hasn't added one.
+        </Card>
+      )}
     </div>
   );
 }

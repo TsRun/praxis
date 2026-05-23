@@ -180,7 +180,7 @@ function RolesEditor({
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-      <div className="overline">Your roles</div>
+      <div>Your roles</div>
       {ALL_ROLES.map((r) => (
         <label
           key={r}

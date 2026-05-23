@@ -4,12 +4,14 @@ import { Chess } from 'chess.js';
 import { ChessBoard } from '../components/board/ChessBoard';
 import {
   trainerGames,
+  trainerStudies,
   type GameStudyFull,
   type GameAnnotation,
 } from '../lib/api';
 import { useGameStore } from '../store/gameStore';
 import { AssignStudyDialog } from './AssignStudyDialog';
 import { Card, Btn, Chip } from '../components/ui/atoms';
+import { EditableTitle } from '../components/ui/EditableTitle';
 import { IconAssign } from '../components/ui/Icons';
 
 export function GameStudyEditor() {
@@ -85,8 +87,15 @@ export function GameStudyEditor() {
       }}
     >
       <div style={{ display: 'flex', alignItems: 'flex-start', gap: 24, flexWrap: 'wrap' }}>
-        <div>
-          <h1 className="t-h1" style={{ margin: 0 }}>{study.name}</h1>
+        <div style={{ minWidth: 240, flex: 1 }}>
+          <EditableTitle
+            level="h1"
+            value={study.name}
+            onSave={async (next) => {
+              await trainerStudies.renameGame(study.id, next);
+              setStudy((prev) => (prev ? { ...prev, name: next } : prev));
+            }}
+          />
           <div
             style={{
               display: 'flex',

@@ -50,7 +50,7 @@ export function NewGameStudyDialog({ open, onClose, onCreate }: Props) {
         style={{ display: 'flex', flexDirection: 'column', gap: 14 }}
       >
         <label style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-          <span className="overline">Study name</span>
+          <span>Study name</span>
           <input
             autoFocus
             className="input"
@@ -60,7 +60,7 @@ export function NewGameStudyDialog({ open, onClose, onCreate }: Props) {
           />
         </label>
         <label style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-          <span className="overline">PGN</span>
+          <span>PGN</span>
           <textarea
             rows={10}
             className="font-mono"

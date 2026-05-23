@@ -63,11 +63,7 @@ interface PlayerRow {
   name: string;
   country: string | null;
   title: string | null;
-  sex: string | null;
   rating: number | null;
-  rapid_rating: number | null;
-  blitz_rating: number | null;
-  birth_year: number | null;
 }
 
 async function flush(pool: ReturnType<typeof makePool>, rows: PlayerRow[]) {
@@ -75,35 +71,21 @@ async function flush(pool: ReturnType<typeof makePool>, rows: PlayerRow[]) {
   const params: unknown[] = [];
   const placeholders: string[] = [];
   rows.forEach((p, i) => {
-    const off = i * 9;
+    const off = i * 5;
     placeholders.push(
-      `($${off + 1},$${off + 2},$${off + 3},$${off + 4},$${off + 5},$${off + 6},$${off + 7},$${off + 8},$${off + 9})`,
+      `($${off + 1},$${off + 2},$${off + 3},$${off + 4},$${off + 5})`,
     );
-    params.push(
-      p.fide_id,
-      p.name,
-      p.country,
-      p.title,
-      p.sex,
-      p.rating,
-      p.rapid_rating,
-      p.blitz_rating,
-      p.birth_year,
-    );
+    params.push(p.fide_id, p.name, p.country, p.title, p.rating);
   });
   await pool.query(
     `INSERT INTO player
-       (fide_id, name, country, title, sex, rating, rapid_rating, blitz_rating, birth_year)
+       (fide_id, name, country, title, rating)
      VALUES ${placeholders.join(',')}
      ON CONFLICT (fide_id) DO UPDATE SET
        name = EXCLUDED.name,
        country = COALESCE(EXCLUDED.country, player.country),
        title = COALESCE(EXCLUDED.title, player.title),
-       sex = COALESCE(EXCLUDED.sex, player.sex),
        rating = COALESCE(EXCLUDED.rating, player.rating),
-       rapid_rating = COALESCE(EXCLUDED.rapid_rating, player.rapid_rating),
-       blitz_rating = COALESCE(EXCLUDED.blitz_rating, player.blitz_rating),
-       birth_year = COALESCE(EXCLUDED.birth_year, player.birth_year),
        origin = 'fide'`,
     params,
   );
@@ -160,20 +142,8 @@ async function main() {
       case 'title':
         current.title = text;
         break;
-      case 'sex':
-        current.sex = text.charAt(0);
-        break;
       case 'rating':
         current.rating = parseIntSafe(text);
-        break;
-      case 'rapid_rating':
-        current.rapid_rating = parseIntSafe(text);
-        break;
-      case 'blitz_rating':
-        current.blitz_rating = parseIntSafe(text);
-        break;
-      case 'birthday':
-        current.birth_year = parseIntSafe(text);
         break;
     }
   });
@@ -186,11 +156,7 @@ async function main() {
           name: current.name,
           country: current.country ?? null,
           title: current.title ?? null,
-          sex: current.sex ?? null,
           rating: current.rating ?? null,
-          rapid_rating: current.rapid_rating ?? null,
-          blitz_rating: current.blitz_rating ?? null,
-          birth_year: current.birth_year ?? null,
         });
         parsed++;
       }
