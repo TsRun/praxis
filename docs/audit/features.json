@@ -1,1 +1,154 @@
-ewogICJmZWF0dXJlcyI6IFsKICAgIHsKICAgICAgImlkIjogImxhbmRpbmctcGFnZS1yZW5kZXIiLAogICAgICAibmFtZSI6ICJMYW5kaW5nIHBhZ2UgcmVuZGVyIiwKICAgICAgInJvdXRlIjogIi8iLAogICAgICAicmVxdWlyZXNBdXRoIjogZmFsc2UsCiAgICAgICJkZXNjcmlwdGlvbiI6ICJQYWdlIGxvYWRzIHdpdGggaGVybyBoZWFkbGluZSwgdGhyZWUgZmVhdHVyZSBjYXJkcyAoT3BlbmluZyB0cmVlcywgR2FtZSBzdHVkaWVzLCBTcGFjZWQgcmVwZXRpdGlvbiksIGFuZCBhIHNpZ24taW4vc2lnbi11cCBmb3JtIOKAlCBubyBKUyBlcnJvcnMgaW4gdGhlIHZpc2libGUgYm9keS4iLAogICAgICAibGFzdFRlc3RlZEF0IjogIjIwMjYtMDUtMjNUMTU6MDk6MzNaIiwKICAgICAgImxhc3RSZXN1bHQiOiAib2siLAogICAgICAibGFzdFByIjogbnVsbAogICAgfSwKICAgIHsKICAgICAgImlkIjogInNpZ25pbi1mbG93IiwKICAgICAgIm5hbWUiOiAiU2lnbi1pbiBmbG93IiwKICAgICAgInJvdXRlIjogIi8iLAogICAgICAicmVxdWlyZXNBdXRoIjogZmFsc2UsCiAgICAgICJkZXNjcmlwdGlvbiI6ICJTdWJtaXR0aW5nIHRoZSBzaWduLWluIGZvcm0gd2l0aCB2YWxpZCBjcmVkZW50aWFscyByZWRpcmVjdHMgdG8gL3RyYWluZXIvc3R1ZGllcyBhbmQgcmVuZGVycyB0aGUgU3R1ZGllcyBwYWdlIGhlYWRpbmcgd2l0aG91dCBlcnJvcnMuIiwKICAgICAgImxhc3RUZXN0ZWRBdCI6ICIyMDI2LTA1LTIzVDE2OjExOjA4WiIsCiAgICAgICJsYXN0UmVzdWx0IjogIm9rIiwKICAgICAgImxhc3RQciI6IG51bGwKICAgIH0sCiAgICB7CiAgICAgICJpZCI6ICJzaWdudXAtZm9ybS1yZW5kZXIiLAogICAgICAibmFtZSI6ICJTaWduLXVwIGZvcm0gcmVuZGVyIiwKICAgICAgInJvdXRlIjogIi8iLAogICAgICAicmVxdWlyZXNBdXRoIjogZmFsc2UsCiAgICAgICJkZXNjcmlwdGlvbiI6ICJTd2l0Y2hpbmcgdGhlIGZvcm0gdG8gJ0NyZWF0ZSBhY2NvdW50JyBtb2RlIHJlbmRlcnMgbmFtZSwgZW1haWwsIHBhc3N3b3JkIGlucHV0cywgYW5kIHJvbGUtcGlja2VyIGJ1dHRvbnMgKFRyYWluZXIgLyBTdHVkZW50IC8gU29sbykgd2l0aCBubyB2aXNpYmxlIGVycm9ycy4iLAogICAgICAibGFzdFRlc3RlZEF0IjogbnVsbCwKICAgICAgImxhc3RSZXN1bHQiOiBudWxsLAogICAgICAibGFzdFByIjogbnVsbAogICAgfSwKICAgIHsKICAgICAgImlkIjogInRvdXItcGFnZSIsCiAgICAgICJuYW1lIjogIlRvdXIgcGFnZSIsCiAgICAgICJyb3V0ZSI6ICIvdG91ciIsCiAgICAgICJyZXF1aXJlc0F1dGgiOiBmYWxzZSwKICAgICAgImRlc2NyaXB0aW9uIjogIk5hdmlnYXRpbmcgdG8gL3RvdXIgcmVuZGVycyB0aGUgbWFya2V0aW5nIHRvdXIgcGFnZSB3aXRob3V0IHVuY2F1Z2h0IGV4Y2VwdGlvbnMgb3IgYmxhbmsgY29udGVudC4iLAogICAgICAibGFzdFRlc3RlZEF0IjogbnVsbCwKICAgICAgImxhc3RSZXN1bHQiOiBudWxsLAogICAgICAibGFzdFByIjogbnVsbAogICAgfSwKICAgIHsKICAgICAgImlkIjogInRyYWluZXItc3R1ZGllcy1saXN0IiwKICAgICAgIm5hbWUiOiAiVHJhaW5lciBzdHVkaWVzIGxpc3QiLAogICAgICAicm91dGUiOiAiL3RyYWluZXIvc3R1ZGllcyIsCiAgICAgICJyZXF1aXJlc0F1dGgiOiB0cnVlLAogICAgICAiZGVzY3JpcHRpb24iOiAiQWZ0ZXIgbG9naW4sIC90cmFpbmVyL3N0dWRpZXMgc2hvd3MgdGhlIFN0dWRpZXMgaGVhZGluZywgc3RhdCB0aWxlcyAoc3R1ZGllcyBhdXRob3JlZCwgc3R1ZGVudHMgbGlua2VkLCBjaGFwdGVycyB0b3RhbCksIGFuZCB0aHJlZSBsYWJlbGxlZCBzZWN0aW9ucyAoT3BlbmluZyBzdHVkaWVzLCBHYW1lIHN0dWRpZXMsIFRhY3RpY2FsIHNldHMpLiIsCiAgICAgICJsYXN0VGVzdGVkQXQiOiBudWxsLAogICAgICAibGFzdFJlc3VsdCI6IG51bGwsCiAgICAgICJsYXN0UHIiOiBudWxsCiAgICB9LAogICAgewogICAgICAiaWQiOiAidHJhaW5lci1uZXctc3R1ZHktbWVudSIsCiAgICAgICJuYW1lIjogIk5ldyBzdHVkeSBkcm9wZG93biBtZW51IiwKICAgICAgInJvdXRlIjogIi90cmFpbmVyL3N0dWRpZXMiLAogICAgICAicmVxdWlyZXNBdXRoIjogdHJ1ZSwKICAgICAgImRlc2NyaXB0aW9uIjogIkNsaWNraW5nICdOZXcgc3R1ZHknIG9uIHRoZSBzdHVkaWVzIHBhZ2Ugb3BlbnMgYSBkcm9wZG93biB3aXRoIHRocmVlIG9wdGlvbnMg4oCUIE9wZW5pbmcgc3R1ZHksIEdhbWUgc3R1ZHksIGFuZCBUYWN0aWNhbCBzZXQuIiwKICAgICAgImxhc3RUZXN0ZWRBdCI6IG51bGwsCiAgICAgICJsYXN0UmVzdWx0IjogbnVsbCwKICAgICAgImxhc3RQciI6IG51bGwKICAgIH0sCiAgICB7CiAgICAgICJpZCI6ICJ0cmFpbmVyLW5ldy1vcGVuaW5nLXN0dWR5LWRpYWxvZyIsCiAgICAgICJuYW1lIjogIk5ldyBvcGVuaW5nIHN0dWR5IGRpYWxvZyIsCiAgICAgICJyb3V0ZSI6ICIvdHJhaW5lci9zdHVkaWVzIiwKICAgICAgInJlcXVpcmVzQXV0aCI6IHRydWUsCiAgICAgICJkZXNjcmlwdGlvbiI6ICJDaG9vc2luZyAnT3BlbmluZyBzdHVkeScgZnJvbSB0aGUgTmV3IHN0dWR5IG1lbnUgb3BlbnMgYSBkaWFsb2cgd2hlcmUgYSBuYW1lIGNhbiBiZSBlbnRlcmVkIGFuZCB0aGUgc3R1ZHkgY3JlYXRlZCBzdWNjZXNzZnVsbHkuIiwKICAgICAgImxhc3RUZXN0ZWRBdCI6IG51bGwsCiAgICAgICJsYXN0UmVzdWx0IjogbnVsbCwKICAgICAgImxhc3RQciI6IG51bGwKICAgIH0sCiAgICB7CiAgICAgICJpZCI6ICJ0cmFpbmVyLW5ldy1nYW1lLXN0dWR5LWRpYWxvZyIsCiAgICAgICJuYW1lIjogIk5ldyBnYW1lIHN0dWR5IGRpYWxvZyIsCiAgICAgICJyb3V0ZSI6ICIvdHJhaW5lci9zdHVkaWVzIiwKICAgICAgInJlcXVpcmVzQXV0aCI6IHRydWUsCiAgICAgICJkZXNjcmlwdGlvbiI6ICJDaG9vc2luZyAnR2FtZSBzdHVkeScgZnJvbSB0aGUgTmV3IHN0dWR5IG1lbnUgb3BlbnMgYSBkaWFsb2cgd2l0aCBhIG5hbWUgZmllbGQgYW5kIGEgUEdOIHRleHRhcmVhIHRoYXQgY2FuIGJlIHN1Ym1pdHRlZC4iLAogICAgICAibGFzdFRlc3RlZEF0IjogbnVsbCwKICAgICAgImxhc3RSZXN1bHQiOiBudWxsLAogICAgICAibGFzdFByIjogbnVsbAogICAgfSwKICAgIHsKICAgICAgImlkIjogInRyYWluZXItbmV3LXRhY3RpYy1zZXQtZGlhbG9nIiwKICAgICAgIm5hbWUiOiAiTmV3IHRhY3RpY2FsIHNldCBkaWFsb2ciLAogICAgICAicm91dGUiOiAiL3RyYWluZXIvc3R1ZGllcyIsCiAgICAgICJyZXF1aXJlc0F1dGgiOiB0cnVlLAogICAgICAiZGVzY3JpcHRpb24iOiAiQ2hvb3NpbmcgJ1RhY3RpY2FsIHNldCcgZnJvbSB0aGUgTmV3IHN0dWR5IG1lbnUgb3BlbnMgYSBkaWFsb2cgd2l0aCBhIG5hbWUgZmllbGQgdGhhdCBjYW4gYmUgc3VibWl0dGVkIHRvIGNyZWF0ZSBhIHRhY3RpYyBzZXQuIiwKICAgICAgImxhc3RUZXN0ZWRBdCI6IG51bGwsCiAgICAgICJsYXN0UmVzdWx0IjogbnVsbCwKICAgICAgImxhc3RQciI6IG51bGwKICAgIH0sCiAgICB7CiAgICAgICJpZCI6ICJ0cmFpbmVyLWltcG9ydC1saWNoZXNzIiwKICAgICAgIm5hbWUiOiAiSW1wb3J0IGZyb20gTGljaGVzcyBkaWFsb2ciLAogICAgICAicm91dGUiOiAiL3RyYWluZXIvc3R1ZGllcyIsCiAgICAgICJyZXF1aXJlc0F1dGgiOiB0cnVlLAogICAgICAiZGVzY3JpcHRpb24iOiAiQ2xpY2tpbmcgJ0ltcG9ydCBmcm9tIExpY2hlc3MnIG9wZW5zIGEgZGlhbG9nIG9yIGZsb3cgcmVxdWVzdGluZyBhIExpY2hlc3Mgc3R1ZHkgVVJMLCB3aXRob3V0IEpTIGVycm9ycy4iLAogICAgICAibGFzdFRlc3RlZEF0IjogbnVsbCwKICAgICAgImxhc3RSZXN1bHQiOiBudWxsLAogICAgICAibGFzdFByIjogbnVsbAogICAgfSwKICAgIHsKICAgICAgImlkIjogInRyYWluZXItc3R1ZGVudHMtbGlzdCIsCiAgICAgICJuYW1lIjogIlRyYWluZXIgc3R1ZGVudHMgbGlzdCIsCiAgICAgICJyb3V0ZSI6ICIvdHJhaW5lci9zdHVkZW50cyIsCiAgICAgICJyZXF1aXJlc0F1dGgiOiB0cnVlLAogICAgICAiZGVzY3JpcHRpb24iOiAiTmF2aWdhdGluZyB0byAvdHJhaW5lci9zdHVkZW50cyByZW5kZXJzIHRoZSBTdHVkZW50cyBoZWFkaW5nIGFuZCBmaWx0ZXIgdGFicyAoQWxsIC8gTGlua2VkIC8gSW52aXRlZCkgd2l0aG91dCBlcnJvcnMuIiwKICAgICAgImxhc3RUZXN0ZWRBdCI6IG51bGwsCiAgICAgICJsYXN0UmVzdWx0IjogbnVsbCwKICAgICAgImxhc3RQciI6IG51bGwKICAgIH0sCiAgICB7CiAgICAgICJpZCI6ICJ0cmFpbmVyLWludml0ZS1zdHVkZW50IiwKICAgICAgIm5hbWUiOiAiSW52aXRlIHN0dWRlbnQiLAogICAgICAicm91dGUiOiAiL3RyYWluZXIvc3R1ZGVudHMiLAogICAgICAicmVxdWlyZXNBdXRoIjogdHJ1ZSwKICAgICAgImRlc2NyaXB0aW9uIjogIkNsaWNraW5nICdJbnZpdGUgc3R1ZGVudCcgb24gdGhlIHN0dWRlbnRzIHBhZ2Ugb3BlbnMgYW4gaW52aXRhdGlvbiBkaWFsb2cgb3IgZmxvdyB3aXRoIGFuIGlucHV0IGZvciB0aGUgc3R1ZGVudCdzIGlkZW50aWZpZXIuIiwKICAgICAgImxhc3RUZXN0ZWRBdCI6IG51bGwsCiAgICAgICJsYXN0UmVzdWx0IjogbnVsbCwKICAgICAgImxhc3RQciI6IG51bGwKICAgIH0sCiAgICB7CiAgICAgICJpZCI6ICJ0cmFpbmVyLWdhbWVzLWJyb3dzZXIiLAogICAgICAibmFtZSI6ICJUcmFpbmVyIGdhbWUgYnJvd3NlciIsCiAgICAgICJyb3V0ZSI6ICIvdHJhaW5lci9nYW1lcyIsCiAgICAgICJyZXF1aXJlc0F1dGgiOiB0cnVlLAogICAgICAiZGVzY3JpcHRpb24iOiAiTmF2aWdhdGluZyB0byAvdHJhaW5lci9nYW1lcyByZW5kZXJzIHRoZSAnQnJvd3NlIGdhbWVzJyBoZWFkaW5nIHdpdGggc291cmNlIHRhYnMgKENoZXNzLmNvbSwgTGljaGVzcywgRGF0YWJhc2UpIGFuZCBhIGJvYXJkIHdpdGggVW5kby9SZXNldCBjb250cm9scy4iLAogICAgICAibGFzdFRlc3RlZEF0IjogbnVsbCwKICAgICAgImxhc3RSZXN1bHQiOiBudWxsLAogICAgICAibGFzdFByIjogbnVsbAogICAgfSwKICAgIHsKICAgICAgImlkIjogInN0dWRlbnQtZGFzaGJvYXJkIiwKICAgICAgIm5hbWUiOiAiU3R1ZGVudCBkYXNoYm9hcmQiLAogICAgICAicm91dGUiOiAiL3N0dWRlbnQvZGFzaGJvYXJkIiwKICAgICAgInJlcXVpcmVzQXV0aCI6IHRydWUsCiAgICAgICJkZXNjcmlwdGlvbiI6ICJOYXZpZ2F0aW5nIHRvIC9zdHVkZW50L2Rhc2hib2FyZCByZW5kZXJzIGEgZ3JlZXRpbmcgd2l0aCB0aGUgdXNlcidzIG5hbWUsIGFzc2lnbm1lbnQgY291bnQgc3RhdHMsIFRvZGF5IGNhcmQsIGFuZCBBY3Rpdml0eSBjYXJkIOKAlCBubyB1bmNhdWdodCBlcnJvcnMuIiwKICAgICAgImxhc3RUZXN0ZWRBdCI6IG51bGwsCiAgICAgICJsYXN0UmVzdWx0IjogbnVsbCwKICAgICAgImxhc3RQciI6IG51bGwKICAgIH0sCiAgICB7CiAgICAgICJpZCI6ICJzZXR0aW5ncy1wYWdlIiwKICAgICAgIm5hbWUiOiAiU2V0dGluZ3MgcGFnZSIsCiAgICAgICJyb3V0ZSI6ICIvc2V0dGluZ3MiLAogICAgICAicmVxdWlyZXNBdXRoIjogdHJ1ZSwKICAgICAgImRlc2NyaXB0aW9uIjogIk5hdmlnYXRpbmcgdG8gL3NldHRpbmdzIHJlbmRlcnMgYWxsIGZvdXIgc2VjdGlvbnMg4oCUIFByb2ZpbGUgKG5hbWUvZW1haWwgc2F2ZSksIFJvbGVzICh0b2dnbGUgYnV0dG9ucyksIFBhc3N3b3JkIChjaGFuZ2UgZm9ybSksIGFuZCBBUEkga2V5cyAoTmV3IGtleSBidXR0b24pIOKAlCB3aXRob3V0IGVycm9ycy4iLAogICAgICAibGFzdFRlc3RlZEF0IjogIjIwMjYtMDUtMjNUMTU6MjY6NTNaIiwKICAgICAgImxhc3RSZXN1bHQiOiAib2siLAogICAgICAibGFzdFByIjogbnVsbAogICAgfQogIF0KfQo=
+{
+  "features": [
+    {
+      "id": "landing-page-render",
+      "name": "Landing page render",
+      "route": "/",
+      "requiresAuth": false,
+      "description": "Page loads with hero headline, three feature cards (Opening trees, Game studies, Spaced repetition), and a sign-in/sign-up form — no JS errors in the visible body.",
+      "lastTestedAt": "2026-05-23T15:09:33Z",
+      "lastResult": "ok",
+      "lastPr": null
+    },
+    {
+      "id": "signin-flow",
+      "name": "Sign-in flow",
+      "route": "/",
+      "requiresAuth": false,
+      "description": "Submitting the sign-in form with valid credentials redirects to /trainer/studies and renders the Studies page heading without errors.",
+      "lastTestedAt": "2026-05-23T16:11:08Z",
+      "lastResult": "ok",
+      "lastPr": null
+    },
+    {
+      "id": "signup-form-render",
+      "name": "Sign-up form render",
+      "route": "/",
+      "requiresAuth": false,
+      "description": "Switching the form to 'Create account' mode renders name, email, password inputs, and role-picker buttons (Trainer / Student / Solo) with no visible errors.",
+      "lastTestedAt": "2026-05-23T17:07:59Z",
+      "lastResult": "ok",
+      "lastPr": null
+    },
+    {
+      "id": "tour-page",
+      "name": "Tour page",
+      "route": "/tour",
+      "requiresAuth": false,
+      "description": "Navigating to /tour renders the marketing tour page without uncaught exceptions or blank content.",
+      "lastTestedAt": null,
+      "lastResult": null,
+      "lastPr": null
+    },
+    {
+      "id": "trainer-studies-list",
+      "name": "Trainer studies list",
+      "route": "/trainer/studies",
+      "requiresAuth": true,
+      "description": "After login, /trainer/studies shows the Studies heading, stat tiles (studies authored, students linked, chapters total), and three labelled sections (Opening studies, Game studies, Tactical sets).",
+      "lastTestedAt": null,
+      "lastResult": null,
+      "lastPr": null
+    },
+    {
+      "id": "trainer-new-study-menu",
+      "name": "New study dropdown menu",
+      "route": "/trainer/studies",
+      "requiresAuth": true,
+      "description": "Clicking 'New study' on the studies page opens a dropdown with three options — Opening study, Game study, and Tactical set.",
+      "lastTestedAt": null,
+      "lastResult": null,
+      "lastPr": null
+    },
+    {
+      "id": "trainer-new-opening-study-dialog",
+      "name": "New opening study dialog",
+      "route": "/trainer/studies",
+      "requiresAuth": true,
+      "description": "Choosing 'Opening study' from the New study menu opens a dialog where a name can be entered and the study created successfully.",
+      "lastTestedAt": null,
+      "lastResult": null,
+      "lastPr": null
+    },
+    {
+      "id": "trainer-new-game-study-dialog",
+      "name": "New game study dialog",
+      "route": "/trainer/studies",
+      "requiresAuth": true,
+      "description": "Choosing 'Game study' from the New study menu opens a dialog with a name field and a PGN textarea that can be submitted.",
+      "lastTestedAt": null,
+      "lastResult": null,
+      "lastPr": null
+    },
+    {
+      "id": "trainer-new-tactic-set-dialog",
+      "name": "New tactical set dialog",
+      "route": "/trainer/studies",
+      "requiresAuth": true,
+      "description": "Choosing 'Tactical set' from the New study menu opens a dialog with a name field that can be submitted to create a tactic set.",
+      "lastTestedAt": null,
+      "lastResult": null,
+      "lastPr": null
+    },
+    {
+      "id": "trainer-import-lichess",
+      "name": "Import from Lichess dialog",
+      "route": "/trainer/studies",
+      "requiresAuth": true,
+      "description": "Clicking 'Import from Lichess' opens a dialog or flow requesting a Lichess study URL, without JS errors.",
+      "lastTestedAt": null,
+      "lastResult": null,
+      "lastPr": null
+    },
+    {
+      "id": "trainer-students-list",
+      "name": "Trainer students list",
+      "route": "/trainer/students",
+      "requiresAuth": true,
+      "description": "Navigating to /trainer/students renders the Students heading and filter tabs (All / Linked / Invited) without errors.",
+      "lastTestedAt": null,
+      "lastResult": null,
+      "lastPr": null
+    },
+    {
+      "id": "trainer-invite-student",
+      "name": "Invite student",
+      "route": "/trainer/students",
+      "requiresAuth": true,
+      "description": "Clicking 'Invite student' on the students page opens an invitation dialog or flow with an input for the student's identifier.",
+      "lastTestedAt": null,
+      "lastResult": null,
+      "lastPr": null
+    },
+    {
+      "id": "trainer-games-browser",
+      "name": "Trainer game browser",
+      "route": "/trainer/games",
+      "requiresAuth": true,
+      "description": "Navigating to /trainer/games renders the 'Browse games' heading with source tabs (Chess.com, Lichess, Database) and a board with Undo/Reset controls.",
+      "lastTestedAt": null,
+      "lastResult": null,
+      "lastPr": null
+    },
+    {
+      "id": "student-dashboard",
+      "name": "Student dashboard",
+      "route": "/student/dashboard",
+      "requiresAuth": true,
+      "description": "Navigating to /student/dashboard renders a greeting with the user's name, assignment count stats, Today card, and Activity card — no uncaught errors.",
+      "lastTestedAt": null,
+      "lastResult": null,
+      "lastPr": null
+    },
+    {
+      "id": "settings-page",
+      "name": "Settings page",
+      "route": "/settings",
+      "requiresAuth": true,
+      "description": "Navigating to /settings renders all four sections — Profile (name/email save), Roles (toggle buttons), Password (change form), and API keys (New key button) — without errors.",
+      "lastTestedAt": "2026-05-23T15:26:53Z",
+      "lastResult": "ok",
+      "lastPr": null
+    }
+  ]
+}
