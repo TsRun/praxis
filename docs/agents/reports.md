@@ -15,6 +15,10 @@ If a run finds nothing to do, it appends a single line `## YYYY-MM-DD HH:MM — 
 
 ---
 
+## 2026-05-22 14:40 — Make a full update of the ui (slice 1: studies list errors)
+- PR: https://github.com/TsRun/praxis/pull/57 (status: open)
+- Files touched: 1 (src/trainer/StudiesPage.tsx)
+- Notes: First concrete slice of the broad UI queue item. Wraps the three studies-page list fetches in try/catch with a per-Section error block + Retry link; before this, a failing /api/trainer/studies/* would render "Loading…" forever. typecheck clean (after npm i), 37 tests pass. Did not attempt Playwright (no dev server in this fire).
 ## 2026-05-22 15:45 — language+theme (slice 1: dark/light toggle)
 - PR: https://github.com/TsRun/praxis/pull/58 (status: open)
 - Files touched: 5 (index.html, src/index.css, src/components/ui/{Icons.tsx, ThemeToggle.tsx, TopBar.tsx})
