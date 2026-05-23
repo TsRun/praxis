@@ -666,3 +666,49 @@ input[type='range']::-moz-range-thumb {
 @media (max-width: 640px) {
   .topbar { padding-left: 12px !important; padding-right: 12px !important; }
 }
+
+/* ---------------------------------------------------------------
+   Light theme — opt-in via [data-theme="light"] on <html>.
+   Persisted to localStorage by <ThemeToggle />.
+   --------------------------------------------------------------- */
+
+[data-theme="light"] {
+  color-scheme: light;
+
+  /* neutrals */
+  --text:       #15151a;
+  --text-dim:   #5c5c66;
+  --text-faint: #8a8a94;
+  --text-mute:  #b8b8c0;
+
+  /* signals stay roughly the same but slightly dimmer for legibility */
+  --success:     #15803d;
+  --success-bg:  rgba(21, 128, 61, 0.10);
+  --danger:      #b91c1c;
+  --danger-bg:   rgba(185, 28, 28, 0.10);
+  --info:        #1d4ed8;
+
+  /* hairlines */
+  --hairline:   rgba(0, 0, 0, 0.07);
+  --hairline-2: rgba(0, 0, 0, 0.11);
+
+  /* accent — keep amber identity; soft variants warmed for light */
+  --accent-soft:   rgba(251, 191, 36, 0.18);
+  --accent-ring:   rgba(251, 191, 36, 0.45);
+  --accent-glow:   rgba(251, 191, 36, 0.32);
+  --accent-tint:   #fff3d2;
+
+  /* surfaces */
+  --page-bg:        #fafafa;
+  --page-glow-a:    rgba(251, 191, 36, 0.10);
+  --page-glow-b:    rgba(96, 165, 250, 0.07);
+  --card-bg:        #ffffff;
+  --card-border:    rgba(0, 0, 0, 0.06);
+  --card-shadow:    0 0 0 1px var(--card-border), 0 1px 3px rgba(0, 0, 0, 0.04);
+  --inset-bg:       rgba(0, 0, 0, 0.025);
+  --inset-border:   rgba(0, 0, 0, 0.05);
+  --chip-bg:        #f0f0f3;
+  --chip-bg-hover:  #e6e6ea;
+  --chip-border:    rgba(0, 0, 0, 0.06);
+  --topbar-bg:      rgba(250, 250, 250, 0.85);
+}

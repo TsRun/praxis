@@ -19,3 +19,11 @@ modern-*.png
 move-selection-*.png
 .superpowers/
 .claude/
+tests/audit/screenshots/
+.auth/
+
+# audit bot — transient / sensitive
+.auth/
+docs/audit/_crawl_raw.json
+tests/audit/*.spec.ts
+tests/audit/screenshots/*.png
