@@ -23,5 +23,5 @@ move-selection-*.png
 # audit bot — transient / sensitive
 .auth/
 docs/audit/_crawl_raw.json
-tests/audit/_discovery.spec.ts
+tests/audit/*.spec.ts
 tests/audit/screenshots/*.png
