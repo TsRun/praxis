@@ -165,10 +165,8 @@ npm run e2e          # playwright
 
 ## Tests
 
-- 16 Vitest unit tests — cache, API client, game store
-- 4 Playwright E2E tests — load / play move / FEN search / shareable URL
+Vitest unit tests (run via `npm test`) cover the API client, game store, PGN parser, opening tree, tactic engine, auth helpers, and chapter walker scope. See `tests/unit/` for the current set.
 
 ## Design + plan
 
-`docs/superpowers/specs/2026-05-17-chess-opening-tree-design.md`,
-`docs/superpowers/plans/2026-05-17-opening-tree.md`.
+Original specs and implementation plans were removed once their code shipped — refer to git history (`docs/superpowers/`) if you need them.
