@@ -15,7 +15,7 @@ If a run finds nothing to do, it appends a single line `## YYYY-MM-DD HH:MM — 
 
 ---
 
-##  — idle (no change)
+## 2026-05-23 04:09 — idle (no change)
 
 
 ## 2026-05-23 00:15 — idle (4 fires in a row, nothing changed; PRs #56 #57 #58 still open, no merges, no new queue items)
