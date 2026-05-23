@@ -1,8 +1,6 @@
-# Autonomous Loop Runbook (Phase 2 — implementation)
+# Autonomous Loop Runbook
 
 This file is the contract between the cron-triggered Claude session and the user. The cron prompt is short — it just says "follow this runbook." Everything the loop does is described here.
-
-> **Mode gate.** Before following this runbook, check `docs/agents/audit.md` for a `## Audit complete` marker. If it is missing, the loop is in **Phase 1** — follow `AUDIT_RUNBOOK.md` instead. This file only applies once the audit has been promoted to queue items.
 
 ## The queue lives in `queue.html`
 

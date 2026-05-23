@@ -10,11 +10,9 @@ Every hour at minute `:13` (00:13, 01:13, 02:13, ...), launchd invokes:
 claude -p "<runbook entry prompt>"
 ```
 
-from `/Users/apple/Projects/Chess/yotta`. The headless Claude session checks `docs/agents/audit.md` for an `## Audit complete` marker:
-- **Phase 1 (audit missing the marker):** follows `AUDIT_RUNBOOK.md` — read-only audit of one UI area, appends findings via PR.
-- **Phase 2 (marker present):** follows `RUNBOOK.md` — picks one item from `queue.html`, ships a PR.
+from `/Users/apple/Projects/Chess/yotta`. The headless Claude session follows `RUNBOOK.md`: picks the top unclaimed item from `queue.html`, ships a PR, flips the item to `awaiting_confirmation`, stops.
 
-Either way: one task per fire, PR-only, never merges. **Each fire is one billed Claude conversation.**
+One task per fire, PR-only, never merges. **Each fire is one billed Claude conversation.**
 
 ## Install
 

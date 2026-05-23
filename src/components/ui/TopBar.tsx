@@ -2,6 +2,7 @@ import { Link, useLocation } from 'react-router-dom';
 import type { ReactNode } from 'react';
 import { useAuth } from '../../auth/AuthContext';
 import { UserMenu } from '../../auth/UserMenu';
+import { ThemeToggle } from './ThemeToggle';
 
 interface NavLink {
   to: string;
@@ -82,6 +83,7 @@ export function TopBar({ links = [], right }: TopBarProps) {
 
         <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 14 }}>
           {right}
+          <ThemeToggle />
           {user && <UserMenu />}
         </div>
       </nav>
