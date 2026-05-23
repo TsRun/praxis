@@ -6,8 +6,8 @@
       "route": "/",
       "requiresAuth": false,
       "description": "Page loads with hero headline, three feature cards (Opening trees, Game studies, Spaced repetition), and a sign-in/sign-up form — no JS errors in the visible body.",
-      "lastTestedAt": null,
-      "lastResult": null,
+      "lastTestedAt": "2026-05-23T15:09:33Z",
+      "lastResult": "ok",
       "lastPr": null
     },
     {
