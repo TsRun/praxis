@@ -108,7 +108,13 @@ export function InviteStudentDialog({ onClose }: { onClose: () => void }) {
           }}
         >
           <h2 className="t-h2" style={{ margin: 0 }}>Invite a student</h2>
-          <Btn variant="ghost" size="sm" type="button" onClick={onClose}>
+          <Btn
+            variant="ghost"
+            size="sm"
+            type="button"
+            onClick={onClose}
+            aria-label="Close"
+          >
             <IconX size={14} strokeWidth={2.4} />
           </Btn>
         </div>
@@ -191,6 +197,8 @@ function NicknameForm({
         />
         <input
           autoFocus
+          id="invite-nickname"
+          aria-label="Student nickname"
           className="input input-lg"
           placeholder="student nickname"
           value={name}
@@ -310,6 +318,7 @@ function EmailForm({
       </div>
 
       <label
+        htmlFor="invite-email"
         style={{
           fontSize: 12,
           fontWeight: 500,
@@ -321,6 +330,7 @@ function EmailForm({
       </label>
       <input
         autoFocus
+        id="invite-email"
         className="input input-lg"
         type="email"
         placeholder="student@example.com"
@@ -330,6 +340,7 @@ function EmailForm({
       />
 
       <label
+        htmlFor="invite-suggested-nickname"
         style={{
           fontSize: 12,
           fontWeight: 500,
@@ -346,6 +357,7 @@ function EmailForm({
         </span>
       </label>
       <input
+        id="invite-suggested-nickname"
         className="input"
         placeholder={suggestion || 'how to greet them in the email'}
         value={emailName}
