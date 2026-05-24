@@ -108,8 +108,18 @@ export function StudiesPage() {
         setMenuOpen(false);
       }
     };
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setMenuOpen(false);
+        (document.getElementById('new-study-trigger') as HTMLButtonElement | null)?.focus();
+      }
+    };
     document.addEventListener('mousedown', onDoc);
-    return () => document.removeEventListener('mousedown', onDoc);
+    document.addEventListener('keydown', onKey);
+    return () => {
+      document.removeEventListener('mousedown', onDoc);
+      document.removeEventListener('keydown', onKey);
+    };
   }, [menuOpen]);
 
   const filteredOpens = (opens ?? []).filter((s) =>
@@ -154,13 +164,23 @@ export function StudiesPage() {
             Import from Lichess
           </Btn>
           <div ref={menuRef} style={{ position: 'relative' }}>
-            <Btn variant="primary" onClick={() => setMenuOpen((v) => !v)}>
+            <Btn
+              id="new-study-trigger"
+              variant="primary"
+              onClick={() => setMenuOpen((v) => !v)}
+              aria-haspopup="menu"
+              aria-expanded={menuOpen}
+              aria-controls="new-study-menu"
+            >
               <IconPlus size={13} strokeWidth={2.4} />
               New study
               <IconChevDown size={11} strokeWidth={2.4} style={{ marginLeft: 2 }} />
             </Btn>
             {menuOpen && (
               <div
+                id="new-study-menu"
+                role="menu"
+                aria-labelledby="new-study-trigger"
                 style={{
                   position: 'absolute',
                   top: 'calc(100% + 6px)',
@@ -447,6 +467,7 @@ function NewStudyMenuItem({
   return (
     <button
       type="button"
+      role="menuitem"
       onClick={onClick}
       style={{
         display: 'grid',
