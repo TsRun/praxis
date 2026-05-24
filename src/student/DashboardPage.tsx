@@ -280,6 +280,7 @@ export function DashboardPage() {
               <Segmented<ActiveFilter>
                 value={filter}
                 onChange={setFilter}
+                ariaLabel="Filter assignments by state"
                 options={[
                   { value: 'active', label: 'Active' },
                   { value: 'completed', label: 'Completed' },
@@ -345,6 +346,7 @@ export function DashboardPage() {
                 Math.max(1, rows.length)
               }
               height={6}
+              ariaLabel="Today's average progress across assignments"
             />
             <div style={{ display: 'flex', gap: 8, marginTop: 10 }}>
               <Chip variant="success">{done.length} done</Chip>
@@ -455,6 +457,8 @@ function MiniStat({
 }) {
   return (
     <div
+      role="group"
+      aria-label={`${value} ${label}`}
       style={{
         padding: '12px 16px',
         background: 'var(--inset-bg)',
@@ -465,6 +469,7 @@ function MiniStat({
     >
       <div
         className="mono"
+        aria-hidden="true"
         style={{
           fontSize: 22,
           fontWeight: 600,
@@ -475,6 +480,7 @@ function MiniStat({
         {value}
       </div>
       <div
+        aria-hidden="true"
         style={{
           fontSize: 11,
           color: 'var(--text-faint)',
@@ -598,7 +604,10 @@ function AssignmentRowCard({ a }: { a: AssignmentRow }) {
               {a.progress_pct}% complete
             </span>
           </div>
-          <ProgressBar pct={a.progress_pct} />
+          <ProgressBar
+            pct={a.progress_pct}
+            ariaLabel={`${a.name} progress`}
+          />
         </div>
         {isDone ? (
           <span
