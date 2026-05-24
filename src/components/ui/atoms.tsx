@@ -138,6 +138,7 @@ interface SegmentedOption<T extends string> {
   value: T;
   label: ReactNode;
   count?: number | string;
+  ariaLabel?: string;
 }
 interface SegmentedProps<T extends string> {
   value: T;
@@ -169,6 +170,7 @@ export function Segmented<T extends string>({
           className={value === o.value ? 'active' : ''}
           onClick={() => onChange(o.value)}
           aria-pressed={value === o.value}
+          aria-label={o.ariaLabel}
         >
           {o.label}
           {o.count != null && <span className="num">{o.count}</span>}
