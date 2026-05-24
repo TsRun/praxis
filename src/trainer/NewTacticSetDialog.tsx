@@ -42,14 +42,27 @@ export function NewTacticSetDialog({ open, onClose, onCreate }: Props) {
         onSubmit={submit}
         style={{ display: 'flex', flexDirection: 'column', gap: 14 }}
       >
-        <label style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-          <span>Set name</span>
+        <label
+          htmlFor="tactic-set-name"
+          style={{ display: 'flex', flexDirection: 'column', gap: 6 }}
+        >
+          <span>
+            Set name{' '}
+            <span aria-hidden="true" style={{ color: 'var(--danger)' }}>
+              *
+            </span>
+          </span>
           <input
+            id="tactic-set-name"
             autoFocus
             className="input"
             placeholder="e.g. Pins and skewers — easy"
             value={name}
             onChange={(e) => setName(e.target.value)}
+            required
+            aria-required="true"
+            aria-invalid={err ? true : undefined}
+            aria-describedby={err ? 'tactic-set-name-error' : undefined}
           />
         </label>
 
@@ -59,7 +72,13 @@ export function NewTacticSetDialog({ open, onClose, onCreate }: Props) {
         </p>
 
         {err && (
-          <span style={{ fontSize: 12, color: 'var(--danger)' }}>{err}</span>
+          <span
+            id="tactic-set-name-error"
+            role="alert"
+            style={{ fontSize: 12, color: 'var(--danger)' }}
+          >
+            {err}
+          </span>
         )}
 
         <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 4 }}>
