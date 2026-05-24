@@ -65,8 +65,12 @@ export function NewOpeningStudyDialog({ open, onClose, onCreate, lichessHint }: 
         </label>
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-          <span>Which side does the student play?</span>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 8 }}>
+          <span id="opening-study-side-label">Which side does the student play?</span>
+          <div
+            role="group"
+            aria-labelledby="opening-study-side-label"
+            style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 8 }}
+          >
             <SideOption
               picked={side === 'w'}
               onClick={() => setSide('w')}
@@ -129,6 +133,7 @@ function SideOption({
     <button
       type="button"
       onClick={onClick}
+      aria-pressed={picked}
       style={{
         textAlign: 'left',
         padding: 14,
