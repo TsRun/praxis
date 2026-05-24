@@ -83,6 +83,7 @@ export function StudentsPage() {
           <input
             className="input"
             placeholder="Find by nickname…"
+            aria-label="Find student by nickname"
             value={q}
             onChange={(e) => setQ(e.target.value)}
             style={{ paddingLeft: 32 }}
@@ -91,6 +92,7 @@ export function StudentsPage() {
         <Segmented<Filter>
           value={filter}
           onChange={setFilter}
+          ariaLabel="Filter students by status"
           options={[
             { value: 'all', label: 'All' },
             { value: 'linked', label: 'Linked' },
