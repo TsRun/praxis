@@ -1,4 +1,4 @@
-import { useEffect, useState, type FormEvent } from 'react';
+import { useEffect, useId, useState, type FormEvent } from 'react';
 import { Link, Navigate } from 'react-router-dom';
 import { useAuth } from './AuthContext';
 import {
@@ -109,6 +109,7 @@ function ProfileCard({
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   const [savedAt, setSavedAt] = useState<number | null>(null);
+  const errId = useId();
 
   const dirty = name !== initialName || email !== initialEmail;
 
@@ -154,7 +155,19 @@ function ProfileCard({
             autoComplete="email"
           />
         </Field>
-        {err && <span style={{ fontSize: 12, color: 'var(--danger)' }}>{err}</span>}
+        <span
+          id={errId}
+          role="alert"
+          aria-live="polite"
+          style={{
+            fontSize: 12,
+            color: 'var(--danger)',
+            minHeight: err ? undefined : 0,
+            display: err ? 'inline' : 'none',
+          }}
+        >
+          {err}
+        </span>
         <FormFooter
           dirty={dirty}
           busy={busy}
@@ -183,6 +196,7 @@ function RolesCard({
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   const [savedAt, setSavedAt] = useState<number | null>(null);
+  const errId = useId();
 
   const dirty =
     picked.size !== initial.length ||
@@ -223,7 +237,12 @@ function RolesCard({
         and a student for someone else — all in the same account.
       </div>
       <form onSubmit={submit} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-        <div className="grid-3" style={{ gap: 8 }}>
+        <div
+          className="grid-3"
+          role="group"
+          aria-label="Active roles"
+          style={{ gap: 8 }}
+        >
           {ALL_ROLES.map((r) => {
             const on = picked.has(r);
             const { Icon, title, sub } = ROLE_LABELS[r];
@@ -232,6 +251,8 @@ function RolesCard({
                 key={r}
                 type="button"
                 onClick={() => toggle(r)}
+                aria-pressed={on}
+                aria-label={`${title} — ${sub}`}
                 style={{
                   padding: '14px 10px',
                   borderRadius: 12,
@@ -243,7 +264,7 @@ function RolesCard({
                   transition: 'all 120ms ease',
                 }}
               >
-                <Icon size={22} strokeWidth={2} style={{ marginBottom: 8 }} />
+                <Icon size={22} strokeWidth={2} style={{ marginBottom: 8 }} aria-hidden="true" />
                 <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text)' }}>{title}</div>
                 <div style={{ fontSize: 11.5, color: 'var(--text-dim)', marginTop: 2, lineHeight: 1.35 }}>
                   {sub}
@@ -252,7 +273,18 @@ function RolesCard({
             );
           })}
         </div>
-        {err && <span style={{ fontSize: 12, color: 'var(--danger)' }}>{err}</span>}
+        <span
+          id={errId}
+          role="alert"
+          aria-live="polite"
+          style={{
+            fontSize: 12,
+            color: 'var(--danger)',
+            display: err ? 'inline' : 'none',
+          }}
+        >
+          {err}
+        </span>
         <FormFooter
           dirty={dirty}
           busy={busy}
@@ -280,6 +312,7 @@ function PasswordCard({
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   const [savedAt, setSavedAt] = useState<number | null>(null);
+  const errId = useId();
 
   async function submit(e: FormEvent) {
     e.preventDefault();
@@ -341,7 +374,18 @@ function PasswordCard({
             autoComplete="new-password"
           />
         </Field>
-        {err && <span style={{ fontSize: 12, color: 'var(--danger)' }}>{err}</span>}
+        <span
+          id={errId}
+          role="alert"
+          aria-live="polite"
+          style={{
+            fontSize: 12,
+            color: 'var(--danger)',
+            display: err ? 'inline' : 'none',
+          }}
+        >
+          {err}
+        </span>
         <div
           style={{
             display: 'flex',
@@ -361,6 +405,7 @@ function PasswordCard({
             variant="primary"
             type="submit"
             disabled={busy || !current || !next || !confirm}
+            aria-describedby={err ? errId : undefined}
           >
             {busy ? 'Saving…' : 'Change password'}
           </Btn>
@@ -444,7 +489,8 @@ function ApiKeysCard() {
               <button
                 type="button"
                 onClick={() => setRevoking(k)}
-                title="Revoke key"
+                title={`Revoke key "${k.name}"`}
+                aria-label={`Revoke key "${k.name}"`}
                 style={{
                   background: 'transparent',
                   border: 0,
@@ -453,7 +499,7 @@ function ApiKeysCard() {
                   padding: 6,
                 }}
               >
-                <IconTrash size={13} strokeWidth={2.4} />
+                <IconTrash size={13} strokeWidth={2.4} aria-hidden="true" />
               </button>
             </div>
           ))}
@@ -508,6 +554,7 @@ function NewKeyDialog({
   const [name, setName] = useState('');
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
+  const errId = useId();
 
   async function submit(e: FormEvent) {
     e.preventDefault();
@@ -534,9 +581,21 @@ function NewKeyDialog({
             autoFocus
             value={name}
             onChange={(e) => setName(e.target.value)}
+            aria-describedby={err ? errId : undefined}
           />
         </Field>
-        {err && <span style={{ fontSize: 12, color: 'var(--danger)' }}>{err}</span>}
+        <span
+          id={errId}
+          role="alert"
+          aria-live="polite"
+          style={{
+            fontSize: 12,
+            color: 'var(--danger)',
+            display: err ? 'inline' : 'none',
+          }}
+        >
+          {err}
+        </span>
         <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
           <Btn variant="ghost" type="button" onClick={onClose} disabled={busy}>
             Cancel
