@@ -16,7 +16,7 @@
       "route": "/",
       "requiresAuth": false,
       "description": "Submitting the sign-in form with valid credentials redirects to /trainer/studies and renders the Studies page heading without errors.",
-      "lastTestedAt": "2026-05-23T16:11:08Z",
+      "lastTestedAt": "2026-05-24T16:09:44Z",
       "lastResult": "ok",
       "lastPr": null
     },
