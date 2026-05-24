@@ -145,6 +145,7 @@ interface SegmentedProps<T extends string> {
   options: SegmentedOption<T>[];
   accent?: boolean;
   className?: string;
+  ariaLabel?: string;
 }
 
 export function Segmented<T extends string>({
@@ -153,15 +154,21 @@ export function Segmented<T extends string>({
   options,
   accent = false,
   className = '',
+  ariaLabel,
 }: SegmentedProps<T>) {
   return (
-    <div className={`segmented ${accent ? 'accent' : ''} ${className}`.trim()}>
+    <div
+      className={`segmented ${accent ? 'accent' : ''} ${className}`.trim()}
+      role={ariaLabel ? 'group' : undefined}
+      aria-label={ariaLabel}
+    >
       {options.map((o) => (
         <button
           key={o.value}
           type="button"
           className={value === o.value ? 'active' : ''}
           onClick={() => onChange(o.value)}
+          aria-pressed={value === o.value}
         >
           {o.label}
           {o.count != null && <span className="num">{o.count}</span>}
