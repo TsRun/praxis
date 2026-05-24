@@ -73,7 +73,13 @@ export function Dialog({
             }}
           >
             <h2 className="t-h2" style={{ margin: 0 }}>{title}</h2>
-            <Btn variant="ghost" size="sm" onClick={onClose} type="button">
+            <Btn
+              variant="ghost"
+              size="sm"
+              onClick={onClose}
+              type="button"
+              aria-label="Close"
+            >
               <IconX size={14} strokeWidth={2.4} />
             </Btn>
           </div>

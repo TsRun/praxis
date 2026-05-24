@@ -187,6 +187,23 @@ a.link:hover { text-decoration: underline; text-underline-offset: 3px; }
 }
 .input-lg { height: 44px; font-size: 15px; border-radius: 12px; }
 
+.textarea {
+  background: var(--inset-bg);
+  border: 1px solid var(--inset-border);
+  border-radius: 10px;
+  padding: 10px 12px;
+  color: var(--text);
+  outline: none;
+  width: 100%;
+  font-family: inherit;
+  transition: border-color 120ms ease, box-shadow 120ms ease, background 120ms ease;
+}
+.textarea::placeholder { color: var(--text-faint); }
+.textarea:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-soft);
+}
+
 /* ---------------- chip / pill ---------------- */
 .chip {
   display: inline-flex; align-items: center; gap: 6px;
