@@ -76,6 +76,7 @@ export function TourPage() {
         background: 'var(--page-bg)',
       }}
     >
+      <h1 className="sr-only">Praxis product tour</h1>
       <TopBar />
       <SceneTabs idx={state.idx} onPick={goto} />
       <div style={{ padding: '0 24px' }}>
@@ -138,6 +139,8 @@ function SceneTabs({ idx, onPick }: { idx: number; onPick: (i: number) => void }
   return (
     <div
       className="scroll-row"
+      role="group"
+      aria-label="Tour scenes"
       style={{
         gap: 6,
         padding: '14px 24px 10px',
@@ -151,6 +154,8 @@ function SceneTabs({ idx, onPick }: { idx: number; onPick: (i: number) => void }
             key={s.id}
             type="button"
             onClick={() => onPick(i)}
+            aria-pressed={active}
+            aria-label={`Scene ${i + 1}: ${s.label}`}
             style={{
               fontSize: 12.5,
               padding: '5px 10px',
@@ -213,7 +218,13 @@ function ControlBar({
       <Btn variant="ghost" size="sm" onClick={onPrev} disabled={idx === 0}>
         <IconArrowL size={14} /> <span style={{ marginLeft: 4 }}>Back</span>
       </Btn>
-      <Btn variant="ghost" size="sm" onClick={onTogglePause}>
+      <Btn
+        variant="ghost"
+        size="sm"
+        onClick={onTogglePause}
+        aria-pressed={paused}
+        aria-label={paused ? 'Play tour' : 'Pause tour'}
+      >
         {paused ? '▶ Play' : '⏸ Pause'}
       </Btn>
       <Btn variant="ghost" size="sm" onClick={onNext} disabled={idx === SCENES.length - 1}>
