@@ -76,8 +76,8 @@
       "route": "/trainer/studies",
       "requiresAuth": true,
       "description": "Choosing 'Game study' from the New study menu opens a dialog with a name field and a PGN textarea that can be submitted.",
-      "lastTestedAt": null,
-      "lastResult": null,
+      "lastTestedAt": "2026-05-24T00:07:54Z",
+      "lastResult": "improved",
       "lastPr": null
     },
     {

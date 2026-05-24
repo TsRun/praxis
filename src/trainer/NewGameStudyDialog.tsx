@@ -63,22 +63,13 @@ export function NewGameStudyDialog({ open, onClose, onCreate }: Props) {
           <span>PGN</span>
           <textarea
             rows={10}
-            className="font-mono"
+            className="textarea font-mono"
             placeholder={
               '[Event "..."]\n[White "..."]\n[Black "..."]\n[Result "1-0"]\n\n1. e4 e5 2. Nf3 ...'
             }
             value={pgn}
             onChange={(e) => setPgn(e.target.value)}
-            style={{
-              background: 'var(--inset-bg)',
-              border: '1px solid var(--inset-border)',
-              borderRadius: 10,
-              padding: '10px 12px',
-              fontSize: 12.5,
-              color: 'var(--text)',
-              outline: 'none',
-              resize: 'vertical',
-            }}
+            style={{ fontSize: 12.5, resize: 'vertical' }}
           />
         </label>
 
