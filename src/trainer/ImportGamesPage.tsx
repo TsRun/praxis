@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useId, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { Chess } from 'chess.js';
 import {
@@ -107,6 +107,7 @@ export function ImportGamesPage() {
   // into yet, the trainer picks one after selecting games.
   const scopedStudyId = id ? Number(id) : null;
   const nav = useNavigate();
+  const playerInputId = useId();
   const [study, setStudy] = useState<OpeningStudyFull | null>(null);
   const [source, setSource] = useState<Source>('chesscom');
   const [filters, setFilters] = useState<Filters>(DEFAULT_FILTERS);
@@ -388,8 +389,9 @@ export function ImportGamesPage() {
             )}
             {source === 'base' && (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                <label className="meta" style={{ fontSize: 12 }}>Player name</label>
+                <label htmlFor={playerInputId} className="meta" style={{ fontSize: 12 }}>Player name</label>
                 <input
+                  id={playerInputId}
                   value={filters.player}
                   onChange={(e) => setFilters({ ...filters, player: e.target.value })}
                   placeholder="e.g. Carlsen"
@@ -592,6 +594,7 @@ function SourceTabs({
     <Segmented
       value={source}
       onChange={setSource}
+      ariaLabel="Game source"
       options={[
         { value: 'chesscom', label: 'Chess.com' },
         { value: 'lichess', label: 'Lichess' },
@@ -610,10 +613,12 @@ function UserInputs({
   username: string;
   setUsername: (v: string) => void;
 }) {
+  const id = useId();
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-      <label className="meta" style={{ fontSize: 12 }}>{label}</label>
+      <label htmlFor={id} className="meta" style={{ fontSize: 12 }}>{label}</label>
       <input
+        id={id}
         value={username}
         onChange={(e) => setUsername(e.target.value)}
         placeholder="e.g. Hikaru"
@@ -634,10 +639,14 @@ function FilterControls({
 }) {
   const tcEnabled = source !== 'base';
   const yearEnabled = source === 'base';
+  const yearFromId = useId();
+  const yearToId = useId();
+  const ecoId = useId();
+  const minEloId = useId();
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-      <div>
-        <label className="meta" style={{ fontSize: 12 }}>Color</label>
+      <div role="group" aria-label="Color">
+        <span className="meta" style={{ fontSize: 12 }}>Color</span>
         <div style={{ display: 'flex', gap: 14, marginTop: 6 }}>
           {(['white', 'black', 'either'] as ColorFilter[]).map((c) => (
             <label
@@ -660,8 +669,9 @@ function FilterControls({
         title={yearEnabled ? undefined : 'Only available for the database source'}
       >
         <div style={{ display: 'flex', flexDirection: 'column', gap: 6, flex: 1 }}>
-          <label className="meta" style={{ fontSize: 12 }}>Year from</label>
+          <label htmlFor={yearFromId} className="meta" style={{ fontSize: 12 }}>Year from</label>
           <input
+            id={yearFromId}
             type="number"
             value={filters.yearFrom}
             disabled={!yearEnabled}
@@ -671,8 +681,9 @@ function FilterControls({
           />
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 6, flex: 1 }}>
-          <label className="meta" style={{ fontSize: 12 }}>Year to</label>
+          <label htmlFor={yearToId} className="meta" style={{ fontSize: 12 }}>Year to</label>
           <input
+            id={yearToId}
             type="number"
             value={filters.yearTo}
             disabled={!yearEnabled}
@@ -683,8 +694,8 @@ function FilterControls({
         </div>
       </div>
 
-      <div>
-        <label className="meta" style={{ fontSize: 12 }}>Result</label>
+      <div role="group" aria-label="Result">
+        <span className="meta" style={{ fontSize: 12 }}>Result</span>
         <div style={{ display: 'flex', gap: 14, marginTop: 6 }}>
           {[
             { token: '1-0', label: '1-0' },
@@ -712,8 +723,9 @@ function FilterControls({
       </div>
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-        <label className="meta" style={{ fontSize: 12 }}>ECO / opening</label>
+        <label htmlFor={ecoId} className="meta" style={{ fontSize: 12 }}>ECO / opening</label>
         <input
+          id={ecoId}
           value={filters.eco}
           onChange={(e) => setFilters({ ...filters, eco: e.target.value })}
           placeholder="Sicilian, B22, …"
@@ -722,8 +734,9 @@ function FilterControls({
       </div>
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: 6, width: 180 }}>
-        <label className="meta" style={{ fontSize: 12 }}>Min Elo</label>
+        <label htmlFor={minEloId} className="meta" style={{ fontSize: 12 }}>Min Elo</label>
         <input
+          id={minEloId}
           type="number"
           value={filters.minElo}
           onChange={(e) => setFilters({ ...filters, minElo: e.target.value })}
@@ -733,9 +746,11 @@ function FilterControls({
       </div>
 
       <div
+        role="group"
+        aria-label="Time control"
         title={tcEnabled ? undefined : 'Time control isn\'t stored for database games.'}
       >
-        <label className="meta" style={{ fontSize: 12 }}>Time control</label>
+        <span className="meta" style={{ fontSize: 12 }}>Time control</span>
         <div style={{ display: 'flex', gap: 14, marginTop: 6, flexWrap: 'wrap' }}>
           {(['bullet', 'blitz', 'rapid', 'classical'] as TimeControlBucket[]).map((tc) => (
             <label
@@ -789,6 +804,7 @@ function PositionFilter({
       <Segmented
         value={mode}
         onChange={setMode}
+        ariaLabel="Position filter source"
         options={
           allowNodePicker
             ? [
@@ -1337,5 +1353,4 @@ const inputStyle: React.CSSProperties = {
   padding: '8px 10px',
   fontSize: 13,
   color: 'var(--text)',
-  outline: 'none',
 };
