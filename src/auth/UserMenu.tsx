@@ -25,8 +25,18 @@ export function UserMenu() {
         setEditing(false);
       }
     }
+    function onKey(e: KeyboardEvent) {
+      if (e.key === 'Escape') {
+        setOpen(false);
+        setEditing(false);
+      }
+    }
     document.addEventListener('mousedown', onDoc);
-    return () => document.removeEventListener('mousedown', onDoc);
+    document.addEventListener('keydown', onKey);
+    return () => {
+      document.removeEventListener('mousedown', onDoc);
+      document.removeEventListener('keydown', onKey);
+    };
   }, [open]);
 
   if (!user) return null;
@@ -38,6 +48,8 @@ export function UserMenu() {
         onClick={() => setOpen((v) => !v)}
         aria-haspopup="menu"
         aria-expanded={open}
+        aria-controls="user-menu"
+        aria-label="Open profile menu"
         style={{
           display: 'flex',
           alignItems: 'center',
@@ -66,6 +78,8 @@ export function UserMenu() {
       {open && (
         <div
           role="menu"
+          id="user-menu"
+          aria-label="Profile menu"
           style={{
             position: 'absolute',
             right: 0,
