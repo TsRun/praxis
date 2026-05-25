@@ -270,7 +270,7 @@ export function StudiesPage() {
           marginBottom: 22,
         }}
       >
-        <div style={{ position: 'relative', flex: 1, maxWidth: 360 }}>
+        <div style={{ position: 'relative', flex: '1 1 220px', minWidth: 200, maxWidth: 360 }}>
           <IconSearch
             size={14}
             strokeWidth={2.4}
@@ -286,12 +286,14 @@ export function StudiesPage() {
           <input
             className="input"
             placeholder="Find study by name or ECO…"
+            aria-label="Search studies"
             value={q}
             onChange={(e) => setQ(e.target.value)}
             style={{ paddingLeft: 32 }}
           />
         </div>
         <Segmented<Filter>
+          ariaLabel="Filter studies by type"
           value={filter}
           onChange={setFilter}
           options={[
@@ -303,11 +305,12 @@ export function StudiesPage() {
         />
         <div style={{ flex: 1 }} />
         <Segmented<View>
+          ariaLabel="View mode"
           value={view}
           onChange={setView}
           options={[
-            { value: 'grid', label: <IconGrid size={13} strokeWidth={2.2} /> },
-            { value: 'list', label: <IconList size={13} strokeWidth={2.2} /> },
+            { value: 'grid', label: <IconGrid size={13} strokeWidth={2.2} />, ariaLabel: 'Grid view' },
+            { value: 'list', label: <IconList size={13} strokeWidth={2.2} />, ariaLabel: 'List view' },
           ]}
         />
       </div>
