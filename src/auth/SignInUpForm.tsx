@@ -1,4 +1,4 @@
-import { useState, useEffect, type FormEvent } from 'react';
+import { useState, useEffect, useId, type FormEvent } from 'react';
 import { useAuth } from './AuthContext';
 import { ALL_ROLES, type Role } from '../lib/api';
 import { Btn } from '../components/ui/atoms';
@@ -34,6 +34,12 @@ export function SignInUpForm({ inviteToken, inviteEmail, inviteName }: Props) {
   );
   const [err, setErr] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const formId = useId();
+  const emailId = `${formId}-email`;
+  const nameId = `${formId}-name`;
+  const passwordId = `${formId}-password`;
+  const rolesGroupId = `${formId}-roles`;
+  const errId = `${formId}-err`;
 
   // Surface ?error=<code> from the OAuth callback redirect, then strip the
   // query string so a refresh doesn't show it again.
@@ -88,6 +94,8 @@ export function SignInUpForm({ inviteToken, inviteEmail, inviteName }: Props) {
   return (
     <form onSubmit={submit} style={{ display: 'flex', flexDirection: 'column' }}>
       <div
+        role="group"
+        aria-label="Account mode"
         style={{
           display: 'flex',
           gap: 4,
@@ -101,6 +109,7 @@ export function SignInUpForm({ inviteToken, inviteEmail, inviteName }: Props) {
         <button
           type="button"
           onClick={() => setMode('in')}
+          aria-pressed={mode === 'in'}
           style={{
             flex: 1,
             background: mode === 'in' ? 'rgba(255,255,255,0.06)' : 'transparent',
@@ -118,6 +127,7 @@ export function SignInUpForm({ inviteToken, inviteEmail, inviteName }: Props) {
         <button
           type="button"
           onClick={() => setMode('up')}
+          aria-pressed={mode === 'up'}
           style={{
             flex: 1,
             background: mode === 'up' ? 'rgba(255,255,255,0.06)' : 'transparent',
@@ -173,6 +183,7 @@ export function SignInUpForm({ inviteToken, inviteEmail, inviteName }: Props) {
 
       <div style={{ marginBottom: 12 }}>
         <label
+          htmlFor={emailId}
           style={{
             display: 'block',
             fontSize: 12,
@@ -184,7 +195,9 @@ export function SignInUpForm({ inviteToken, inviteEmail, inviteName }: Props) {
           Email
         </label>
         <input
+          id={emailId}
           className="input"
+          type="email"
           placeholder="you@studio.club"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
@@ -196,6 +209,7 @@ export function SignInUpForm({ inviteToken, inviteEmail, inviteName }: Props) {
       {mode === 'up' && (
         <div style={{ marginBottom: 12 }}>
           <label
+            htmlFor={nameId}
             style={{
               display: 'block',
               fontSize: 12,
@@ -210,6 +224,7 @@ export function SignInUpForm({ inviteToken, inviteEmail, inviteName }: Props) {
             </span>
           </label>
           <input
+            id={nameId}
             className="input"
             placeholder="e.g. tactical_torre"
             value={name}
@@ -221,6 +236,7 @@ export function SignInUpForm({ inviteToken, inviteEmail, inviteName }: Props) {
 
       <div style={{ marginBottom: mode === 'up' ? 18 : 16 }}>
         <label
+          htmlFor={passwordId}
           style={{
             display: 'block',
             fontSize: 12,
@@ -232,6 +248,7 @@ export function SignInUpForm({ inviteToken, inviteEmail, inviteName }: Props) {
           Password
         </label>
         <input
+          id={passwordId}
           className="input"
           type="password"
           placeholder={mode === 'up' ? 'at least 8 characters' : 'password'}
@@ -243,9 +260,9 @@ export function SignInUpForm({ inviteToken, inviteEmail, inviteName }: Props) {
 
       {mode === 'up' && (
         <div style={{ marginBottom: 18 }}>
-          <label
+          <div
+            id={rolesGroupId}
             style={{
-              display: 'block',
               fontSize: 12,
               fontWeight: 500,
               color: 'var(--text-dim)',
@@ -253,8 +270,8 @@ export function SignInUpForm({ inviteToken, inviteEmail, inviteName }: Props) {
             }}
           >
             I am a
-          </label>
-          <div className="grid-3" style={{ gap: 8 }}>
+          </div>
+          <div role="group" aria-labelledby={rolesGroupId} className="grid-3" style={{ gap: 8 }}>
             {ALL_ROLES.map((r) => {
               const on = roles.has(r);
               const { Icon, title, sub } = ROLE_LABELS[r];
@@ -263,6 +280,8 @@ export function SignInUpForm({ inviteToken, inviteEmail, inviteName }: Props) {
                   key={r}
                   type="button"
                   onClick={() => toggle(r)}
+                  aria-pressed={on}
+                  aria-label={`${title} — ${sub}`}
                   style={{
                     padding: '14px 10px',
                     borderRadius: 12,
@@ -274,7 +293,7 @@ export function SignInUpForm({ inviteToken, inviteEmail, inviteName }: Props) {
                     transition: 'all 120ms ease',
                   }}
                 >
-                  <Icon size={22} strokeWidth={2} style={{ marginBottom: 8 }} />
+                  <Icon size={22} strokeWidth={2} style={{ marginBottom: 8 }} aria-hidden="true" />
                   <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text)' }}>{title}</div>
                   <div style={{ fontSize: 11.5, color: 'var(--text-dim)', marginTop: 2, lineHeight: 1.35 }}>
                     {sub}
@@ -291,6 +310,7 @@ export function SignInUpForm({ inviteToken, inviteEmail, inviteName }: Props) {
         variant="primary"
         size="lg"
         disabled={busy}
+        aria-describedby={err ? errId : undefined}
         style={{ width: '100%', justifyContent: 'center' }}
       >
         {busy
@@ -302,11 +322,20 @@ export function SignInUpForm({ inviteToken, inviteEmail, inviteName }: Props) {
             : 'Create account →'}
       </Btn>
 
-      {err && (
-        <div style={{ fontSize: 12, color: 'var(--danger)', marginTop: 10, textAlign: 'center' }}>
-          {err}
-        </div>
-      )}
+      <div
+        id={errId}
+        role="alert"
+        aria-live="polite"
+        style={{
+          fontSize: 12,
+          color: 'var(--danger)',
+          marginTop: err ? 10 : 0,
+          textAlign: 'center',
+          minHeight: err ? undefined : 0,
+        }}
+      >
+        {err}
+      </div>
 
       <div
         className="meta"
