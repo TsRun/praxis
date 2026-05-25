@@ -36,9 +36,9 @@
       "route": "/tour",
       "requiresAuth": false,
       "description": "Navigating to /tour renders the marketing tour page without uncaught exceptions or blank content.",
-      "lastTestedAt": "2026-05-23T19:19:13Z",
+      "lastTestedAt": "2026-05-24T20:07:46Z",
       "lastResult": "improved",
-      "lastPr": "https://github.com/TsRun/praxis/pull/60"
+      "lastPr": null
     },
     {
       "id": "trainer-studies-list",
