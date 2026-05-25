@@ -233,14 +233,26 @@ export function ProgressBar({
   pct,
   height = 4,
   className = '',
+  ariaLabel,
 }: {
   pct: number;
   height?: number;
   className?: string;
+  ariaLabel?: string;
 }) {
   const clamped = Math.max(0, Math.min(100, pct));
+  const rounded = Math.round(clamped);
   return (
-    <div className={`bar ${className}`.trim()} style={{ height }}>
+    <div
+      className={`bar ${className}`.trim()}
+      style={{ height }}
+      role="progressbar"
+      aria-valuemin={0}
+      aria-valuemax={100}
+      aria-valuenow={rounded}
+      aria-valuetext={`${rounded}%`}
+      aria-label={ariaLabel}
+    >
       <span style={{ width: `${clamped}%` }} />
     </div>
   );
