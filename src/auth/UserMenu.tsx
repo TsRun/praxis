@@ -16,6 +16,7 @@ export function UserMenu() {
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState(false);
   const ref = useRef<HTMLDivElement | null>(null);
+  const triggerRef = useRef<HTMLButtonElement | null>(null);
 
   useEffect(() => {
     if (!open) return;
@@ -25,8 +26,19 @@ export function UserMenu() {
         setEditing(false);
       }
     }
+    function onKey(e: KeyboardEvent) {
+      if (e.key === 'Escape') {
+        setOpen(false);
+        setEditing(false);
+        triggerRef.current?.focus();
+      }
+    }
     document.addEventListener('mousedown', onDoc);
-    return () => document.removeEventListener('mousedown', onDoc);
+    document.addEventListener('keydown', onKey);
+    return () => {
+      document.removeEventListener('mousedown', onDoc);
+      document.removeEventListener('keydown', onKey);
+    };
   }, [open]);
 
   if (!user) return null;
@@ -34,10 +46,13 @@ export function UserMenu() {
   return (
     <div ref={ref} style={{ position: 'relative' }}>
       <button
+        ref={triggerRef}
         type="button"
         onClick={() => setOpen((v) => !v)}
         aria-haspopup="menu"
         aria-expanded={open}
+        aria-controls="user-menu"
+        aria-label="Open profile menu"
         style={{
           display: 'flex',
           alignItems: 'center',
@@ -65,7 +80,9 @@ export function UserMenu() {
 
       {open && (
         <div
+          id="user-menu"
           role="menu"
+          aria-label="Profile menu"
           style={{
             position: 'absolute',
             right: 0,
