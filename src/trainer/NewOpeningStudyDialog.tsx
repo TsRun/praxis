@@ -134,6 +134,7 @@ function SideOption({
       type="button"
       onClick={onClick}
       aria-pressed={picked}
+      aria-label={`${title} — ${hint}`}
       style={{
         textAlign: 'left',
         padding: 14,
