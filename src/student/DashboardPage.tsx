@@ -263,10 +263,20 @@ export function DashboardPage() {
                 display: 'flex',
                 alignItems: 'baseline',
                 justifyContent: 'space-between',
+                flexWrap: 'wrap',
+                rowGap: 10,
+                columnGap: 12,
                 marginBottom: 12,
               }}
             >
-              <div style={{ display: 'flex', gap: 8, alignItems: 'baseline' }}>
+              <div
+                style={{
+                  display: 'flex',
+                  gap: 8,
+                  alignItems: 'baseline',
+                  whiteSpace: 'nowrap',
+                }}
+              >
                 <h2 className="t-h2" style={{ margin: 0 }}>
                   All assignments
                 </h2>
