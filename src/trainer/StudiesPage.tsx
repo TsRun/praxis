@@ -419,10 +419,11 @@ export function StudiesPage() {
           setLichessIntent(false);
         }}
         lichessHint={lichessIntent}
-        onCreate={async ({ name, side }) => {
+        onCreate={async ({ name, side, root_fen, root_pgn }) => {
           const { id } = await trainerStudies.create({
             name,
-            root_fen: START_FEN,
+            root_fen,
+            root_pgn,
             side,
           });
           const url = lichessIntent

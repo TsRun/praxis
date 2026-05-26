@@ -48,3 +48,41 @@ export function findChildBySan(
 ): OpeningNode | undefined {
   return nodes.find((n) => n.parent_id === parentId && n.san === san);
 }
+
+/** How many plies have already been played by the time we reach this FEN.
+ * Used to turn an opening_node's tree-relative `ply` (1 = first move from
+ * root) into an absolute move number when the study starts from a non-
+ * standard root. For the standard start position this returns 0.
+ *
+ * A FEN's 6th field is the fullmove counter (1-based, increments after
+ * Black moves); the 2nd field is the side to move. So the number of
+ * already-played plies is `(fullmove - 1) * 2` plus one more if it's
+ * Black to move. */
+export function plyOffsetFromFen(fen: string): number {
+  const parts = fen.trim().split(/\s+/);
+  const turn = parts[1] === 'b' ? 'b' : 'w';
+  const fullmove = Number(parts[5]);
+  const fm = Number.isFinite(fullmove) && fullmove >= 1 ? fullmove : 1;
+  return (fm - 1) * 2 + (turn === 'b' ? 1 : 0);
+}
+
+/** Render a ply number ("12.", "12…") respecting an optional prefix offset.
+ * `ply` is 1-based from the study's root; `offset` is how many plies were
+ * already on the board at the root. */
+export function formatPlyLabel(ply: number, offset = 0): string {
+  const abs = ply + offset;
+  return abs % 2 === 1 ? `${Math.ceil(abs / 2)}.` : `${Math.ceil(abs / 2)}…`;
+}
+
+/** Render "ply.san" or "ply…san" the way SAN notation usually appears in a
+ * line. Used by breadcrumbs and chapter summaries. */
+export function formatPlySan(
+  ply: number,
+  san: string,
+  offset = 0,
+): string {
+  const abs = ply + offset;
+  return abs % 2 === 1
+    ? `${Math.ceil(abs / 2)}.${san}`
+    : san;
+}

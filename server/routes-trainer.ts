@@ -23,6 +23,53 @@ import {
 } from './import-sources.js';
 import { Chess } from 'chess.js';
 
+const STANDARD_START_FEN =
+  'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1';
+
+/** Trim a FEN down to its first four space-separated fields (piece placement,
+ * side-to-move, castling, en-passant) — that's what we compare against the
+ * tree's stored fens, which intentionally drop the half/full-move counters. */
+function trimmedFen(fen: string): string {
+  return fen.split(' ').slice(0, 4).join(' ');
+}
+
+/** Replay a SAN move list from `STANDARD_START_FEN` and return the resulting
+ * 4-field FEN plus the canonical SAN sequence chess.js produced. Throws on
+ * any illegal/unparseable move so the caller can return a 400. The trainer's
+ * UI also computes this client-side, but we re-check here because the client
+ * is untrusted. */
+function replayRootPgn(pgn: string): { fen: string; sans: string[] } {
+  const c = new Chess();
+  let loaded = false;
+  try {
+    c.loadPgn(pgn);
+    loaded = true;
+  } catch {
+    /* fall through to manual tokenising */
+  }
+  if (!loaded) {
+    const tokens = pgn
+      .replace(/\{[^}]*\}/g, ' ')
+      .replace(/\([^)]*\)/g, ' ')
+      .replace(/\d+\.(\.\.)?/g, ' ')
+      .replace(/[?!]+/g, '')
+      .trim()
+      .split(/\s+/)
+      .filter(Boolean);
+    for (const tok of tokens) {
+      if (/^(1-0|0-1|1\/2-1\/2|\*)$/.test(tok)) continue;
+      try {
+        c.move(tok);
+      } catch {
+        throw new Error(`illegal move: ${tok}`);
+      }
+    }
+  }
+  const sans = c.history();
+  if (sans.length === 0) throw new Error('no moves in root_pgn');
+  return { fen: trimmedFen(c.fen()), sans };
+}
+
 /** Validate a solution line against a starting FEN; returns the cleaned SAN
  * array (re-serialized by chess.js so castling notation etc. is canonical),
  * or throws an Error if the FEN is bad or any move is illegal. chess.js
@@ -331,7 +378,7 @@ export async function trainerRoutes(app: FastifyInstance, opts: { pool: Pool }) 
     async (req) => {
       const uid = req.user!.id;
       const { rows } = await pool.query(
-        `SELECT os.id, os.name, os.root_fen, os.eco, os.side, os.created_at, os.updated_at,
+        `SELECT os.id, os.name, os.root_fen, os.root_pgn, os.eco, os.side, os.created_at, os.updated_at,
                 COALESCE((SELECT COUNT(*)::text
                             FROM opening_chapter c
                             JOIN opening_node n ON n.id = c.node_id
@@ -345,18 +392,57 @@ export async function trainerRoutes(app: FastifyInstance, opts: { pool: Pool }) 
     },
   );
 
-  app.post<{ Body: { name: string; root_fen: string; eco?: string; side: 'w' | 'b' } }>(
+  app.post<{
+    Body: {
+      name: string;
+      root_fen: string;
+      root_pgn?: string | null;
+      eco?: string;
+      side: 'w' | 'b';
+    };
+  }>(
     '/api/trainer/studies/opening',
     { preHandler: requireAuthor },
     async (req, reply) => {
       const uid = req.user!.id;
-      const { name, root_fen, eco, side } = req.body ?? ({} as never);
+      const { name, root_fen, root_pgn, eco, side } =
+        req.body ?? ({} as never);
       if (!name || !root_fen || (side !== 'w' && side !== 'b'))
         return reply.code(400).send({ error: 'missing fields' });
+
+      // If the client claims a non-standard starting prefix, replay it server-
+      // side and confirm it really produces root_fen. The client computed the
+      // same thing locally, but we don't want a malicious / buggy client to
+      // smuggle a FEN that doesn't match its stated move list.
+      let storedRootPgn: string | null = null;
+      const wantsCustomRoot =
+        typeof root_pgn === 'string' && root_pgn.trim().length > 0;
+      if (wantsCustomRoot) {
+        try {
+          const replay = replayRootPgn(root_pgn!);
+          if (replay.fen !== trimmedFen(root_fen)) {
+            return reply.code(400).send({
+              error: 'root_pgn does not produce root_fen',
+            });
+          }
+          storedRootPgn = replay.sans.join(' ');
+        } catch (e) {
+          return reply
+            .code(400)
+            .send({ error: `invalid root_pgn: ${(e as Error).message}` });
+        }
+      } else if (trimmedFen(root_fen) !== trimmedFen(STANDARD_START_FEN)) {
+        // Custom FEN without a PGN — reject. We always want the move list so
+        // the editor can render it and so we can validate FEN authenticity.
+        return reply
+          .code(400)
+          .send({ error: 'non-standard root_fen requires root_pgn' });
+      }
+
       const { rows } = await pool.query<{ id: number }>(
-        `INSERT INTO opening_study (owner_id, name, root_fen, eco, side)
-           VALUES ($1, $2, $3, $4, $5) RETURNING id`,
-        [uid, name, root_fen, eco ?? null, side],
+        `INSERT INTO opening_study (owner_id, name, root_fen, root_pgn, eco, side)
+           VALUES ($1, $2, $3, $4, $5, $6) RETURNING id`,
+        [uid, name, root_fen, storedRootPgn, eco ?? null, side],
       );
       // If user has the 'self' role, auto-assign the study to themselves
       if (req.user!.roles.includes('self')) {
@@ -380,10 +466,11 @@ export async function trainerRoutes(app: FastifyInstance, opts: { pool: Pool }) 
         id: number;
         name: string;
         root_fen: string;
+        root_pgn: string | null;
         eco: string | null;
         side: 'w' | 'b';
       }>(
-        `SELECT id, name, root_fen, eco, side FROM opening_study WHERE id = $1 AND owner_id = $2`,
+        `SELECT id, name, root_fen, root_pgn, eco, side FROM opening_study WHERE id = $1 AND owner_id = $2`,
         [id, uid],
       );
       if (!rows[0]) return reply.code(404).send({ error: 'not found' });
@@ -417,6 +504,75 @@ export async function trainerRoutes(app: FastifyInstance, opts: { pool: Pool }) 
         [name, id, uid],
       );
       if (!rowCount) return reply.code(404).send({ error: 'not found' });
+      return { ok: true };
+    },
+  );
+
+  // Reset the study's starting position. Passing root_pgn = null reverts to
+  // the standard start. Any existing nodes are wiped because their stored
+  // parent_fens would no longer match the new root — the client is responsible
+  // for confirming the destructive intent before calling this.
+  app.put<{
+    Params: { id: string };
+    Body: { root_fen: string; root_pgn: string | null };
+  }>(
+    '/api/trainer/studies/opening/:id/root',
+    { preHandler: requireAuthor },
+    async (req, reply) => {
+      const uid = req.user!.id;
+      const id = Number(req.params.id);
+      const { root_fen, root_pgn } = req.body ?? ({} as never);
+      if (!root_fen) return reply.code(400).send({ error: 'root_fen required' });
+
+      const owns = await pool.query(
+        `SELECT 1 FROM opening_study WHERE id = $1 AND owner_id = $2`,
+        [id, uid],
+      );
+      if (!owns.rowCount) return reply.code(404).send({ error: 'not found' });
+
+      let storedRootPgn: string | null = null;
+      const wantsCustomRoot =
+        typeof root_pgn === 'string' && root_pgn.trim().length > 0;
+      if (wantsCustomRoot) {
+        try {
+          const replay = replayRootPgn(root_pgn!);
+          if (replay.fen !== trimmedFen(root_fen)) {
+            return reply
+              .code(400)
+              .send({ error: 'root_pgn does not produce root_fen' });
+          }
+          storedRootPgn = replay.sans.join(' ');
+        } catch (e) {
+          return reply
+            .code(400)
+            .send({ error: `invalid root_pgn: ${(e as Error).message}` });
+        }
+      } else if (trimmedFen(root_fen) !== trimmedFen(STANDARD_START_FEN)) {
+        return reply
+          .code(400)
+          .send({ error: 'non-standard root_fen requires root_pgn' });
+      }
+
+      const client = await pool.connect();
+      try {
+        await client.query('BEGIN');
+        await client.query(
+          `DELETE FROM opening_node WHERE study_id = $1`,
+          [id],
+        );
+        await client.query(
+          `UPDATE opening_study
+              SET root_fen = $1, root_pgn = $2, updated_at = NOW()
+            WHERE id = $3`,
+          [root_fen, storedRootPgn, id],
+        );
+        await client.query('COMMIT');
+      } catch (e) {
+        await client.query('ROLLBACK');
+        throw e;
+      } finally {
+        client.release();
+      }
       return { ok: true };
     },
   );

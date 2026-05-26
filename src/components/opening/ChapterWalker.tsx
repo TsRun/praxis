@@ -6,6 +6,7 @@ import type { OpeningNode, OpeningChapter } from '../../lib/api';
 import { Card, Btn } from '../ui/atoms';
 import { IconFlip } from '../ui/Icons';
 import { useOpeningTreeNav } from '../../hooks/useOpeningTreeNav';
+import { plyOffsetFromFen } from '../../lib/opening-tree';
 
 export interface ChapterWalkerProps {
   studyRootFen: string;
@@ -31,6 +32,7 @@ export interface ChapterWalkerProps {
  */
 export function ChapterWalker(props: ChapterWalkerProps) {
   const {
+    studyRootFen,
     nodes,
     chapters,
     chapterNodeId,
@@ -41,6 +43,7 @@ export function ChapterWalker(props: ChapterWalkerProps) {
     onSaveTitle,
     busy,
   } = props;
+  const plyOffset = plyOffsetFromFen(studyRootFen);
 
   const chapter = useMemo(
     () => chapters.find((c) => c.node_id === chapterNodeId) ?? null,
@@ -138,6 +141,7 @@ export function ChapterWalker(props: ChapterWalkerProps) {
           currentNodeId={currentNodeId}
           onSelect={setCurrentNodeId}
           childChapterStops={childChapterStops}
+          plyOffset={plyOffset}
         />
       </Card>
 
@@ -156,9 +160,9 @@ export function ChapterWalker(props: ChapterWalkerProps) {
             style={{ flex: 1, fontFamily: 'var(--font-mono)' }}
           >
             {currentNode
-              ? `${plyLabel(currentNode.ply)} ${currentNode.san}`
+              ? `${plyLabel(currentNode.ply + plyOffset)} ${currentNode.san}`
               : anchorNode
-                ? `Chapter root · after ${plyLabel(anchorNode.ply)} ${anchorNode.san}`
+                ? `Chapter root · after ${plyLabel(anchorNode.ply + plyOffset)} ${anchorNode.san}`
                 : 'Start position'}
           </span>
           <Btn variant="ghost" size="sm" onClick={() => setFlip(!flip)}>
@@ -232,6 +236,7 @@ interface ChapterMoveListProps {
   currentNodeId: number | null;
   onSelect: (id: number) => void;
   childChapterStops: ChildChapterStop[];
+  plyOffset?: number;
 }
 
 /**
@@ -245,6 +250,7 @@ function ChapterMoveList({
   currentNodeId,
   onSelect,
   childChapterStops,
+  plyOffset = 0,
 }: ChapterMoveListProps) {
   const childrenByParent = useMemo(() => {
     const m = new Map<number | null, OpeningNode[]>();
@@ -290,6 +296,7 @@ function ChapterMoveList({
         onClick={() => onSelect(node.id)}
         variation={opts.variation}
         anchor={opts.anchor}
+        plyOffset={plyOffset}
       />,
       ...stopsFor(node.id),
     ];
@@ -343,16 +350,19 @@ function MoveBtn({
   onClick,
   variation,
   anchor,
+  plyOffset = 0,
 }: {
   node: OpeningNode;
   selected: boolean;
   onClick: () => void;
   variation?: boolean;
   anchor?: boolean;
+  plyOffset?: number;
 }) {
-  const num = Math.ceil(node.ply / 2);
-  const prefix = node.ply % 2 === 1 ? `${num}.` : '';
-  const ellipsis = node.ply % 2 === 0 ? `${num}…` : '';
+  const abs = node.ply + plyOffset;
+  const num = Math.ceil(abs / 2);
+  const prefix = abs % 2 === 1 ? `${num}.` : '';
+  const ellipsis = abs % 2 === 0 ? `${num}…` : '';
   const label = `${prefix || ellipsis}${node.san}`;
   return (
     <button
