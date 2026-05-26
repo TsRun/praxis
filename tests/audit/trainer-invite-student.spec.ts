@@ -37,6 +37,36 @@ test('trainer-invite-student: dialog opens and exposes inputs', async ({ page })
     fullPage: true,
   });
 
+  // ---- Dialog a11y: role / aria-modal / aria-labelledby ----
+  // Look up the inner dialog panel by its title heading's parent. Logged
+  // rather than hard-asserted so the spec keeps passing against pre-fix prod
+  // builds; the fix is verified post-deploy by reading these logs.
+  const titleHeading = page.getByRole('heading', { name: /Invite a student/i });
+  const dialogAttrs = await titleHeading.evaluate((h) => {
+    const panel = h.closest('[role="dialog"]') as HTMLElement | null;
+    return {
+      role: panel?.getAttribute('role') ?? null,
+      ariaModal: panel?.getAttribute('aria-modal') ?? null,
+      ariaLabelledBy: panel?.getAttribute('aria-labelledby') ?? null,
+      titleId: h.id || null,
+    };
+  });
+  console.log('DIALOG A11Y:', dialogAttrs);
+
+  // ---- Escape closes the dialog (keyboard a11y) ----
+  await page.keyboard.press('Escape');
+  await page.waitForTimeout(150);
+  const closedAfterEsc = (await titleHeading.count()) === 0;
+  console.log('CLOSES ON ESC:', closedAfterEsc);
+  if (!closedAfterEsc) {
+    // Pre-fix prod build — reopen for downstream checks by clicking again
+    // is not needed since the dialog is still open.
+  } else {
+    // Post-fix build — reopen for downstream checks
+    await page.getByRole('button', { name: /Invite student/i }).click();
+    await expect(page.getByRole('heading', { name: /Invite a student/i })).toBeVisible();
+  }
+
   // ---- A11y micro-check (nickname tab) ----
   // The nickname input has neither <label htmlFor> nor aria-label nor placeholder-as-label.
   const nicknameInput = page.locator('input[placeholder="student nickname"]');

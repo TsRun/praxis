@@ -83,9 +83,20 @@ export function InviteStudentDialog({ onClose }: { onClose: () => void }) {
     };
   }, []);
 
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      if (e.key === 'Escape') onClose();
+    }
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, [onClose]);
+
   return createPortal(
     <div className="modal-backdrop" onClick={onClose}>
       <div
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="invite-student-title"
         onClick={(e) => e.stopPropagation()}
         style={{
           width: '100%',
@@ -107,7 +118,7 @@ export function InviteStudentDialog({ onClose }: { onClose: () => void }) {
             marginBottom: 4,
           }}
         >
-          <h2 className="t-h2" style={{ margin: 0 }}>Invite a student</h2>
+          <h2 id="invite-student-title" className="t-h2" style={{ margin: 0 }}>Invite a student</h2>
           <Btn
             variant="ghost"
             size="sm"
