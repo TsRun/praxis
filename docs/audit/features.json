@@ -133,7 +133,7 @@
       "description": "Clicking 'Invite student' on the students page opens an invitation dialog or flow with an input for the student's identifier.",
       "lastTestedAt": "2026-05-26T12:18:00Z",
       "lastResult": "improved",
-      "lastPr": null,
+      "lastPr": 113,
       "removed": false
     },
     {
