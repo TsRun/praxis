@@ -186,9 +186,9 @@
       "route": "/trainer/students",
       "requiresAuth": true,
       "description": "On /trainer/students the All / Linked / Invited filter tabs switch the rendered list without errors and the active tab is visually distinguished.",
-      "lastTestedAt": null,
-      "lastResult": null,
-      "lastPr": null,
+      "lastTestedAt": "2026-05-26T06:17:43Z",
+      "lastResult": "improved",
+      "lastPr": 111,
       "removed": false
     },
     {
