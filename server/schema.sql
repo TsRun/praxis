@@ -140,6 +140,9 @@ CREATE TABLE IF NOT EXISTS opening_study (
   owner_id    BIGINT NOT NULL REFERENCES app_user(id) ON DELETE CASCADE,
   name        TEXT NOT NULL,
   root_fen    TEXT NOT NULL,
+  -- SAN prefix the trainer set on creation (e.g. "1. e4 e5 2. Nf3"). NULL
+  -- means "standard start position"; root_fen alone is authoritative.
+  root_pgn    TEXT,
   eco         TEXT,
   side        CHAR(1) NOT NULL CHECK (side IN ('w','b')),
   created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW(),

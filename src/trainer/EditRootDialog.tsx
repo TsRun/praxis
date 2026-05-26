@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type FormEvent } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Chessground } from 'chessground';
 import type { Api as CGApi } from 'chessground/api';
 import type { Key } from 'chessground/types';
@@ -13,18 +13,19 @@ const STANDARD_START_FEN =
 interface Props {
   open: boolean;
   onClose: () => void;
-  onCreate: (input: {
-    name: string;
-    side: 'w' | 'b';
+  side: 'w' | 'b';
+  /** The currently-stored root PGN (null = standard start). Used to seed
+   *  the board so the trainer doesn't have to retype the current prefix. */
+  currentRootPgn: string | null;
+  /** When true, saving will wipe existing nodes — we show a destructive
+   *  confirm-style label and warning blurb. */
+  hasNodes: boolean;
+  onSave: (input: {
     root_fen: string;
     root_pgn: string | null;
   }) => Promise<void>;
-  // When true, the dialog frames itself as the first step of a Lichess
-  // import — title + CTA tell the user the next screen will prompt for PGN.
-  lichessHint?: boolean;
 }
 
-/** Render "1. e4 e5 2. Nf3" from a SAN list. */
 function sansToPgn(sans: string[]): string {
   const parts: string[] = [];
   for (let i = 0; i < sans.length; i++) {
@@ -34,27 +35,55 @@ function sansToPgn(sans: string[]): string {
   return parts.join(' ');
 }
 
-export function NewOpeningStudyDialog({
+/** Replay a stored root_pgn (one of our own normalised "1. e4 e5 2. Nf3"
+ *  forms) back into a SAN array. Tolerant of move numbers and result tags
+ *  the way the server-side parser is. */
+function pgnToSans(pgn: string): string[] {
+  const c = new Chess();
+  try {
+    c.loadPgn(pgn);
+    return c.history();
+  } catch {
+    /* fall through to manual tokenising */
+  }
+  const tokens = pgn
+    .replace(/\{[^}]*\}/g, ' ')
+    .replace(/\([^)]*\)/g, ' ')
+    .replace(/\d+\.(\.\.)?/g, ' ')
+    .replace(/[?!]+/g, '')
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean);
+  for (const tok of tokens) {
+    if (/^(1-0|0-1|1\/2-1\/2|\*)$/.test(tok)) continue;
+    try {
+      c.move(tok);
+    } catch {
+      return c.history();
+    }
+  }
+  return c.history();
+}
+
+export function EditRootDialog({
   open,
   onClose,
-  onCreate,
-  lichessHint,
+  side,
+  currentRootPgn,
+  hasNodes,
+  onSave,
 }: Props) {
-  const [name, setName] = useState('');
-  const [side, setSide] = useState<'w' | 'b'>('w');
   const [sans, setSans] = useState<string[]>([]);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
 
-  // Reset all dialog state when it (re)opens.
+  // Seed from the study's existing prefix every time the dialog opens.
   useEffect(() => {
     if (open) {
-      setName('');
-      setSide('w');
-      setSans([]);
+      setSans(currentRootPgn ? pgnToSans(currentRootPgn) : []);
       setErr(null);
     }
-  }, [open]);
+  }, [open, currentRootPgn]);
 
   const currentChess = (() => {
     const c = new Chess();
@@ -69,19 +98,15 @@ export function NewOpeningStudyDialog({
   })();
   const currentFen = currentChess.fen();
 
-  async function submit(e: FormEvent) {
-    e.preventDefault();
-    if (!name.trim()) {
-      setErr('Give the study a name.');
-      return;
-    }
+  const changed =
+    sansToPgn(sans) !== (currentRootPgn ?? '') && !(sans.length === 0 && !currentRootPgn);
+
+  async function save() {
     setBusy(true);
     setErr(null);
     try {
       const hasPrefix = sans.length > 0;
-      await onCreate({
-        name: name.trim(),
-        side,
+      await onSave({
         root_fen: hasPrefix ? currentFen : STANDARD_START_FEN,
         root_pgn: hasPrefix ? sansToPgn(sans) : null,
       });
@@ -97,91 +122,44 @@ export function NewOpeningStudyDialog({
     <Dialog
       open={open}
       onClose={busy ? () => {} : onClose}
-      title={lichessHint ? 'Import from Lichess' : 'New opening study'}
+      title="Edit opening prefix"
     >
-      {lichessHint && (
-        <p className="meta" style={{ marginBottom: 12 }}>
-          Name the study and pick the student's side. The next screen will ask
-          for the Lichess PGN.
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+        <p className="meta" style={{ fontSize: 12.5, lineHeight: 1.5 }}>
+          Play the moves that should precede every line in this study. Leave
+          empty to start from the standard position.
         </p>
-      )}
-      <form
-        onSubmit={submit}
-        style={{ display: 'flex', flexDirection: 'column', gap: 16 }}
-      >
-        <label style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-          <span>Study name</span>
-          <input
-            autoFocus
-            className="input"
-            placeholder="e.g. Caro-Kann Advance — White"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-          />
-        </label>
 
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-          <span id="opening-study-side-label">
-            Which side does the student play?
-          </span>
-          <div
-            role="group"
-            aria-labelledby="opening-study-side-label"
-            style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
-              gap: 8,
-            }}
-          >
-            <SideOption
-              picked={side === 'w'}
-              onClick={() => setSide('w')}
-              title="White"
-              hint="You're preparing 1.e4 / 1.d4 / etc."
-            />
-            <SideOption
-              picked={side === 'b'}
-              onClick={() => setSide('b')}
-              title="Black"
-              hint="You're preparing replies to White's first move."
-            />
-          </div>
-        </div>
+        <PrefixBoard
+          fen={currentFen}
+          flip={side === 'b'}
+          onPlay={(san) => setSans((prev) => [...prev, san])}
+        />
 
-        <div
-          style={{
-            display: 'flex',
-            flexDirection: 'column',
-            gap: 8,
-            borderTop: '1px solid var(--hairline)',
-            paddingTop: 14,
-          }}
-        >
+        <PrefixMoveList
+          sans={sans}
+          onUndo={() => setSans((prev) => prev.slice(0, -1))}
+          onReset={() => setSans([])}
+        />
+
+        {hasNodes && changed && (
           <div
             style={{
-              display: 'flex',
-              alignItems: 'baseline',
-              justifyContent: 'space-between',
-              gap: 8,
-              flexWrap: 'wrap',
+              padding: '10px 12px',
+              borderRadius: 8,
+              background: 'var(--danger-soft)',
+              border: '1px solid var(--danger-ring)',
+              fontSize: 12.5,
+              lineHeight: 1.5,
+              color: 'var(--text)',
             }}
           >
-            <span style={{ fontWeight: 500 }}>Starting position</span>
-            <span className="meta" style={{ fontSize: 12 }}>
-              Optional · play moves on the board to anchor the tree.
-            </span>
+            <strong>This will erase every move in the study.</strong> The
+            existing tree was built on the old starting position and won't
+            line up with the new one. Chapters and quiz progress on those
+            moves are removed too.
           </div>
-          <PrefixBoard
-            fen={currentFen}
-            flip={side === 'b'}
-            onPlay={(san) => setSans((prev) => [...prev, san])}
-          />
-          <PrefixMoveList
-            sans={sans}
-            onUndo={() => setSans((prev) => prev.slice(0, -1))}
-            onReset={() => setSans([])}
-          />
-        </div>
+        )}
 
         {err && (
           <span style={{ fontSize: 12, color: 'var(--danger)' }}>{err}</span>
@@ -199,63 +177,23 @@ export function NewOpeningStudyDialog({
             Cancel
           </Btn>
           <Btn
-            variant="primary"
-            type="submit"
-            disabled={busy || !name.trim()}
+            variant={hasNodes ? 'danger' : 'primary'}
+            type="button"
+            disabled={busy || !changed}
+            onClick={save}
           >
             {busy
-              ? 'Creating…'
-              : lichessHint
-                ? 'Create + import PGN →'
-                : 'Create study'}
+              ? 'Saving…'
+              : hasNodes
+                ? 'Replace tree & save'
+                : 'Save prefix'}
           </Btn>
         </div>
-      </form>
+      </div>
     </Dialog>
   );
 }
 
-function SideOption({
-  picked,
-  onClick,
-  title,
-  hint,
-}: {
-  picked: boolean;
-  onClick: () => void;
-  title: string;
-  hint: string;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      aria-pressed={picked}
-      style={{
-        textAlign: 'left',
-        padding: 14,
-        borderRadius: 12,
-        background: picked ? 'var(--accent-soft)' : 'var(--inset-bg)',
-        border: `1px solid ${picked ? 'var(--accent-ring)' : 'var(--inset-border)'}`,
-        cursor: 'pointer',
-        transition: 'background 120ms ease, border-color 120ms ease',
-        color: 'inherit',
-      }}
-    >
-      <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text)' }}>
-        {title}
-      </div>
-      <div style={{ fontSize: 12, color: 'var(--text-dim)', marginTop: 2 }}>
-        {hint}
-      </div>
-    </button>
-  );
-}
-
-/** Small board for setting the opening prefix — mirrors the editor's board
- * (chessground + chess.js dest map) but only emits SAN moves; the move list
- * lives in dialog state. The board is reconfigured on every fen prop change
- * but the chessground instance itself only mounts once. */
 function PrefixBoard({
   fen,
   flip,

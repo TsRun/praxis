@@ -10,7 +10,12 @@ import {
   type OpeningNode,
   type OpeningChapter,
 } from '../lib/api';
-import { pathToNode, findChildBySan } from '../lib/opening-tree';
+import {
+  pathToNode,
+  findChildBySan,
+  plyOffsetFromFen,
+} from '../lib/opening-tree';
+import { EditRootDialog } from './EditRootDialog';
 import { ConfirmDialog } from '../components/ui/ConfirmDialog';
 import { BoardToolbar } from '../components/BoardToolbar';
 import { EditableTitle } from '../components/ui/EditableTitle';
@@ -41,13 +46,23 @@ import {
 
 type ViewMode = 'tree' | 'chapters';
 
-function plyLabel(ply: number) {
-  return ply % 2 === 1 ? `${Math.ceil(ply / 2)}.` : `${Math.ceil(ply / 2)}…`;
+// All ply-labelling goes through this. For studies that start from the
+// standard position the offset is 0 and behavior is identical to before;
+// when the trainer set an opening prefix, the offset shifts every label so
+// (e.g.) the first reply after "1.e4 e5 2.Nf3" reads "2..." rather than "1.".
+function plyLabel(ply: number, offset = 0) {
+  const abs = ply + offset;
+  return abs % 2 === 1 ? `${Math.ceil(abs / 2)}.` : `${Math.ceil(abs / 2)}…`;
 }
 
-function lineSan(study: OpeningStudyFull, nodeId: number): string {
+function lineSan(study: OpeningStudyFull, nodeId: number, offset = 0): string {
   return pathToNode(study.nodes, nodeId)
-    .map((n) => (n.ply % 2 === 1 ? `${Math.ceil(n.ply / 2)}.${n.san}` : n.san))
+    .map((n) => {
+      const abs = n.ply + offset;
+      return abs % 2 === 1
+        ? `${Math.ceil(abs / 2)}.${n.san}`
+        : n.san;
+    })
     .join(' ');
 }
 
@@ -120,6 +135,7 @@ export function OpeningStudyEditor() {
   const [mode, setMode] = useState<ViewMode>('tree');
   const [showImport, setShowImport] = useState(false);
   const [showAssign, setShowAssign] = useState(false);
+  const [showEditRoot, setShowEditRoot] = useState(false);
   const [flip, setFlip] = useState(false);
 
   useEffect(() => {
@@ -176,6 +192,7 @@ export function OpeningStudyEditor() {
 
   const path = pathToNode(study.nodes, currentNodeId);
   const chaptersSet = new Set(study.chapters.map((c) => c.node_id));
+  const plyOffset = plyOffsetFromFen(study.root_fen);
   const transpositions = currentNode
     ? study.nodes.filter(
         (n) => n.id !== currentNode.id && n.fen === currentNode.fen,
@@ -337,6 +354,67 @@ export function OpeningStudyEditor() {
             <span className="meta">·</span>
             <span className="meta">{study.chapters.length} chapters</span>
           </div>
+          {study.root_pgn && (
+            <div
+              style={{
+                marginTop: 10,
+                display: 'flex',
+                alignItems: 'center',
+                gap: 8,
+                fontSize: 12.5,
+                color: 'var(--text-dim)',
+                flexWrap: 'wrap',
+              }}
+            >
+              <span className="meta-strong">Starts from</span>
+              <code
+                className="mono"
+                style={{
+                  fontSize: 12,
+                  color: 'var(--text)',
+                  background: 'var(--inset-bg)',
+                  border: '1px solid var(--inset-border)',
+                  borderRadius: 6,
+                  padding: '2px 8px',
+                }}
+              >
+                {study.root_pgn}
+              </code>
+              <button
+                type="button"
+                onClick={() => setShowEditRoot(true)}
+                className="link"
+                style={{
+                  background: 'transparent',
+                  border: 0,
+                  padding: 0,
+                  cursor: 'pointer',
+                  fontSize: 12,
+                }}
+              >
+                Edit prefix
+              </button>
+            </div>
+          )}
+          {!study.root_pgn && (
+            <div style={{ marginTop: 10 }}>
+              <button
+                type="button"
+                onClick={() => setShowEditRoot(true)}
+                className="link"
+                style={{
+                  background: 'transparent',
+                  border: 0,
+                  padding: 0,
+                  cursor: 'pointer',
+                  fontSize: 12,
+                  color: 'var(--text-dim)',
+                }}
+              >
+                Set opening prefix…
+              </button>
+            </div>
+          )}
         </div>
         <div
           style={{
@@ -404,7 +482,7 @@ export function OpeningStudyEditor() {
                 onClick={() => setCurrentNodeId(n.id)}
                 className={n.id === currentNodeId ? 'current' : ''}
               >
-                <span className="ply-num">{plyLabel(n.ply)}</span>
+                <span className="ply-num">{plyLabel(n.ply, plyOffset)}</span>
                 {n.san}
               </button>
             </span>
@@ -456,7 +534,7 @@ export function OpeningStudyEditor() {
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
               <span className="meta-strong" style={{ fontFamily: 'var(--font-mono)' }}>
                 {currentNode
-                  ? `After ${plyLabel(currentNode.ply)} ${currentNode.san}`
+                  ? `After ${plyLabel(currentNode.ply, plyOffset)} ${currentNode.san}`
                   : 'Start position'}
               </span>
               <div style={{ flex: 1 }} />
@@ -567,6 +645,20 @@ export function OpeningStudyEditor() {
           ) {
             setCurrentNodeId(null);
           }
+        }}
+      />
+
+      <EditRootDialog
+        open={showEditRoot}
+        onClose={() => setShowEditRoot(false)}
+        side={study.side}
+        currentRootPgn={study.root_pgn}
+        hasNodes={study.nodes.length > 0}
+        onSave={async ({ root_fen, root_pgn }) => {
+          await trainerStudies.setRoot(study.id, { root_fen, root_pgn });
+          const refreshed = await trainerStudies.get(study.id);
+          setStudy(refreshed);
+          setCurrentNodeId(null);
         }}
       />
     </div>
@@ -1066,7 +1158,7 @@ function LineSiblingsCard({
                     paddingRight: 4,
                   }}
                 >
-                  {plyLabel(n.ply)}
+                  {plyLabel(n.ply, plyOffsetFromFen(study.root_fen))}
                 </span>
                 <div
                   style={{
@@ -1233,7 +1325,7 @@ function ChaptersMode({
                         whiteSpace: 'nowrap',
                       }}
                     >
-                      {lineSan(study, node.id) || `ply ${node.ply}`}
+                      {lineSan(study, node.id, plyOffsetFromFen(study.root_fen)) || `ply ${node.ply}`}
                     </div>
                   </div>
                 </button>
@@ -1337,7 +1429,7 @@ function ChapterCard({
             {inherited.chapter.title}
           </button>
           <span className="meta" style={{ fontSize: 11 }}>
-            (starts at {plyLabel(inherited.node.ply)} {inherited.node.san})
+            (starts at {plyLabel(inherited.node.ply, plyOffsetFromFen(study.root_fen))} {inherited.node.san})
           </span>
         </div>
       )}

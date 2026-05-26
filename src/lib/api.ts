@@ -144,6 +144,7 @@ export interface OpeningStudySummary {
   id: number;
   name: string;
   root_fen: string;
+  root_pgn: string | null;
   eco: string | null;
   side: 'w' | 'b';
   created_at: string;
@@ -172,6 +173,7 @@ export interface OpeningStudyFull {
   id: number;
   name: string;
   root_fen: string;
+  root_pgn: string | null;
   eco: string | null;
   side: 'w' | 'b';
   nodes: OpeningNode[];
@@ -180,11 +182,18 @@ export interface OpeningStudyFull {
 
 export const trainerStudies = {
   list: () => api.get<OpeningStudySummary[]>('/api/trainer/studies/opening'),
-  create: (input: { name: string; root_fen: string; eco?: string; side: 'w' | 'b' }) =>
-    api.post<{ id: number }>('/api/trainer/studies/opening', input),
+  create: (input: {
+    name: string;
+    root_fen: string;
+    root_pgn?: string | null;
+    eco?: string;
+    side: 'w' | 'b';
+  }) => api.post<{ id: number }>('/api/trainer/studies/opening', input),
   get: (id: number) => api.get<OpeningStudyFull>(`/api/trainer/studies/opening/${id}`),
   renameOpening: (id: number, name: string) =>
     api.put<{ ok: true }>(`/api/trainer/studies/opening/${id}`, { name }),
+  setRoot: (id: number, input: { root_fen: string; root_pgn: string | null }) =>
+    api.put<{ ok: true }>(`/api/trainer/studies/opening/${id}/root`, input),
   renameGame: (id: number, name: string) =>
     api.put<{ ok: true }>(`/api/trainer/studies/game/${id}`, { name }),
   upsertNode: (
@@ -448,6 +457,7 @@ export interface OpeningStudyForStudent {
   id: number;
   name: string;
   root_fen: string;
+  root_pgn: string | null;
   eco: string | null;
   side: 'w' | 'b';
   nodes: OpeningNode[];

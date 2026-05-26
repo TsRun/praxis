@@ -9,7 +9,7 @@ import {
   type OpeningStudyForStudent,
   type QuizCard,
 } from '../lib/api';
-import { pathToNode } from '../lib/opening-tree';
+import { pathToNode, plyOffsetFromFen } from '../lib/opening-tree';
 import { useOpeningTreeNav } from '../hooks/useOpeningTreeNav';
 import { ChapterWalker } from '../components/opening/ChapterWalker';
 import { BoardToolbar } from '../components/BoardToolbar';
@@ -35,8 +35,9 @@ import {
 
 type Mode = 'drill' | 'tree' | 'chapters';
 
-function plyLabel(ply: number) {
-  return ply % 2 === 1 ? `${Math.ceil(ply / 2)}.` : `${Math.ceil(ply / 2)}…`;
+function plyLabel(ply: number, offset = 0) {
+  const abs = ply + offset;
+  return abs % 2 === 1 ? `${Math.ceil(abs / 2)}.` : `${Math.ceil(abs / 2)}…`;
 }
 
 function childrenOf<
@@ -743,6 +744,7 @@ function TreeMode({
     [study, currentNodeId],
   );
   const path = pathToNode(study.nodes, currentNodeId);
+  const plyOffset = plyOffsetFromFen(study.root_fen);
   const fen = currentNode?.fen ?? study.root_fen;
   const lastMove = currentNode?.uci ?? null;
   const candidates = childrenOf(study.nodes, currentNodeId);
@@ -766,7 +768,7 @@ function TreeMode({
             style={{ flex: 1, fontFamily: 'var(--font-mono)' }}
           >
             {currentNode
-              ? `After ${plyLabel(currentNode.ply)} ${currentNode.san}`
+              ? `After ${plyLabel(currentNode.ply, plyOffset)} ${currentNode.san}`
               : 'Start position'}
           </span>
           <Btn variant="ghost" size="sm" onClick={() => setFlip(!flip)}>
@@ -921,7 +923,7 @@ function TreeMode({
                   onClick={() => setCurrentNodeId(n.id)}
                   className={n.id === currentNodeId ? 'current' : ''}
                 >
-                  <span className="ply-num">{plyLabel(n.ply)}</span>
+                  <span className="ply-num">{plyLabel(n.ply, plyOffset)}</span>
                   {n.san}
                 </button>
               </span>

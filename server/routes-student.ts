@@ -110,7 +110,7 @@ export async function studentRoutes(app: FastifyInstance, opts: { pool: Pool }) 
       );
       if (!access.rowCount) return reply.code(404).send({ error: 'not assigned' });
       const { rows: s } = await pool.query(
-        `SELECT id, name, root_fen, eco, side FROM opening_study WHERE id = $1`,
+        `SELECT id, name, root_fen, root_pgn, eco, side FROM opening_study WHERE id = $1`,
         [id],
       );
       if (!s[0]) return reply.code(404).send({ error: 'not found' });
