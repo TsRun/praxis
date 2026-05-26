@@ -59,7 +59,9 @@ export function StudentsPage() {
         style={{
           display: 'flex',
           alignItems: 'center',
+          flexWrap: 'wrap',
           gap: 12,
+          rowGap: 10,
           marginBottom: 22,
           padding: '10px 14px',
           borderRadius: 12,
@@ -67,7 +69,7 @@ export function StudentsPage() {
           border: '1px solid var(--inset-border)',
         }}
       >
-        <div style={{ position: 'relative', flex: 1, maxWidth: 360 }}>
+        <div style={{ position: 'relative', flex: '1 1 220px', maxWidth: 360 }}>
           <IconSearch
             size={14}
             strokeWidth={2.4}
@@ -100,7 +102,9 @@ export function StudentsPage() {
           ]}
         />
         <div style={{ flex: 1 }} />
-        <span className="meta">{filtered.length} students</span>
+        <span className="meta" style={{ whiteSpace: 'nowrap' }}>
+          {filtered.length} students
+        </span>
       </div>
 
       {/* roster */}
