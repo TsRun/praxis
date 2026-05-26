@@ -93,8 +93,10 @@ Run a remote Claude Code agent every hour against `https://praxis.tsrun.dev/`. T
 - `lastResult`: `"ok"` | `"improved"` | `"failed"` | `null`.
 - `lastPr`: PR number or null.
 
-### `docs/audit/runs/<UTC-ISO>.md`
+### `docs/audit/runs/<UTC-stamp>.md`
 
+`<UTC-stamp>` is `YYYY-MM-DDTHH-MM-SSZ` — ISO-8601 with the time-portion colons
+replaced by dashes so the filename is valid on Windows (NTFS forbids `:`).
 Short per-run log: which feature was picked, what was found, what was changed, link to PR. Kept in repo for audit trail.
 
 ## Selection algorithm

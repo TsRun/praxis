@@ -12,10 +12,12 @@ Source of truth for the feature inventory the agent rotates through.
 - Hand-editable — add, remove, or tweak entries to steer what gets tested.
 - Schema: see the design doc.
 
-## `runs/<UTC-ISO>.md`
+## `runs/<UTC-stamp>.md`
 
-One file per audit run. Records: which feature was picked, what was observed,
-what was changed (if anything), link to the PR.
+One file per audit run. `<UTC-stamp>` is `YYYY-MM-DDTHH-MM-SSZ` — the time
+portion's colons are replaced by dashes so the filename is valid on Windows
+(NTFS forbids `:` in filenames). Records: which feature was picked, what was
+observed, what was changed (if anything), link to the PR.
 
 ## Operating the routine
 
