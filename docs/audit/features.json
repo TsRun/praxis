@@ -54,9 +54,9 @@
       "route": "/trainer/studies",
       "requiresAuth": true,
       "description": "After login, /trainer/studies shows the Studies heading, stat tiles (studies authored, students linked, chapters total), and three labelled sections (Opening studies, Game studies, Tactical sets).",
-      "lastTestedAt": "2026-05-24T10:09:41Z",
+      "lastTestedAt": "2026-05-27T09:14:00Z",
       "lastResult": "improved",
-      "lastPr": null,
+      "lastPr": 122,
       "removed": false
     },
     {

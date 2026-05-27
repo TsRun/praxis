@@ -640,27 +640,28 @@ function Section({
         </div>
       </div>
       {error ? (
-        <div className="meta" style={{ color: 'var(--danger)' }}>
-          {error}
+        <div
+          role="alert"
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: 12,
+            padding: '10px 14px',
+            background: 'rgba(248, 113, 113, 0.08)',
+            border: '1px solid rgba(248, 113, 113, 0.22)',
+            borderRadius: 10,
+            fontSize: 13,
+          }}
+        >
+          <span style={{ color: 'var(--danger)', minWidth: 0, wordBreak: 'break-word' }}>
+            <strong style={{ fontWeight: 600 }}>Couldn’t load.</strong>{' '}
+            <span style={{ color: 'var(--text-dim)' }}>{error}</span>
+          </span>
           {onRetry && (
-            <>
-              {' '}
-              <button
-                type="button"
-                onClick={onRetry}
-                style={{
-                  background: 'transparent',
-                  border: 0,
-                  color: 'var(--accent)',
-                  cursor: 'pointer',
-                  padding: 0,
-                  font: 'inherit',
-                  textDecoration: 'underline',
-                }}
-              >
-                Retry
-              </button>
-            </>
+            <button type="button" className="btn btn-sm btn-danger" onClick={onRetry}>
+              Retry
+            </button>
           )}
         </div>
       ) : loading ? (
