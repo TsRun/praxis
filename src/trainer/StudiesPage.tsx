@@ -103,6 +103,15 @@ export function StudiesPage() {
 
   useEffect(() => {
     if (!menuOpen) return;
+    const getItems = () =>
+      Array.from(
+        document.querySelectorAll<HTMLButtonElement>(
+          '#new-study-menu [role="menuitem"]',
+        ),
+      );
+    // Move focus into the menu so keyboard users can navigate it.
+    const firstItem = getItems()[0];
+    firstItem?.focus();
     const onDoc = (e: MouseEvent) => {
       if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
         setMenuOpen(false);
@@ -110,8 +119,28 @@ export function StudiesPage() {
     };
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
+        e.preventDefault();
         setMenuOpen(false);
         (document.getElementById('new-study-trigger') as HTMLButtonElement | null)?.focus();
+        return;
+      }
+      const items = getItems();
+      if (items.length === 0) return;
+      const idx = items.indexOf(document.activeElement as HTMLButtonElement);
+      if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        const next = idx < 0 ? 0 : (idx + 1) % items.length;
+        items[next].focus();
+      } else if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        const prev = idx < 0 ? items.length - 1 : (idx - 1 + items.length) % items.length;
+        items[prev].focus();
+      } else if (e.key === 'Home') {
+        e.preventDefault();
+        items[0].focus();
+      } else if (e.key === 'End') {
+        e.preventDefault();
+        items[items.length - 1].focus();
       }
     };
     document.addEventListener('mousedown', onDoc);
@@ -168,6 +197,12 @@ export function StudiesPage() {
               id="new-study-trigger"
               variant="primary"
               onClick={() => setMenuOpen((v) => !v)}
+              onKeyDown={(e) => {
+                if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+                  e.preventDefault();
+                  setMenuOpen(true);
+                }
+              }}
               aria-haspopup="menu"
               aria-expanded={menuOpen}
               aria-controls="new-study-menu"
