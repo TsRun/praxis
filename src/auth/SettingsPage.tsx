@@ -253,6 +253,7 @@ function RolesCard({
                 onClick={() => toggle(r)}
                 aria-pressed={on}
                 aria-label={`${title} — ${sub}`}
+                className="role-pick"
                 style={{
                   padding: '14px 10px',
                   borderRadius: 12,
