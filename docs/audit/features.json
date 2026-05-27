@@ -98,9 +98,9 @@
       "route": "/trainer/studies",
       "requiresAuth": true,
       "description": "Choosing 'Tactical set' from the New study menu opens a dialog with a name field that can be submitted to create a tactic set.",
-      "lastTestedAt": "2026-05-24T06:16:01Z",
+      "lastTestedAt": "2026-05-27T03:13:00Z",
       "lastResult": "improved",
-      "lastPr": null,
+      "lastPr": 120,
       "removed": false
     },
     {

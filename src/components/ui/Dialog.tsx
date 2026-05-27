@@ -1,7 +1,10 @@
-import { useEffect, type ReactNode } from 'react';
+import { useEffect, useRef, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import { Btn } from './atoms';
 import { IconX } from './Icons';
+
+const FOCUSABLE_SELECTOR =
+  'a[href], area[href], button:not([disabled]), input:not([disabled]):not([type="hidden"]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
 
 interface Props {
   open: boolean;
@@ -23,6 +26,8 @@ export function Dialog({
   children,
   width = 460,
 }: Props) {
+  const dialogRef = useRef<HTMLDivElement>(null);
+
   useEffect(() => {
     if (!open) return;
     function onKey(e: KeyboardEvent) {
@@ -31,6 +36,39 @@ export function Dialog({
     document.addEventListener('keydown', onKey);
     return () => document.removeEventListener('keydown', onKey);
   }, [open, onClose]);
+
+  // Trap Tab/Shift+Tab inside the dialog so focus can't escape to elements
+  // behind the modal. Restore focus to the previously focused element on close.
+  useEffect(() => {
+    if (!open) return;
+    const root = dialogRef.current;
+    if (!root) return;
+    const prevFocus = document.activeElement as HTMLElement | null;
+    function onKey(e: KeyboardEvent) {
+      if (e.key !== 'Tab' || !root) return;
+      const nodes = Array.from(
+        root.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR),
+      ).filter((el) => el.offsetParent !== null || el === document.activeElement);
+      if (nodes.length === 0) return;
+      const first = nodes[0];
+      const last = nodes[nodes.length - 1];
+      const active = document.activeElement as HTMLElement | null;
+      if (e.shiftKey && (active === first || !root.contains(active))) {
+        e.preventDefault();
+        last.focus();
+      } else if (!e.shiftKey && (active === last || !root.contains(active))) {
+        e.preventDefault();
+        first.focus();
+      }
+    }
+    root.addEventListener('keydown', onKey);
+    return () => {
+      root.removeEventListener('keydown', onKey);
+      if (prevFocus && typeof prevFocus.focus === 'function') {
+        prevFocus.focus();
+      }
+    };
+  }, [open]);
 
   // Lock body scroll while open so the page behind doesn't move under the
   // modal. scrollbar-gutter on <html> keeps the scrollbar slot reserved so
@@ -48,6 +86,7 @@ export function Dialog({
   return createPortal(
     <div className="modal-backdrop" onClick={onClose}>
       <div
+        ref={dialogRef}
         role="dialog"
         aria-modal="true"
         aria-label={title}
