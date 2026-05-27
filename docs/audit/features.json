@@ -155,7 +155,7 @@
       "description": "Navigating to /student/dashboard renders a greeting with the user's name, assignment count stats, Today card, and Activity card \u2014 no uncaught errors.",
       "lastTestedAt": "2026-05-27T21:14:43Z",
       "lastResult": "improved",
-      "lastPr": null,
+      "lastPr": 126,
       "removed": false
     },
     {
