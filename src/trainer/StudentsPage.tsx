@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { trainer, type StudentRow } from '../lib/api';
 import { InviteStudentDialog } from './InviteStudentDialog';
 import { Card, Btn, Chip, Avatar, Segmented } from '../components/ui/atoms';
-import { IconAssign, IconSearch, IconMore } from '../components/ui/Icons';
+import { IconAssign, IconSearch, IconMore, IconUsers } from '../components/ui/Icons';
 
 type Filter = 'all' | 'linked' | 'invited';
 
@@ -111,7 +111,10 @@ export function StudentsPage() {
       {rows == null ? (
         <p className="meta">Loading…</p>
       ) : filtered.length === 0 ? (
-        <p className="meta">No students yet. Invite your first one.</p>
+        <EmptyStudents
+          searching={q.length > 0}
+          onInvite={() => setShowInvite(true)}
+        />
       ) : (
         <div
           style={{
@@ -137,6 +140,61 @@ export function StudentsPage() {
             refresh();
           }}
         />
+      )}
+    </div>
+  );
+}
+
+function EmptyStudents({
+  searching,
+  onInvite,
+}: {
+  searching: boolean;
+  onInvite: () => void;
+}) {
+  return (
+    <div
+      style={{
+        border: '1px dashed var(--inset-border)',
+        borderRadius: 14,
+        padding: '40px 24px',
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        textAlign: 'center',
+        gap: 6,
+      }}
+    >
+      <div
+        style={{
+          width: 56,
+          height: 56,
+          borderRadius: 16,
+          background: 'var(--inset-bg)',
+          color: 'var(--text-dim)',
+          display: 'inline-flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          marginBottom: 6,
+        }}
+      >
+        <IconUsers size={22} strokeWidth={2.2} />
+      </div>
+      <div className="meta-strong">
+        {searching ? 'No students match your filters' : 'No students yet'}
+      </div>
+      <div className="meta" style={{ maxWidth: 320 }}>
+        {searching
+          ? 'Try clearing the search box or switching the All / Linked / Invited tab.'
+          : 'Invite your first student to start tracking progress across studies.'}
+      </div>
+      {!searching && (
+        <div style={{ marginTop: 10 }}>
+          <Btn variant="primary" onClick={onInvite}>
+            <IconAssign size={13} strokeWidth={2.4} />
+            Invite student
+          </Btn>
+        </div>
       )}
     </div>
   );
