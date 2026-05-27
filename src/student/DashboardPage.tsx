@@ -76,8 +76,9 @@ export function DashboardPage() {
             <span style={{ color: 'var(--accent)' }}>{user?.name ?? '—'}</span>
           </h1>
           <div className="meta">
-            {active.length} active assignments. A short focused session beats a
-            long distracted one.
+            {active.length} active{' '}
+            {active.length === 1 ? 'assignment' : 'assignments'}. A short
+            focused session beats a long distracted one.
           </div>
         </div>
         <div style={{ display: 'flex', gap: 14 }}>
@@ -327,7 +328,8 @@ export function DashboardPage() {
                 Your trainer
               </div>
               <div className="meta" style={{ fontSize: 12 }}>
-                {active.length} studies assigned to you
+                {active.length} {active.length === 1 ? 'study' : 'studies'}{' '}
+                assigned to you
               </div>
             </div>
           </Card>
