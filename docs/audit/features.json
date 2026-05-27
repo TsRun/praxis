@@ -12,7 +12,7 @@
       "description": "Page loads with hero headline, three feature cards (Opening trees, Game studies, Spaced repetition), and a sign-in/sign-up form \u2014 no JS errors in the visible body.",
       "lastTestedAt": "2026-05-27T12:21:23Z",
       "lastResult": "improved",
-      "lastPr": null,
+      "lastPr": 123,
       "removed": false
     },
     {
