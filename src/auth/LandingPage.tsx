@@ -135,6 +135,7 @@ export function LandingPage() {
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
+            overflow: 'hidden',
           }}
         >
           <div

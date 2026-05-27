@@ -190,6 +190,11 @@ test('landing-page-render: hero, features, auth form render with UI a11y check',
     client: document.documentElement.clientWidth,
   }));
   console.log('MOBILE OVERFLOW:', overflow);
+  if (overflow.scroll > overflow.client + 1) {
+    console.warn(
+      `WARN: horizontal overflow at 375 — scroll=${overflow.scroll} client=${overflow.client}`,
+    );
+  }
 
   // Hero board box on mobile
   const boardBox = await page
