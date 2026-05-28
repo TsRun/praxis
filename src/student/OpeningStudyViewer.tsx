@@ -52,19 +52,80 @@ export function OpeningStudyViewer() {
   const { id } = useParams();
   const numId = Number(id);
   const [study, setStudy] = useState<OpeningStudyForStudent | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [mode, setMode] = useState<Mode>('drill');
   const [flip, setFlip] = useState(false);
 
   useEffect(() => {
-    student.opening(numId).then((s) => {
-      setStudy(s);
-      setFlip(s.side === 'b');
-    });
+    let cancelled = false;
+    setLoadError(null);
+    student.opening(numId).then(
+      (s) => {
+        if (cancelled) return;
+        setStudy(s);
+        setFlip(s.side === 'b');
+      },
+      (e: unknown) => {
+        if (cancelled) return;
+        setLoadError(e instanceof Error ? e.message : 'Failed to load study');
+      },
+    );
+    return () => {
+      cancelled = true;
+    };
   }, [numId]);
+
+  if (loadError) {
+    return (
+      <div className="page-wrap" style={{ paddingTop: 24 }}>
+        <Card role="alert" style={{ padding: 22, borderRadius: 14 }}>
+          <h2 className="t-h2" style={{ margin: '0 0 8px' }}>
+            Couldn't load this study
+          </h2>
+          <p className="meta" style={{ margin: '0 0 6px' }}>
+            The study can't be opened right now. It may have been removed,
+            you may no longer be assigned to it, or the server is temporarily
+            unavailable.
+          </p>
+          <p
+            className="mono meta"
+            style={{ fontSize: 12, margin: '0 0 14px', wordBreak: 'break-word' }}
+          >
+            {loadError}
+          </p>
+          <Link
+            to="/student/dashboard"
+            style={{
+              display: 'inline-flex',
+              gap: 6,
+              alignItems: 'center',
+              color: 'var(--text-dim)',
+              fontSize: 13,
+            }}
+          >
+            <IconArrowL size={14} /> Back to dashboard
+          </Link>
+        </Card>
+      </div>
+    );
+  }
 
   if (!study)
     return (
-      <div style={{ padding: 28, color: 'var(--text-faint)' }}>Loading…</div>
+      <div
+        className="page-wrap"
+        role="status"
+        aria-live="polite"
+        style={{
+          paddingTop: 48,
+          paddingBottom: 48,
+          color: 'var(--text-faint)',
+          textAlign: 'center',
+          fontSize: 13,
+        }}
+      >
+        Loading…
+      </div>
     );
 
   const dueCount = study.quiz_state.filter(
