@@ -45,7 +45,7 @@
       "description": "Navigating to /tour renders the marketing tour page without uncaught exceptions or blank content.",
       "lastTestedAt": "2026-05-28T00:19:43Z",
       "lastResult": "improved",
-      "lastPr": null,
+      "lastPr": 127,
       "removed": false
     },
     {
