@@ -219,9 +219,9 @@
       "route": "/student/study/opening/:id",
       "requiresAuth": true,
       "description": "Navigating to /student/study/opening/<id> as a student renders the opening study viewer with a chess board and no uncaught errors.",
-      "lastTestedAt": null,
-      "lastResult": null,
-      "lastPr": null,
+      "lastTestedAt": "2026-05-28T09:25:00Z",
+      "lastResult": "improved",
+      "lastPr": 130,
       "removed": false
     }
   ]
