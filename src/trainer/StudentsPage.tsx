@@ -31,9 +31,13 @@ export function StudentsPage() {
     refresh();
   }, []);
 
-  const filtered = (rows ?? []).filter((s) =>
-    s.name.toLowerCase().includes(q.toLowerCase()),
-  );
+  // The /api/trainer/students endpoint only returns linked students, so
+  // 'invited' currently has no data to surface — make the tab honest by
+  // returning an empty roster rather than silently showing linked rows.
+  const filtered = (rows ?? []).filter((s) => {
+    if (filter === 'invited') return false;
+    return s.name.toLowerCase().includes(q.toLowerCase());
+  });
 
   return (
     <div className="page-wrap" style={{ paddingTop: 32, paddingBottom: 100 }}>
@@ -112,6 +116,7 @@ export function StudentsPage() {
         <p className="meta">Loading…</p>
       ) : filtered.length === 0 ? (
         <EmptyStudents
+          filter={filter}
           searching={q.length > 0}
           onInvite={() => setShowInvite(true)}
         />
@@ -146,14 +151,32 @@ export function StudentsPage() {
 }
 
 function EmptyStudents({
+  filter,
   searching,
   onInvite,
 }: {
+  filter: Filter;
   searching: boolean;
   onInvite: () => void;
 }) {
+  const isInvitedTab = filter === 'invited' && !searching;
+  const isLinkedTab = filter === 'linked' && !searching;
+  const heading = searching
+    ? 'No students match your filters'
+    : isInvitedTab
+      ? 'No invited students'
+      : isLinkedTab
+        ? 'No linked students yet'
+        : 'No students yet';
+  const body = searching
+    ? 'Try clearing the search box or switching the All / Linked / Invited tab.'
+    : isInvitedTab
+      ? 'Pending invitations show up here. Invite a student by email to see them on this tab.'
+      : 'Invite your first student to start tracking progress across studies.';
   return (
     <div
+      role="status"
+      aria-live="polite"
       style={{
         border: '1px dashed var(--inset-border)',
         borderRadius: 14,
@@ -180,13 +203,9 @@ function EmptyStudents({
       >
         <IconUsers size={22} strokeWidth={2.2} />
       </div>
-      <div className="meta-strong">
-        {searching ? 'No students match your filters' : 'No students yet'}
-      </div>
+      <div className="meta-strong">{heading}</div>
       <div className="meta" style={{ maxWidth: 320 }}>
-        {searching
-          ? 'Try clearing the search box or switching the All / Linked / Invited tab.'
-          : 'Invite your first student to start tracking progress across studies.'}
+        {body}
       </div>
       {!searching && (
         <div style={{ marginTop: 10 }}>

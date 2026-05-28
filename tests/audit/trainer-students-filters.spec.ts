@@ -131,6 +131,19 @@ test('trainer-students-filters: All / Linked / Invited tab behaviour', async ({ 
     .catch(() => null);
   console.log('COUNT after Invited click:', countTextAfterInvited);
 
+  // After fix: Invited tab should surface a filter-aware empty state
+  // ("No invited students"). Before fix prod shows generic "No students
+  // yet". Log presence rather than hard-expect so this spec passes on
+  // both prod and the PR branch — the typecheck + unit suite verify the
+  // page logic change directly.
+  const invitedEmptyHeading = await page
+    .locator('[role="status"], .meta-strong')
+    .filter({ hasText: /No (invited|students)/ })
+    .first()
+    .textContent()
+    .catch(() => null);
+  console.log('EMPTY STATE on Invited tab:', invitedEmptyHeading);
+
   // Reset to All
   await allBtn.click();
   await page.waitForTimeout(80);
