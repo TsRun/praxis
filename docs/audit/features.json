@@ -1,8 +1,8 @@
 {
   "schemaVersion": 2,
   "site": "https://praxis.tsrun.dev/",
-  "lastDiscoveryAt": "2026-05-25T15:57:46Z",
-  "discoveryCount": 1,
+  "lastDiscoveryAt": "2026-05-28T06:23:55Z",
+  "discoveryCount": 2,
   "features": [
     {
       "id": "landing-page-render",
@@ -210,6 +210,17 @@
       "description": "On /settings the API keys section's 'New key' button opens a creation flow or reveals a new key, with no console/page errors.",
       "lastTestedAt": "2026-05-26T00:11:52Z",
       "lastResult": "ok",
+      "lastPr": null,
+      "removed": false
+    },
+    {
+      "id": "student-opening-study-viewer",
+      "name": "Student opening study viewer",
+      "route": "/student/study/opening/:id",
+      "requiresAuth": true,
+      "description": "Navigating to /student/study/opening/<id> as a student renders the opening study viewer with a chess board and no uncaught errors.",
+      "lastTestedAt": null,
+      "lastResult": null,
       "lastPr": null,
       "removed": false
     }
