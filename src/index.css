@@ -544,7 +544,7 @@ input[type='range']::-moz-range-thumb {
   gap: 24px;
   align-items: start;
 }
-@media (max-width: 900px) { .grid-import-page { grid-template-columns: 1fr; gap: 20px; } }
+@media (max-width: 900px) { .grid-import-page { grid-template-columns: minmax(0, 1fr); gap: 20px; } }
 
 /* Three-column grid that collapses progressively */
 .grid-3 {

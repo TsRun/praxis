@@ -122,12 +122,14 @@ export function PositionSetupBoard({
     <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
       <PalettePanel brush={brush} onPick={setBrush} />
 
-      <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
-        <SetupBoard
-          fen={currentFen}
-          maxWidth={maxBoardWidth}
-          onSquareClick={(sq) => applyBrush(sq as Square)}
-        />
+      <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10, flexWrap: 'wrap' }}>
+        <div style={{ flex: '1 1 200px', minWidth: 0, maxWidth: maxBoardWidth }}>
+          <SetupBoard
+            fen={currentFen}
+            maxWidth={maxBoardWidth}
+            onSquareClick={(sq) => applyBrush(sq as Square)}
+          />
+        </div>
         <BoardToolbar
           fen={currentFen}
           orientation={turn === 'w' ? 'white' : 'black'}
