@@ -80,7 +80,7 @@ export function TourPage() {
       <TopBar />
       <SceneTabs idx={state.idx} onPick={goto} />
       <div style={{ padding: '0 24px' }}>
-        <ProgressBar pct={globalPct} height={3} />
+        <ProgressBar pct={globalPct} height={3} ariaLabel="Tour progress" />
       </div>
 
       <div
