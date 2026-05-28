@@ -840,7 +840,7 @@ function PositionFilter({
           All games match — play moves on the board to filter.
         </div>
       )}
-      <div className="meta" style={{ fontSize: 11.5, fontFamily: 'var(--font-mono)' }}>
+      <div className="meta" style={{ fontSize: 11.5, fontFamily: 'var(--font-mono)', wordBreak: 'break-all' }}>
         Filter FEN: {fen}
       </div>
     </div>

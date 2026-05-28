@@ -40,12 +40,14 @@ export function PlayFromStartBoard({
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-      <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
-        <FreePlayBoard
-          fen={currentFen}
-          onMove={(san) => setMoves((prev) => [...prev, san])}
-          maxWidth={maxBoardWidth}
-        />
+      <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10, flexWrap: 'wrap' }}>
+        <div style={{ flex: '1 1 200px', minWidth: 0, maxWidth: maxBoardWidth }}>
+          <FreePlayBoard
+            fen={currentFen}
+            onMove={(san) => setMoves((prev) => [...prev, san])}
+            maxWidth={maxBoardWidth}
+          />
+        </div>
         <BoardToolbar fen={currentFen} orientation="white" />
       </div>
       <div
