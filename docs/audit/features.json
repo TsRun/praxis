@@ -67,7 +67,7 @@
       "description": "Clicking 'New study' on the studies page opens a dropdown with three options — Opening study, Game study, and Tactical set.",
       "lastTestedAt": "2026-05-29T15:13:51Z",
       "lastResult": "improved",
-      "lastPr": null,
+      "lastPr": 140,
       "removed": false
     },
     {
