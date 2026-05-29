@@ -507,6 +507,7 @@ function NewStudyMenuItem({
     <button
       type="button"
       role="menuitem"
+      className="dropdown-menuitem"
       onClick={onClick}
       style={{
         display: 'grid',
@@ -522,10 +523,6 @@ function NewStudyMenuItem({
         color: 'inherit',
         width: '100%',
       }}
-      onMouseOver={(e) =>
-        (e.currentTarget.style.background = 'var(--inset-bg)')
-      }
-      onMouseOut={(e) => (e.currentTarget.style.background = 'transparent')}
     >
       <span
         style={{
