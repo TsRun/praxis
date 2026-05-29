@@ -44,11 +44,23 @@ export function TopBar({ links = [], right }: TopBarProps) {
         </Link>
 
         {showSwitch && (
-          <div className="segmented accent hide-mobile">
-            <Link to="/trainer" className={inCoach ? 'active' : ''}>
+          <div
+            className="segmented accent hide-mobile"
+            role="group"
+            aria-label="Switch between coach and student view"
+          >
+            <Link
+              to="/trainer"
+              className={inCoach ? 'active' : ''}
+              aria-current={inCoach ? 'page' : undefined}
+            >
               Coach
             </Link>
-            <Link to="/student" className={!inCoach ? 'active' : ''}>
+            <Link
+              to="/student"
+              className={!inCoach ? 'active' : ''}
+              aria-current={!inCoach ? 'page' : undefined}
+            >
               Student
             </Link>
           </div>
