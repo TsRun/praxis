@@ -94,6 +94,11 @@ export function Dialog({
         style={{
           width,
           maxWidth: '92vw',
+          // Keep the dialog within the viewport on short screens (e.g. mobile)
+          // — otherwise it overflows beyond a centered backdrop and the
+          // header/footer get clipped with no way to scroll to them.
+          maxHeight: 'calc(100dvh - 32px)',
+          overflowY: 'auto',
           padding: 22,
           background: 'var(--card-bg)',
           borderRadius: 16,
