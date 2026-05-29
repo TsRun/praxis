@@ -197,26 +197,32 @@ function RolesEditor({
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-      <div>Your roles</div>
-      {ALL_ROLES.map((r) => (
-        <label
-          key={r}
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: 8,
-            fontSize: 13.5,
-            cursor: 'pointer',
-          }}
-        >
-          <input
-            type="checkbox"
-            checked={picked.has(r)}
-            onChange={() => toggle(r)}
-          />
-          {ROLE_LABEL[r]}
-        </label>
-      ))}
+      <div id="user-menu-roles-label">Your roles</div>
+      <div
+        role="group"
+        aria-labelledby="user-menu-roles-label"
+        style={{ display: 'flex', flexDirection: 'column', gap: 6 }}
+      >
+        {ALL_ROLES.map((r) => (
+          <label
+            key={r}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 8,
+              fontSize: 13.5,
+              cursor: 'pointer',
+            }}
+          >
+            <input
+              type="checkbox"
+              checked={picked.has(r)}
+              onChange={() => toggle(r)}
+            />
+            {ROLE_LABEL[r]}
+          </label>
+        ))}
+      </div>
       {err && (
         <span style={{ fontSize: 12, color: 'var(--danger)' }}>{err}</span>
       )}
