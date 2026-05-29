@@ -232,6 +232,7 @@ function SideOption({
       onClick={onClick}
       aria-pressed={picked}
       aria-label={`${title} — ${hint}`}
+      className="role-pick"
       style={{
         textAlign: 'left',
         padding: 14,
@@ -239,7 +240,7 @@ function SideOption({
         background: picked ? 'var(--accent-soft)' : 'var(--inset-bg)',
         border: `1px solid ${picked ? 'var(--accent-ring)' : 'var(--inset-border)'}`,
         cursor: 'pointer',
-        transition: 'background 120ms ease, border-color 120ms ease',
+        transition: 'background 120ms ease, border-color 120ms ease, box-shadow 120ms ease',
         color: 'inherit',
       }}
     >
