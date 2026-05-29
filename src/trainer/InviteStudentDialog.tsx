@@ -99,8 +99,13 @@ export function InviteStudentDialog({ onClose }: { onClose: () => void }) {
         aria-labelledby="invite-student-title"
         onClick={(e) => e.stopPropagation()}
         style={{
-          width: '100%',
-          maxWidth: 520,
+          width: 520,
+          // Keep the dialog within the viewport on narrow / short screens —
+          // matches the constraints on the shared Dialog component so the
+          // panel never touches viewport edges and never clips its footer.
+          maxWidth: '92vw',
+          maxHeight: 'calc(100dvh - 32px)',
+          overflowY: 'auto',
           padding: 24,
           background: 'var(--card-bg)',
           borderRadius: 16,

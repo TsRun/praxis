@@ -27,8 +27,9 @@ test('trainer-invite-student: dialog opens and exposes inputs', async ({ page })
   await page.waitForSelector('h1', { timeout: 15000 });
   await expect(page.getByRole('heading', { name: /Students/i })).toBeVisible();
 
-  // Open invite dialog
-  await page.getByRole('button', { name: /Invite student/i }).click();
+  // Open invite dialog (the header CTA — first match wins when roster is empty
+  // and the EmptyStudents component renders a duplicate CTA).
+  await page.getByRole('button', { name: /Invite student/i }).first().click();
   await expect(page.getByRole('heading', { name: /Invite a student/i })).toBeVisible();
 
   // Desktop screenshot of dialog open
@@ -63,7 +64,7 @@ test('trainer-invite-student: dialog opens and exposes inputs', async ({ page })
     // is not needed since the dialog is still open.
   } else {
     // Post-fix build — reopen for downstream checks
-    await page.getByRole('button', { name: /Invite student/i }).click();
+    await page.getByRole('button', { name: /Invite student/i }).first().click();
     await expect(page.getByRole('heading', { name: /Invite a student/i })).toBeVisible();
   }
 
@@ -119,12 +120,31 @@ test('trainer-invite-student: dialog opens and exposes inputs', async ({ page })
   });
 
   // Open dialog on mobile and check it fits the viewport
-  await page.getByRole('button', { name: /Invite student/i }).click();
+  await page.getByRole('button', { name: /Invite student/i }).first().click();
   await expect(page.getByRole('heading', { name: /Invite a student/i })).toBeVisible();
+  await page.waitForTimeout(200);
   await page.screenshot({
     path: 'tests/audit/screenshots/trainer-invite-student-mobile-dialog.png',
-    fullPage: true,
+    fullPage: false,
   });
+
+  // Measure the dialog panel against the viewport. On a 375x812 viewport the
+  // post-fix panel should leave horizontal margin (>= 4px each side) and not
+  // exceed viewport height. Logged rather than hard-asserted so the spec keeps
+  // passing against pre-fix prod builds; verified post-deploy by reading logs.
+  const dialogMetrics = await page.locator('[role="dialog"]').evaluate((el) => {
+    const r = el.getBoundingClientRect();
+    return {
+      width: Math.round(r.width),
+      height: Math.round(r.height),
+      left: Math.round(r.left),
+      right: Math.round(window.innerWidth - r.right),
+      top: Math.round(r.top),
+      vw: window.innerWidth,
+      vh: window.innerHeight,
+    };
+  });
+  console.log('MOBILE DIALOG METRICS:', dialogMetrics);
 
   // Capture any horizontal overflow on mobile
   const overflow = await page.evaluate(() => ({
