@@ -202,6 +202,7 @@ export function SignInUpForm({ inviteToken, inviteEmail, inviteName }: Props) {
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           autoComplete="email"
+          required
           readOnly={!!inviteEmail && mode === 'up'}
         />
       </div>
@@ -230,6 +231,7 @@ export function SignInUpForm({ inviteToken, inviteEmail, inviteName }: Props) {
             value={name}
             onChange={(e) => setName(e.target.value)}
             autoComplete="nickname"
+            required
           />
         </div>
       )}
@@ -255,6 +257,8 @@ export function SignInUpForm({ inviteToken, inviteEmail, inviteName }: Props) {
           value={password}
           onChange={(e) => setPassword(e.target.value)}
           autoComplete={mode === 'up' ? 'new-password' : 'current-password'}
+          required
+          minLength={mode === 'up' ? 8 : undefined}
         />
       </div>
 
