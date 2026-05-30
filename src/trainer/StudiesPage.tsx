@@ -630,7 +630,8 @@ function Section({
           <h2 className="t-h2" style={{ margin: 0 }}>{title}</h2>
           <span
             className="mono"
-            style={{ color: 'var(--text-faint)', fontSize: 13, marginLeft: 8 }}
+            aria-label={`${count} item${count === 1 ? '' : 's'}`}
+            style={{ color: 'var(--text-dim)', fontSize: 13, marginLeft: 8 }}
           >
             {count}
           </span>
