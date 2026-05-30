@@ -128,7 +128,15 @@ function TopBar() {
       </Link>
       <span className="hide-mobile" style={{ color: 'var(--text-faint)', fontSize: 13 }}>· 90-second tour</span>
       <div style={{ flex: 1 }} />
-      <Link to="/" style={{ color: 'var(--text-dim)', fontSize: 13 }}>
+      <Link
+        to="/"
+        style={{
+          color: 'var(--text-dim)',
+          fontSize: 13,
+          padding: '10px 12px',
+          margin: '-10px -12px',
+        }}
+      >
         Skip
       </Link>
     </div>
