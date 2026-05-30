@@ -276,7 +276,7 @@ export function LandingPage() {
         style={{
           textAlign: 'center',
           padding: '40px 32px',
-          color: 'var(--text-faint)',
+          color: 'var(--text-dim)',
           fontSize: 12.5,
           borderTop: '1px solid var(--hairline)',
         }}
