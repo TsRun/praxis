@@ -1353,4 +1353,7 @@ const inputStyle: React.CSSProperties = {
   padding: '8px 10px',
   fontSize: 13,
   color: 'var(--text)',
+  width: '100%',
+  minWidth: 0,
+  boxSizing: 'border-box',
 };
