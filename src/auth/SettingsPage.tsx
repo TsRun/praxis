@@ -238,10 +238,13 @@ function RolesCard({
       </div>
       <form onSubmit={submit} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
         <div
-          className="grid-3"
           role="group"
           aria-label="Active roles"
-          style={{ gap: 8 }}
+          style={{
+            display: 'grid',
+            gridTemplateColumns: '1fr 1fr 1fr',
+            gap: 8,
+          }}
         >
           {ALL_ROLES.map((r) => {
             const on = picked.has(r);
