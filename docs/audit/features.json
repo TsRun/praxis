@@ -32,9 +32,9 @@
       "route": "/",
       "requiresAuth": false,
       "description": "Switching the form to 'Create account' mode renders name, email, password inputs, and role-picker buttons (Trainer / Student / Solo) with no visible errors.",
-      "lastTestedAt": "2026-05-27T18:10:40Z",
-      "lastResult": "ok",
-      "lastPr": null,
+      "lastTestedAt": "2026-05-30T09:16:07Z",
+      "lastResult": "improved",
+      "lastPr": 146,
       "removed": false
     },
     {
