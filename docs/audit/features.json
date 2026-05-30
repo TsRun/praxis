@@ -23,7 +23,7 @@
       "description": "Submitting the sign-in form with valid credentials redirects to /trainer/studies and renders the Studies page heading without errors.",
       "lastTestedAt": "2026-05-30T18:13:00Z",
       "lastResult": "improved",
-      "lastPr": null,
+      "lastPr": 150,
       "removed": false
     },
     {
