@@ -554,8 +554,9 @@ function AssignmentRowCard({ a }: { a: AssignmentRow }) {
   const path = `/student/study/${a.study_kind}/${a.study_id}`;
   const isDone = a.completed_at != null;
   return (
-    <Link to={path} style={{ textDecoration: 'none', color: 'inherit' }}>
+    <Link to={path} className="assignment-row-link">
       <div
+        className="assignment-row"
         style={{
           display: 'grid',
           gridTemplateColumns: '56px 1fr 130px auto',
@@ -566,7 +567,6 @@ function AssignmentRowCard({ a }: { a: AssignmentRow }) {
           border: '1px solid var(--inset-border)',
           borderRadius: 12,
           cursor: 'pointer',
-          transition: 'background 120ms ease, border-color 120ms ease',
         }}
       >
         <FenBoard fen={START_FEN} size={56} coordinates={false} />
