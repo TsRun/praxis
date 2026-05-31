@@ -15,19 +15,26 @@ concurrency:
 
 jobs:
   apply:
-    runs-on: [self-hosted, praxis-db]
-    timeout-minutes: 30
+    # GitHub-hosted: applies migrations to the Railway database over its
+    # public proxy URL. (Previously ran on the self-hosted `praxis-db` box
+    # against a local Docker Postgres; that runner went offline and stranded
+    # migrations, so the database now lives on Railway.)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      # Railway Postgres public connection string (proxy host:port). Stored as
+      # a repo secret so it never lands in the tree. See README for rotation.
+      DATABASE_URL: ${{ secrets.RAILWAY_DATABASE_URL }}
     steps:
       - uses: actions/checkout@v4
 
-      # `shell: bash` on this Windows runner resolves to WSL's bash.exe,
-      # which can't see _work\_temp Windows paths. Custom shell paths with
-      # a drive letter are rejected. So we use cmd as the wrapper and
-      # call git-bash directly with the script file (no inline heredocs).
+      - name: Install psql client
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y postgresql-client
+
       - name: Apply pending migrations
-        shell: cmd
-        run: '"C:\Program Files\Git\bin\bash.exe" -c "./scripts/apply-migrations.sh"'
+        run: bash ./scripts/apply-migrations.sh
 
       - name: Report state
-        shell: cmd
-        run: 'docker exec openings-db psql -U openings -d openings -c "SELECT filename, applied_at FROM schema_migrations ORDER BY applied_at DESC LIMIT 20;"'
+        run: psql "$DATABASE_URL" -c "SELECT filename, applied_at FROM schema_migrations ORDER BY applied_at DESC LIMIT 20;"
