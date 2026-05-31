@@ -16,7 +16,8 @@
     "ingest": "tsx scripts/ingest.ts",
     "load-fide": "tsx scripts/load-fide.ts",
     "rebuild-stats": "tsx scripts/rebuild-stats.ts",
-    "ingest:lumbra": "tsx scripts/lumbra-ingest.ts"
+    "ingest:lumbra": "tsx scripts/lumbra-ingest.ts",
+    "ingest:tournaments": "tsx scripts/ingest-tournaments.ts"
   },
   "dependencies": {
     "@fastify/cookie": "^11.0.2",
