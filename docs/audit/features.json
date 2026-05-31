@@ -230,8 +230,8 @@
       "route": "/trainer/games",
       "requiresAuth": true,
       "description": "On /trainer/games the Free editor tab opens a position editor with piece picker (king/queen/rook/bishop/knight/pawn for both sides), delete-piece control, and Starting position / Empty board reset buttons.",
-      "lastTestedAt": null,
-      "lastResult": null,
+      "lastTestedAt": "2026-05-31T12:15:00Z",
+      "lastResult": "improved",
       "lastPr": null,
       "removed": false
     }

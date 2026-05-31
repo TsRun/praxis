@@ -20,6 +20,9 @@ type Brush = Piece | 'erase';
 const GLYPH: Record<PieceType, string> = {
   k: '♚', q: '♛', r: '♜', b: '♝', n: '♞', p: '♟',
 };
+const PIECE_NAME: Record<PieceType, string> = {
+  k: 'king', q: 'queen', r: 'rook', b: 'bishop', n: 'knight', p: 'pawn',
+};
 const PALETTE_ORDER: PieceType[] = ['k', 'q', 'r', 'b', 'n', 'p'];
 
 export function fenToPieces(fen: string): { pieces: Map<Square, Piece>; turn: Color } {
@@ -209,7 +212,7 @@ function PaletteRow({
           <PaletteButton
             key={`${color}${type}`}
             active={active}
-            label={`${color === 'w' ? 'White' : 'Black'} ${type}`}
+            label={`${color === 'w' ? 'White' : 'Black'} ${PIECE_NAME[type]}`}
             glyph={GLYPH[type]}
             pieceColor={color}
             onClick={() => onPick({ type, color })}
@@ -249,6 +252,7 @@ function PaletteButton({
       type="button"
       onClick={onClick}
       aria-label={label}
+      aria-pressed={active}
       title={label}
       style={{
         flex: 1,
