@@ -13,6 +13,7 @@ import { oauthRoutes } from './routes-oauth.js';
 import { trainerRoutes } from './routes-trainer.js';
 import { studentRoutes } from './routes-student.js';
 import { mcpRoutes } from './routes-mcp.js';
+import { tournamentRoutes } from './routes-tournaments.js';
 
 const app = Fastify({ logger: false, trustProxy: true });
 
@@ -66,6 +67,7 @@ await app.register(inviteRoutes, { pool });
 await app.register(oauthRoutes, { pool });
 await app.register(trainerRoutes, { pool });
 await app.register(studentRoutes, { pool });
+await app.register(tournamentRoutes, { pool });
 await mcpRoutes(app);
 
 interface ExplorerQuery {
