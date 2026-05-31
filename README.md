@@ -39,6 +39,32 @@ are logged to stdout as `[email/dev]` lines so the flow still works offline.
   works through assigned studies. Quiz positions ask for SAN input and reveal
   the expected move plus the trainer's note after submission.
 
+## Tournaments
+
+Any signed-in user gets a **Tournois** tab at `/tournaments`: FIDE-rated OTB
+tournaments (France-focused for now) shown as a sortable/filterable list or a
+France map, filtered by région and time control (Classique / Rapide / Blitz).
+
+Data comes from `ratings.fide.com` (no official API — structured scraping) and
+is loaded into the `tournament` table by an ingest script; French cities are
+geocoded once (cached) via the free `api-adresse.data.gouv.fr`:
+
+```bash
+# France, rating periods since the cutoff (default 2024-01-01), with per-event
+# detail enrichment (cadence, end date, player count):
+npm run ingest:tournaments
+
+# tune the history cutoff, skip detail enrichment, or go worldwide:
+npm run ingest:tournaments -- --from 2025-01-01
+npm run ingest:tournaments -- --no-detail
+npm run ingest:tournaments -- --country all --full   # ~450k events — operator decision
+```
+
+Env `TOURNAMENTS_HISTORY_FROM` sets the default period cutoff. The run is
+idempotent (upsert on FIDE event id). `country` is stored on every row so a
+worldwide UI is a later toggle; a daily cron on the current period keeps it
+fresh (not wired in phase 1).
+
 ---
 
 # OpeningTree (legacy / library)
