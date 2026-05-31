@@ -29,6 +29,9 @@ const opt = (name: string): string | undefined => {
 const country = (opt('--country') ?? 'FRA').toUpperCase();
 const from = opt('--from') ?? process.env.TOURNAMENTS_HISTORY_FROM ?? '2024-01-01';
 const full = flag('--full');
+// --current: skip period iteration and hit only the "current & future" view
+// (a_tournaments.php with no period). Cheap, ideal for a daily refresh cron.
+const current = flag('--current');
 const noDetail = flag('--no-detail');
 const limit = opt('--limit') ? parseInt(opt('--limit')!, 10) : Infinity;
 
@@ -57,10 +60,16 @@ async function main() {
 
   // Periods to walk. Empty list (e.g. country=all panel quirk) -> the default
   // current view via a single null period.
-  let periods = await listPeriods(country);
-  if (!full) periods = periods.filter((p) => p.publish >= from);
-  const periodKeys: (string | null)[] = periods.length ? periods.map((p) => p.publish) : [null];
-  console.log(`[tournaments] country=${country} periods=${periodKeys.length}${full ? ' (full)' : ` (since ${from})`} detail=${!noDetail}`);
+  let periodKeys: (string | null)[];
+  if (current) {
+    periodKeys = [null]; // current & future view only
+  } else {
+    let periods = await listPeriods(country);
+    if (!full) periods = periods.filter((p) => p.publish >= from);
+    periodKeys = periods.length ? periods.map((p) => p.publish) : [null];
+  }
+  const scope = current ? 'current view' : full ? 'full' : `since ${from}`;
+  console.log(`[tournaments] country=${country} periods=${periodKeys.length} (${scope}) detail=${!noDetail}`);
 
   const seen = new Set<string>();
   let added = 0, updated = 0, skipped = 0, noGeo = 0, count = 0;
