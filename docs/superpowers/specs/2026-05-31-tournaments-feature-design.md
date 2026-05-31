@@ -15,7 +15,7 @@ additive.
 
 | Topic | Decision |
 |---|---|
-| Data source | **chess-results.com first**, filtered to France (`fed=FRA`). Adapter-based so other sources slot in later. |
+| Data source | **FIDE** (`ratings.fide.com`) — the full FIDE-rated OTB tournament base. Discovery via `a_tournaments.php?country=FRA[&period=…]` (+ `a_tournaments_panel.php?…&periods_tab=1` for the period list, back to 2002); cadence/end-date enriched from `tournament_information.phtml?event=…`. Stored with `country` so worldwide is a later toggle. Default ingest run is bounded by a configurable period cutoff; full all-time backfill and `country=all` are available via flags. |
 | "Follow" scope | **Browse only** — no per-user state, no notifications in phase 1. |
 | Placement / access | Top-bar **Tournaments** tab at `/tournaments`, visible to **any signed-in user** (trainer + student). |
 | Filter/sort | **Filter + sort**: région and time control filter both views; a sort control reorders (date / name / région). |
@@ -59,10 +59,10 @@ CREATE TABLE IF NOT EXISTS tournament (
   lon          DOUBLE PRECISION,
   start_date   DATE,
   end_date     DATE,
-  rounds       INTEGER,
-  cadence      TEXT,                           -- 'classic' | 'rapid' | 'blitz' | NULL
-  time_control TEXT,                           -- raw, e.g. "90'x40+30\" -> 30'+30\""
-  avg_rating   INTEGER,
+  players      INTEGER,                         -- FIDE detail shows player count
+  cadence      TEXT,                            -- 'classic' | 'rapid' | 'blitz' | NULL
+  time_control TEXT,                            -- raw, e.g. "90 min + 30 sec increment"
+  period       TEXT,                            -- FIDE rating period, e.g. '2026-07-01'
   fetched_at   TIMESTAMPTZ NOT NULL DEFAULT now(),
   UNIQUE (source, source_ref)
 );
@@ -86,29 +86,37 @@ existing `migrate.yml` pipeline. No data dropped.
 
 ### Ingest (`npm run ingest:tournaments`)
 
-1. **List**: fetch the chess-results France federation listing
-   (`fed.aspx?lan=1&fed=FRA` plus `Transfer.aspx?key5=TS&fed=FRA` for the full
-   set), across the status buckets needed to cover upcoming + running + finished.
-   Extract `tnr<ID>` links.
-2. **Horizon**: skip tournaments whose start date is older than
-   `TOURNAMENTS_HISTORY_FROM` (env, default `2024-01-01`).
-3. **Detail**: for each new or stale id, fetch
-   `tnr<ID>.aspx?lan=1&turdet=YES` and parse the header table:
-   Federation, Location, Date (start→end), Number of rounds,
-   Time control + its `(Standard|Rapid|Blitz)` label, Rating-Ø.
-4. **Classify cadence** from the label: Standard→`classic`, Rapid→`rapid`,
-   Blitz→`blitz`.
-5. **Geocode** the location via `geocode_cache`, falling back to
-   `https://api-adresse.data.gouv.fr/search/?q=<city>&type=municipality&limit=1`.
-   Parse `features[0].geometry.coordinates` (lon, lat) and
+Flags: `--country` (default `FRA`; `all` for worldwide), `--from` (period
+cutoff `YYYY-MM-01`, default env `TOURNAMENTS_HISTORY_FROM` → `2024-01-01`),
+`--no-detail` (skip per-event enrichment), `--full` (ignore cutoff, all periods).
+
+1. **Periods**: GET `a_tournaments_panel.php?country=<C>&periods_tab=1` →
+   `[{frl_publish:'2026-06-01', txt2:'June 2026'}, …]`. Keep periods
+   `>= --from` (or all with `--full`). If the list is empty, fall back to the
+   default current view (no `period` param).
+2. **List**: for each kept period, GET
+   `a_tournaments.php?country=<C>&period=<frl_publish>` → `{data:[[event_id,
+   name, city, type, start_date, rcvd, period_label, period_date, flag], …]}`.
+   This already yields event_id, name, city, start_date, period — cheap.
+3. **Detail** (unless `--no-detail`): GET
+   `tournament_information.phtml?event=<id>` and parse the info table for
+   country, end date, player count, and **time control** (its
+   `Standard|Rapid|Blitz` word → cadence `classic|rapid|blitz`).
+4. **Geocode** the city via `geocode_cache`, falling back to
+   `https://api-adresse.data.gouv.fr/search/?q=<city>&type=municipality&limit=1`
+   (France-only; non-FRA rows keep NULL coords until a global geocoder is
+   added). Parse `features[0].geometry.coordinates` (lon, lat) and
    `properties.context` (`"50, Manche, Normandie"` → department + region).
    Cache hits and misses.
-6. **Upsert** into `tournament` keyed on `(source, source_ref)`.
+5. **Upsert** into `tournament` keyed on `(source, source_ref)`.
 
 Politeness: a fixed descriptive `User-Agent`, a small delay between requests,
-and the geocode cache keep request volume low. HTML parsed with
-**`node-html-parser`** (new dependency — small, dependency-free DOM).
-Scheduling is out of scope for phase 1 (run manually / wire a cron later).
+and both caches keep volume sane. The list JSON needs no HTML parser; the
+detail page is parsed with **`node-html-parser`** (new dependency — small,
+dependency-free DOM). Scheduling is out of scope for phase 1 (run manually /
+wire a daily cron on the current period later). Full all-time / all-country
+backfill (~450k events) is possible via `--full --country all` but is an
+operator decision, not the default.
 
 ### API (`server/routes-tournaments.ts`, registered in `server/index.ts`)
 
