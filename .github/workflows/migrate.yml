@@ -34,7 +34,7 @@ jobs:
           sudo apt-get install -y postgresql-client
 
       - name: Apply pending migrations
-        run: ./scripts/apply-migrations.sh
+        run: bash ./scripts/apply-migrations.sh
 
       - name: Report state
         run: psql "$DATABASE_URL" -c "SELECT filename, applied_at FROM schema_migrations ORDER BY applied_at DESC LIMIT 20;"
