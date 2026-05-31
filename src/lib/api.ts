@@ -508,3 +508,43 @@ export const student = {
       correct,
     }),
 };
+
+export type Cadence = 'classic' | 'rapid' | 'blitz';
+
+export interface TournamentRow {
+  id: number;
+  name: string;
+  url: string;
+  country: string;
+  location: string | null;
+  region: string | null;
+  department: string | null;
+  lat: number | null;
+  lon: number | null;
+  start_date: string | null;
+  end_date: string | null;
+  players: number | null;
+  cadence: Cadence | null;
+  time_control: string | null;
+}
+
+export interface TournamentFilters {
+  country?: string;
+  region?: string;
+  cadence?: Cadence;
+  from?: string;
+  to?: string;
+  q?: string;
+  sort?: 'date' | 'name' | 'region';
+}
+
+export const tournaments = {
+  list: (f: TournamentFilters = {}) => {
+    const qs = new URLSearchParams(
+      Object.entries(f).filter(([, v]) => v != null && v !== '') as [string, string][],
+    );
+    return api.get<TournamentRow[]>(`/api/tournaments?${qs.toString()}`);
+  },
+  regions: (country = 'FRA') =>
+    api.get<string[]>(`/api/tournaments/regions?country=${country}`),
+};

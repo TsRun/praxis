@@ -5,6 +5,7 @@ import { OpeningStudyViewer } from './OpeningStudyViewer';
 import { GameStudyViewer } from './GameStudyViewer';
 import { TacticSetViewer } from './TacticSetViewer';
 import { useKeyboardNav } from '../hooks/useKeyboardNav';
+import { TOURNAMENT_NAV } from '../tournaments/nav';
 
 export function StudentLayout() {
   useKeyboardNav();
@@ -14,6 +15,7 @@ export function StudentLayout() {
       label: 'Dashboard',
       match: (p: string) => p.startsWith('/student/dashboard'),
     },
+    ...TOURNAMENT_NAV,
   ];
   return (
     <div style={{ minHeight: '100vh' }}>
