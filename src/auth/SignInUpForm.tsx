@@ -17,6 +17,14 @@ const OAUTH_ERROR_MESSAGES: Record<string, string> = {
   'google-unverified': "Your Google email is not verified yet. Verify it on Google's side, then try again.",
 };
 
+const FRIENDLY_AUTH_ERRORS: Record<string, string> = {
+  'invalid credentials': 'Invalid email or password.',
+};
+
+function friendlyAuthError(msg: string): string {
+  return FRIENDLY_AUTH_ERRORS[msg.trim().toLowerCase()] ?? msg;
+}
+
 interface Props {
   inviteToken?: string;
   inviteEmail?: string;
@@ -85,7 +93,7 @@ export function SignInUpForm({ inviteToken, inviteEmail, inviteName }: Props) {
         await signup(email, password, name, [...roles], inviteToken);
       }
     } catch (e) {
-      setErr((e as Error).message);
+      setErr(friendlyAuthError((e as Error).message));
     } finally {
       setBusy(false);
     }
