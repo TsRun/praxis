@@ -10,6 +10,7 @@ import { TacticPuzzleEditor } from './TacticPuzzleEditor';
 import { ImportGamesPage } from './ImportGamesPage';
 import { useAuth } from '../auth/AuthContext';
 import { useKeyboardNav } from '../hooks/useKeyboardNav';
+import { TOURNAMENT_NAV } from '../tournaments/nav';
 
 export function TrainerLayout() {
   useKeyboardNav();
@@ -27,6 +28,7 @@ export function TrainerLayout() {
           },
         ]
       : []),
+    ...TOURNAMENT_NAV,
   ];
   return (
     <div style={{ minHeight: '100vh' }}>

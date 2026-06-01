@@ -7,6 +7,7 @@ import { RequireRole } from './auth/RequireRole';
 import { TrainerLayout } from './trainer/TrainerLayout';
 import { StudentLayout } from './student/StudentLayout';
 import { TourPage } from './marketing/TourPage';
+import { TournamentsPage } from './tournaments/TournamentsPage';
 
 export default function App() {
   return (
@@ -36,6 +37,14 @@ export default function App() {
         element={
           <RequireRole anyOf={['trainer', 'student', 'self']}>
             <StudentLayout />
+          </RequireRole>
+        }
+      />
+      <Route
+        path="/tournaments"
+        element={
+          <RequireRole anyOf={['trainer', 'student', 'self']}>
+            <TournamentsPage />
           </RequireRole>
         }
       />
