@@ -28,6 +28,12 @@ jobs:
     timeout-minutes: 50
     env:
       DATABASE_URL: ${{ secrets.RAILWAY_DATABASE_URL }}
+      # Railway's public DB proxy serves a cert outside the system CA bundle, so
+      # node-postgres' default verification rejects it ("self-signed certificate
+      # in certificate chain"). Connect over TLS but skip CA verification — the
+      # standard pattern for Railway's public proxy (psql does the same).
+      PGSSL: '1'
+      PGSSL_REJECT_UNAUTHORIZED: '0'
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
