@@ -516,7 +516,6 @@ function NewStudyMenuItem({
         alignItems: 'center',
         padding: '10px 12px',
         borderRadius: 8,
-        background: 'transparent',
         border: 0,
         cursor: 'pointer',
         textAlign: 'left',
