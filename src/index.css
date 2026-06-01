@@ -110,8 +110,8 @@ button { font: inherit; color: inherit; }
              background: rgba(255,255,255,0.04); color: var(--text-dim); }
 
 a { color: inherit; text-decoration: none; }
-a.link { color: var(--accent); }
-a.link:hover { text-decoration: underline; text-underline-offset: 3px; }
+a.link, button.link { color: var(--accent); }
+a.link:hover, button.link:hover { text-decoration: underline; text-underline-offset: 3px; }
 
 /* ---------------- surfaces ---------------- */
 .card {
@@ -304,6 +304,11 @@ a.link:hover { text-decoration: underline; text-underline-offset: 3px; }
   text-decoration: none;
 }
 .segmented button:hover, .segmented a:hover { color: var(--text); }
+.segmented button:focus-visible, .segmented a:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  color: var(--text);
+}
 .segmented button.active, .segmented a.active {
   background: rgba(255, 255, 255, 0.06);
   color: var(--text);

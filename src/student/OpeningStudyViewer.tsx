@@ -48,6 +48,17 @@ function childrenOf<
     .sort((a, b) => Number(b.is_main) - Number(a.is_main) || a.id - b.id);
 }
 
+// Suppress raw server-internal error strings (e.g. Postgres "column \"x\" does
+// not exist") from being surfaced to students. We still surface HTTP-shaped
+// errors like "GET /api/... → 500" since those are not leaky.
+function userVisibleErrorDetail(msg: string): string | null {
+  const m = msg.trim();
+  if (!m) return null;
+  if (/(column|relation|constraint|function|operator|type)\s+"[^"]+"\s+does not exist/i.test(m)) return null;
+  if (/^(syntax error|invalid input syntax|null value in column|duplicate key value|permission denied for)/i.test(m)) return null;
+  return m;
+}
+
 export function OpeningStudyViewer() {
   const { id } = useParams();
   const numId = Number(id);
@@ -76,6 +87,7 @@ export function OpeningStudyViewer() {
   }, [numId]);
 
   if (loadError) {
+    const detail = userVisibleErrorDetail(loadError);
     return (
       <div className="page-wrap" style={{ paddingTop: 24 }}>
         <Card role="alert" style={{ padding: 22, borderRadius: 14 }}>
@@ -87,12 +99,14 @@ export function OpeningStudyViewer() {
             you may no longer be assigned to it, or the server is temporarily
             unavailable.
           </p>
-          <p
-            className="mono meta"
-            style={{ fontSize: 12, margin: '0 0 14px', wordBreak: 'break-word' }}
-          >
-            {loadError}
-          </p>
+          {detail && (
+            <p
+              className="mono meta"
+              style={{ fontSize: 12, margin: '0 0 14px', wordBreak: 'break-word' }}
+            >
+              {detail}
+            </p>
+          )}
           <Link
             to="/student/dashboard"
             style={{

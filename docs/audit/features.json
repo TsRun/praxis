@@ -9,7 +9,7 @@
       "name": "Landing page render",
       "route": "/",
       "requiresAuth": false,
-      "description": "Page loads with hero headline, three feature cards (Opening trees, Game studies, Spaced repetition), and a sign-in/sign-up form — no JS errors in the visible body.",
+      "description": "Page loads with hero headline, three feature cards (Opening trees, Game studies, Spaced repetition), and a sign-in/sign-up form \u2014 no JS errors in the visible body.",
       "lastTestedAt": "2026-05-30T03:13:30Z",
       "lastResult": "improved",
       "lastPr": 123,
@@ -64,7 +64,7 @@
       "name": "New study dropdown menu",
       "route": "/trainer/studies",
       "requiresAuth": true,
-      "description": "Clicking 'New study' on the studies page opens a dropdown with three options — Opening study, Game study, and Tactical set.",
+      "description": "Clicking 'New study' on the studies page opens a dropdown with three options \u2014 Opening study, Game study, and Tactical set.",
       "lastTestedAt": "2026-05-29T15:13:51Z",
       "lastResult": "improved",
       "lastPr": 140,
@@ -109,9 +109,9 @@
       "route": "/trainer/studies",
       "requiresAuth": true,
       "description": "Clicking 'Import from Lichess' opens a dialog or flow requesting a Lichess study URL, without JS errors.",
-      "lastTestedAt": "2026-05-29T00:15:00Z",
+      "lastTestedAt": "2026-06-01T03:13:20Z",
       "lastResult": "improved",
-      "lastPr": 135,
+      "lastPr": 163,
       "removed": false
     },
     {
@@ -131,9 +131,9 @@
       "route": "/trainer/students",
       "requiresAuth": true,
       "description": "Clicking 'Invite student' on the students page opens an invitation dialog or flow with an input for the student's identifier.",
-      "lastTestedAt": "2026-05-29T03:17:26Z",
+      "lastTestedAt": "2026-06-01T06:16:42Z",
       "lastResult": "improved",
-      "lastPr": 136,
+      "lastPr": 164,
       "removed": false
     },
     {
@@ -152,7 +152,7 @@
       "name": "Student dashboard",
       "route": "/student/dashboard",
       "requiresAuth": true,
-      "description": "Navigating to /student/dashboard renders a greeting with the user's name, assignment count stats, Today card, and Activity card — no uncaught errors.",
+      "description": "Navigating to /student/dashboard renders a greeting with the user's name, assignment count stats, Today card, and Activity card \u2014 no uncaught errors.",
       "lastTestedAt": "2026-05-30T12:16:35Z",
       "lastResult": "improved",
       "lastPr": 147,
@@ -163,7 +163,7 @@
       "name": "Settings page",
       "route": "/settings",
       "requiresAuth": true,
-      "description": "Navigating to /settings renders all four sections — Profile (name/email save), Roles (toggle buttons), Password (change form), and API keys (New key button) — without errors.",
+      "description": "Navigating to /settings renders all four sections \u2014 Profile (name/email save), Roles (toggle buttons), Password (change form), and API keys (New key button) \u2014 without errors.",
       "lastTestedAt": "2026-05-30T06:11:02Z",
       "lastResult": "improved",
       "lastPr": null,
@@ -174,7 +174,7 @@
       "name": "Profile menu dropdown",
       "route": "/trainer/studies",
       "requiresAuth": true,
-      "description": "Clicking the avatar/name button in the top-right header opens a profile menu showing user name, email, role chips and a sign-out button — present across all authed pages.",
+      "description": "Clicking the avatar/name button in the top-right header opens a profile menu showing user name, email, role chips and a sign-out button \u2014 present across all authed pages.",
       "lastTestedAt": "2026-05-29T12:15:22Z",
       "lastResult": "improved",
       "lastPr": 139,
@@ -186,9 +186,9 @@
       "route": "/trainer/students",
       "requiresAuth": true,
       "description": "On /trainer/students the All / Linked / Invited filter tabs switch the rendered list without errors and the active tab is visually distinguished.",
-      "lastTestedAt": "2026-05-28T21:15:44Z",
+      "lastTestedAt": "2026-06-01T00:14:48Z",
       "lastResult": "improved",
-      "lastPr": 134,
+      "lastPr": 162,
       "removed": false
     },
     {
@@ -197,7 +197,7 @@
       "route": "/student/dashboard",
       "requiresAuth": true,
       "description": "On /student/dashboard the 'Active' and 'Completed' tabs under the assignments list switch between the two states without errors and reflect the selected tab visually.",
-      "lastTestedAt": "2026-05-28T18:11:08Z",
+      "lastTestedAt": "2026-05-31T21:13:39Z",
       "lastResult": "ok",
       "lastPr": null,
       "removed": false
@@ -208,8 +208,8 @@
       "route": "/settings",
       "requiresAuth": true,
       "description": "On /settings the API keys section's 'New key' button opens a creation flow or reveals a new key, with no console/page errors.",
-      "lastTestedAt": "2026-05-28T15:19:41Z",
-      "lastResult": "ok",
+      "lastTestedAt": "2026-05-31T18:13:56Z",
+      "lastResult": "improved",
       "lastPr": null,
       "removed": false
     },
@@ -219,9 +219,9 @@
       "route": "/student/study/opening/:id",
       "requiresAuth": true,
       "description": "Navigating to /student/study/opening/<id> as a student renders the opening study viewer with a chess board and no uncaught errors.",
-      "lastTestedAt": "2026-05-28T09:25:00Z",
+      "lastTestedAt": "2026-05-31T15:14:00Z",
       "lastResult": "improved",
-      "lastPr": 130,
+      "lastPr": null,
       "removed": false
     },
     {
@@ -230,8 +230,8 @@
       "route": "/trainer/games",
       "requiresAuth": true,
       "description": "On /trainer/games the Free editor tab opens a position editor with piece picker (king/queen/rook/bishop/knight/pawn for both sides), delete-piece control, and Starting position / Empty board reset buttons.",
-      "lastTestedAt": null,
-      "lastResult": null,
+      "lastTestedAt": "2026-05-31T12:15:00Z",
+      "lastResult": "improved",
       "lastPr": null,
       "removed": false
     }

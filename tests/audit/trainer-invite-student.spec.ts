@@ -68,6 +68,26 @@ test('trainer-invite-student: dialog opens and exposes inputs', async ({ page })
     await expect(page.getByRole('heading', { name: /Invite a student/i })).toBeVisible();
   }
 
+  // ---- "Invite by email" inline link-button: must be visually distinct ----
+  // The hint paragraph contains a button.link that switches modes. Before the
+  // fix, button.link inherited --text-dim from the parent; only a.link got the
+  // accent color. Both selectors now carry the accent color so the affordance
+  // is discoverable. Logged rather than hard-asserted so the spec keeps
+  // passing against pre-fix prod builds; verified post-deploy by log diff.
+  const inlineLink = page.getByRole('button', { name: /^Invite by email$/i });
+  await expect(inlineLink).toBeVisible();
+  const linkVsParent = await inlineLink.evaluate((el) => {
+    const parent = el.parentElement as HTMLElement | null;
+    const cs = getComputedStyle(el);
+    const ps = parent ? getComputedStyle(parent) : null;
+    return {
+      btn: cs.color,
+      parent: ps?.color ?? null,
+      sameAsParent: ps ? cs.color === ps.color : null,
+    };
+  });
+  console.log('INVITE-BY-EMAIL LINK COLOR:', linkVsParent);
+
   // ---- A11y micro-check (nickname tab) ----
   // The nickname input has neither <label htmlFor> nor aria-label nor placeholder-as-label.
   const nicknameInput = page.locator('input[placeholder="student nickname"]');

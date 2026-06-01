@@ -130,6 +130,7 @@ export function InviteStudentDialog({ onClose }: { onClose: () => void }) {
             type="button"
             onClick={onClose}
             aria-label="Close"
+            style={{ minWidth: 36, minHeight: 36, padding: 0, justifyContent: 'center' }}
           >
             <IconX size={14} strokeWidth={2.4} />
           </Btn>

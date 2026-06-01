@@ -1,17 +1,12 @@
 name: migrate
 
-# DEPRECATED / DISABLED.
-#
-# Migrations now apply to the Railway Postgres as part of the deploy, via the
-# `preDeployCommand = "npm run migrate"` in railway.toml (a pg-based runner —
-# scripts/migrate.ts — that needs no psql and is idempotent). That runs inside
-# Railway against the live DATABASE_URL on every deploy.
-#
-# This workflow targeted a self-hosted Windows runner (`praxis-db`) + a local
-# Docker Postgres that is offline, so it only ever failed. Trigger is reduced to
-# manual-only so it no longer fails on every push to main. Kept for reference /
-# emergency manual runs; delete once the Railway pre-deploy path is trusted.
 on:
+  push:
+    branches: [main]
+    paths:
+      - 'server/migrations/**.sql'
+      - 'scripts/apply-migrations.sh'
+      - '.github/workflows/migrate.yml'
   workflow_dispatch:
 
 concurrency:
@@ -20,15 +15,26 @@ concurrency:
 
 jobs:
   apply:
-    runs-on: [self-hosted, praxis-db]
-    timeout-minutes: 30
+    # GitHub-hosted: applies migrations to the Railway database over its
+    # public proxy URL. (Previously ran on the self-hosted `praxis-db` box
+    # against a local Docker Postgres; that runner went offline and stranded
+    # migrations, so the database now lives on Railway.)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      # Railway Postgres public connection string (proxy host:port). Stored as
+      # a repo secret so it never lands in the tree. See README for rotation.
+      DATABASE_URL: ${{ secrets.RAILWAY_DATABASE_URL }}
     steps:
       - uses: actions/checkout@v4
 
+      - name: Install psql client
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y postgresql-client
+
       - name: Apply pending migrations
-        shell: cmd
-        run: '"C:\Program Files\Git\bin\bash.exe" -c "./scripts/apply-migrations.sh"'
+        run: bash ./scripts/apply-migrations.sh
 
       - name: Report state
-        shell: cmd
-        run: 'docker exec openings-db psql -U openings -d openings -c "SELECT filename, applied_at FROM schema_migrations ORDER BY applied_at DESC LIMIT 20;"'
+        run: psql "$DATABASE_URL" -c "SELECT filename, applied_at FROM schema_migrations ORDER BY applied_at DESC LIMIT 20;"

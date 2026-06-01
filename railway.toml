@@ -6,10 +6,5 @@ builder = "DOCKERFILE"
 dockerfilePath = "Dockerfile"
 
 [deploy]
-# Apply pending SQL migrations to the Railway Postgres before the new version
-# takes traffic. Uses pg (no psql needed in the slim image) and is idempotent,
-# so it runs safely on every deploy. This replaces the old self-hosted
-# `migrate.yml` runner — migrations now reach Railway as part of the deploy.
-preDeployCommand = "npm run migrate"
 restartPolicyType = "ON_FAILURE"
 restartPolicyMaxRetries = 3
