@@ -62,11 +62,15 @@ export function NewTacticSetDialog({ open, onClose, onCreate }: Props) {
             required
             aria-required="true"
             aria-invalid={err ? true : undefined}
-            aria-describedby={err ? 'tactic-set-name-error' : undefined}
+            aria-describedby={
+              err
+                ? 'tactic-set-name-help tactic-set-name-error'
+                : 'tactic-set-name-help'
+            }
           />
         </label>
 
-        <p className="meta" style={{ marginTop: -4 }}>
+        <p id="tactic-set-name-help" className="meta" style={{ marginTop: -4 }}>
           You'll author the puzzles by hand on the next screen — paste a FEN
           and play the solution moves on the board.
         </p>
