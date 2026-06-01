@@ -322,6 +322,7 @@ a.link:hover, button.link:hover { text-decoration: underline; text-underline-off
 
 /* ---------------- dropdown menu items ---------------- */
 .dropdown-menuitem {
+  background: transparent;
   transition: background 120ms ease, box-shadow 120ms ease;
 }
 .dropdown-menuitem:hover {
