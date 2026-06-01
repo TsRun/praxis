@@ -111,7 +111,7 @@
       "description": "Clicking 'Import from Lichess' opens a dialog or flow requesting a Lichess study URL, without JS errors.",
       "lastTestedAt": "2026-06-01T03:13:20Z",
       "lastResult": "improved",
-      "lastPr": null,
+      "lastPr": 163,
       "removed": false
     },
     {
