@@ -192,7 +192,17 @@ export function NewOpeningStudyDialog({
             display: 'flex',
             gap: 10,
             justifyContent: 'flex-end',
-            marginTop: 4,
+            // Pin the action buttons to the bottom of the (scrollable)
+            // dialog so they stay reachable on short viewports — the
+            // optional starting-position board can otherwise push them
+            // below the scroll fold.
+            position: 'sticky',
+            bottom: 0,
+            marginInline: -22,
+            paddingInline: 22,
+            paddingBlock: 10,
+            background: 'var(--card-bg)',
+            borderTop: '1px solid var(--hairline)',
           }}
         >
           <Btn variant="ghost" type="button" onClick={onClose} disabled={busy}>
