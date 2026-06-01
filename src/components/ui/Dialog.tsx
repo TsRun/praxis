@@ -123,6 +123,7 @@ export function Dialog({
               onClick={onClose}
               type="button"
               aria-label="Close"
+              style={{ minWidth: 36, minHeight: 36, padding: 0, justifyContent: 'center' }}
             >
               <IconX size={14} strokeWidth={2.4} />
             </Btn>
