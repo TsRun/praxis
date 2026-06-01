@@ -1,0 +1,39 @@
+name: ingest-tournaments
+
+# Keeps the Railway `tournament` table fresh from FIDE (ratings.fide.com).
+# Runs on a GitHub-hosted runner against the Railway Postgres over its public
+# proxy URL (same RAILWAY_DATABASE_URL secret the migrate workflow uses) — no
+# self-hosted runner, no local box.
+#
+# - Scheduled daily run uses `--current` (the cheap "current & future" FIDE
+#   view, ~hundreds of FR events) so the upcoming calendar stays current.
+# - Manual runs can backfill history, e.g. dispatch with args "--from 2024-01-01"
+#   (bump the timeout if you go far back).
+on:
+  schedule:
+    - cron: '0 4 * * *' # 04:00 UTC daily
+  workflow_dispatch:
+    inputs:
+      args:
+        description: 'ingest args (e.g. "--current", "--from 2024-01-01", "--country all --full")'
+        default: '--current'
+
+concurrency:
+  group: ingest-tournaments
+  cancel-in-progress: false
+
+jobs:
+  ingest:
+    runs-on: ubuntu-latest
+    timeout-minutes: 50
+    env:
+      DATABASE_URL: ${{ secrets.RAILWAY_DATABASE_URL }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+      - run: npm ci --no-audit --no-fund
+      - name: Run FIDE ingest
+        run: npm run ingest:tournaments -- ${{ github.event.inputs.args || '--current' }}
