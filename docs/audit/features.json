@@ -43,9 +43,9 @@
       "route": "/tour",
       "requiresAuth": false,
       "description": "Navigating to /tour renders the marketing tour page without uncaught exceptions or blank content.",
-      "lastTestedAt": "2026-05-30T15:15:29Z",
+      "lastTestedAt": "2026-06-02T18:18:14Z",
       "lastResult": "improved",
-      "lastPr": 149,
+      "lastPr": null,
       "removed": false
     },
     {
