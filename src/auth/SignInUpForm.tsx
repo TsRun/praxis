@@ -354,9 +354,7 @@ export function SignInUpForm({ inviteToken, inviteEmail, inviteName }: Props) {
           className="meta"
           style={{ textAlign: 'center', marginTop: 14, fontSize: 12 }}
         >
-          By creating an account you accept our{' '}
-          <a className="link" href="#">terms</a> and{' '}
-          <a className="link" href="#">privacy</a>.
+          By creating an account you accept our terms and privacy.
         </div>
       )}
     </form>

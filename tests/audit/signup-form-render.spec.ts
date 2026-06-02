@@ -150,16 +150,14 @@ test('signup-form-render: Create account mode shows name, email, password, role 
   console.log('AFTER EMPTY SUBMIT — name validity:', nameValidity);
   console.log('AFTER EMPTY SUBMIT — password validity:', pwValidity);
 
-  // ---- Submit "terms / privacy" fineprint links ----
-  const fineprintLinks = page.locator('.meta a.link');
-  const fineprintCount = await fineprintLinks.count();
-  const fineprintInfo = await fineprintLinks.evaluateAll((nodes) =>
-    nodes.map((a) => {
-      const el = a as HTMLAnchorElement;
-      return { text: el.textContent?.trim() ?? '', href: el.getAttribute('href') };
-    }),
-  );
-  console.log('FINEPRINT LINKS:', fineprintCount, fineprintInfo);
+  // ---- Submit "terms / privacy" fineprint — observe whether placeholder href="#" links exist
+  const fineprintMeta = page.locator('.meta').filter({ hasText: /terms.*privacy/i });
+  await expect(fineprintMeta).toBeVisible();
+  const placeholderLinks = await fineprintMeta.locator('a[href="#"]').count();
+  console.log('FINEPRINT placeholder href="#" links:', placeholderLinks);
+  if (placeholderLinks > 0) {
+    console.warn(`WARN: ${placeholderLinks} placeholder href="#" link(s) in terms/privacy disclaimer — clicking jumps to top of page.`);
+  }
 
   // ---- Focus styles ----
   await emailInput.focus();
