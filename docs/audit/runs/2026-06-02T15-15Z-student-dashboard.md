@@ -1,0 +1,8 @@
+# Audit run — 2026-06-02T15:15:10Z
+**Mode:** TEST_ONE
+**Subject:** student-dashboard
+**Result:** IMPROVED+PENDING
+
+Re-exercised `/student/dashboard` at 1280 and 375×812 on https://praxis.tsrun.dev/. Greeting, both MiniStat tiles (`1 active` / `0 completed`), all three H2s (All assignments, Today, Activity), the Active/Completed Segmented filter, focus-visible outline on the assignment row link, the `progressbar` in the Today card, and no horizontal overflow at 375×812 (`scroll 360 ≤ client 375`). No page errors, no application console errors.
+
+One UI quality regression observed: the assignment row hover affordance never fires on prod. The `.assignment-row-link:hover .assignment-row` rule in `src/index.css` sets `background: rgba(255,255,255,0.05); border-color: rgba(255,255,255,0.08)`, but the same `.assignment-row` element also carries inline `style={{ background: 'var(--inset-bg)', border: '1px solid var(--inset-border)' }}` — inline styles win over a class rule's hover state, so the hover never paints. Smallest-change fix: move the base background/border into the `.assignment-row` class itself and drop those two properties from the inline style block in `DashboardPage.tsx`. Computed `backgroundColor` before vs after hover was identical (`rgba(255, 255, 255, 0.024)` both times), confirming the override. Typecheck + 48 unit tests green on the PR branch. The audit spec was hardened to log a warning when hover is not observed and to assert that the `.assignment-row-link:hover .assignment-row` rule is declared in the page stylesheet, so the spec passes against the still-stale prod build while a redeploy ships the inline-style fix.
