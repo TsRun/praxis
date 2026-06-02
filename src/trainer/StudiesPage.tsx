@@ -684,7 +684,6 @@ function OpeningStudyCard({ study }: { study: OpeningStudySummary }) {
           flexDirection: 'column',
           gap: 14,
           cursor: 'pointer',
-          transition: 'transform 120ms ease',
         }}
       >
         <div style={{ display: 'flex', alignItems: 'flex-start', gap: 14 }}>
@@ -751,6 +750,7 @@ function GameStudyCard({ study }: { study: GameStudySummary }) {
       style={{ textDecoration: 'none', color: 'inherit' }}
     >
       <Card
+        className="study-card-hover"
         style={{
           padding: 18,
           display: 'flex',
@@ -811,6 +811,7 @@ function TacticSetCard({ set }: { set: TacticSetSummary }) {
       style={{ textDecoration: 'none', color: 'inherit' }}
     >
       <Card
+        className="study-card-hover"
         style={{
           padding: 18,
           display: 'flex',

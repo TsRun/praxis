@@ -119,6 +119,13 @@ a.link:hover, button.link:hover { text-decoration: underline; text-underline-off
   border-radius: var(--card-radius);
   box-shadow: var(--card-shadow);
 }
+.study-card-hover {
+  transition: transform 120ms ease, box-shadow 120ms ease;
+}
+.study-card-hover:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 0 0 1px var(--hairline-2), 0 10px 24px -16px rgba(0, 0, 0, 0.6);
+}
 .inset {
   background: var(--inset-bg);
   border: 1px solid var(--inset-border);
