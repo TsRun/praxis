@@ -2,7 +2,7 @@ import { Navigate, Link } from 'react-router-dom';
 import { SignInUpForm } from './SignInUpForm';
 import { useAuth } from './AuthContext';
 import { defaultLandingForRoles } from './routing';
-import { Card, Btn } from '../components/ui/atoms';
+import { Card } from '../components/ui/atoms';
 import { FenBoard } from '../components/board/FenBoard';
 import { IconTree, IconGame, IconClock } from '../components/ui/Icons';
 
@@ -68,9 +68,7 @@ export function LandingPage() {
             Sign in
           </a>
         </div>
-        <a href="#auth">
-          <Btn variant="primary" size="sm">Get started</Btn>
-        </a>
+        <a href="#auth" className="btn btn-primary btn-sm">Get started</a>
       </div>
 
       {/* hero */}
@@ -119,12 +117,8 @@ export function LandingPage() {
           </p>
 
           <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
-            <a href="#auth">
-              <Btn variant="primary" size="lg">Start a study →</Btn>
-            </a>
-            <Link to="/tour">
-              <Btn variant="ghost" size="lg">Take the 90s tour</Btn>
-            </Link>
+            <a href="#auth" className="btn btn-primary btn-lg">Start a study →</a>
+            <Link to="/tour" className="btn btn-ghost btn-lg">Take the 90s tour</Link>
           </div>
         </div>
 
