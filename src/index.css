@@ -492,7 +492,11 @@ input[type='range']::-moz-range-thumb {
 
 .assignment-row-link { display: block; text-decoration: none; color: inherit; border-radius: 12px; }
 .assignment-row-link:focus-visible { outline-offset: 3px; }
-.assignment-row { transition: background 120ms ease, border-color 120ms ease; }
+.assignment-row {
+  background: var(--inset-bg);
+  border: 1px solid var(--inset-border);
+  transition: background 120ms ease, border-color 120ms ease;
+}
 .assignment-row-link:hover .assignment-row { background: rgba(255,255,255,0.05); border-color: rgba(255,255,255,0.08); }
 
 /* ---------------- mini board (CSS+SVG-based, for thumbnails) ---------------- */
