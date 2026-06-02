@@ -4,16 +4,18 @@ const PROD_URL = 'https://praxis.tsrun.dev';
 const EMAIL = process.env.PRAXIS_BOT_EMAIL || 'claude.bot@gmail.com';
 const PASSWORD = process.env.PRAXIS_BOT_PASSWORD || 'Claudebot';
 
+test.setTimeout(60_000);
+
 async function signIn(page: Page) {
   await page.goto(`${PROD_URL}/`, { waitUntil: 'domcontentloaded' });
   const form = page.locator('form').filter({ hasText: 'Continue with Google' });
   await form.getByPlaceholder('you@studio.club').fill(EMAIL);
   await form.getByPlaceholder(/password/i).fill(PASSWORD);
   await form.getByRole('button', { name: /^Sign in →$/ }).click();
-  await page.waitForURL(/\/(trainer|student)\//, { timeout: 15000 });
+  await page.waitForURL(/\/(trainer|student)\//, { timeout: 15_000 });
 }
 
-test('settings-page: renders four sections with a11y micro-check', async ({ page }) => {
+test('settings-page: four sections + a11y + mobile', async ({ page }) => {
   const consoleErrors: string[] = [];
   const pageErrors: string[] = [];
   page.on('console', (m) => {
@@ -26,8 +28,8 @@ test('settings-page: renders four sections with a11y micro-check', async ({ page
   const resp = await page.goto(`${PROD_URL}/settings`, { waitUntil: 'domcontentloaded' });
   expect(resp?.status()).toBe(200);
 
-  await page.waitForSelector('h1', { timeout: 15000 });
-  await expect(page.getByRole('heading', { name: /^Settings$/ })).toBeVisible();
+  await page.waitForSelector('h1', { timeout: 15_000 });
+  await expect(page.getByRole('heading', { level: 1, name: /^Settings$/ })).toBeVisible();
 
   // All four section headings
   await expect(page.getByRole('heading', { name: /^Profile$/ })).toBeVisible();
@@ -35,134 +37,145 @@ test('settings-page: renders four sections with a11y micro-check', async ({ page
   await expect(page.getByRole('heading', { name: /^Password$/ })).toBeVisible();
   await expect(page.getByRole('heading', { name: /^API keys$/ })).toBeVisible();
 
-  // Desktop screenshot
   await page.screenshot({
     path: 'tests/audit/screenshots/settings-page.png',
     fullPage: true,
   });
 
-  // ---- A11y micro-check on actually-rendered elements ----
-
-  // Profile inputs: nickname + email — are they programmatically labelled?
+  // ----- Profile a11y -----
+  // Inputs are wrapped inside <label> (implicit association). Verify each input
+  // is reachable by its label text via getByLabel.
+  await expect(page.getByLabel('Nickname')).toBeVisible();
+  await expect(page.getByLabel('Email')).toBeVisible();
   const profileInputs = await page.locator('form').first().locator('input').evaluateAll((nodes) =>
     nodes.map((b) => {
       const el = b as HTMLInputElement;
       const id = el.id || null;
-      const labelsFor = id ? document.querySelectorAll(`label[for="${id}"]`).length : 0;
       const wrappingLabel = el.closest('label');
-      const wrappingLabelText = wrappingLabel?.textContent?.trim() ?? null;
-      const wrappingLabelHasFor = wrappingLabel?.hasAttribute('for') ?? false;
       return {
         type: el.type,
         autocomplete: el.autocomplete,
         id,
         ariaLabel: el.getAttribute('aria-label'),
-        ariaLabelledby: el.getAttribute('aria-labelledby'),
-        ariaRequired: el.getAttribute('aria-required'),
-        required: el.required,
-        labelsFor,
-        wrappingLabelText: wrappingLabelText?.slice(0, 40) ?? null,
-        wrappingLabelHasFor,
+        wrappingLabelText: wrappingLabel?.textContent?.trim() ?? null,
       };
     }),
   );
   console.log('PROFILE INPUTS a11y:', JSON.stringify(profileInputs, null, 2));
 
-  // Roles buttons: Trainer / Student / Solo — toggle state?
-  // They live in a .grid-3 container.
-  const rolesGrid = page.locator('.grid-3').first();
-  const rolesGridInfo = await rolesGrid.evaluate((el) => ({
+  // ----- Roles a11y -----
+  // RolesCard wraps the three buttons in role="group" aria-label="Active roles".
+  const rolesGroup = page.getByRole('group', { name: 'Active roles' });
+  await expect(rolesGroup).toBeVisible();
+  const rolesGroupInfo = await rolesGroup.evaluate((el) => ({
     role: el.getAttribute('role'),
     ariaLabel: el.getAttribute('aria-label'),
-    ariaLabelledby: el.getAttribute('aria-labelledby'),
+    displayMode: getComputedStyle(el as HTMLElement).display,
+    gridTemplateColumns: getComputedStyle(el as HTMLElement).gridTemplateColumns,
   }));
-  console.log('ROLES GRID container:', rolesGridInfo);
+  console.log('ROLES GROUP:', rolesGroupInfo);
 
-  const rolesButtons = rolesGrid.locator('button');
-  const rolesCount = await rolesButtons.count();
-  const rolesInfo = await rolesButtons.evaluateAll((nodes) =>
+  const roleBtns = rolesGroup.locator('button');
+  const roleCount = await roleBtns.count();
+  expect(roleCount).toBe(3);
+  const rolesInfo = await roleBtns.evaluateAll((nodes) =>
     nodes.map((b) => {
       const el = b as HTMLButtonElement;
       return {
-        text: el.textContent?.trim() ?? '',
+        text: el.textContent?.replace(/\s+/g, ' ').trim() ?? '',
         ariaPressed: el.getAttribute('aria-pressed'),
         ariaLabel: el.getAttribute('aria-label'),
-        role: el.getAttribute('role'),
+        type: el.type,
       };
     }),
   );
-  console.log('ROLES BUTTONS (' + rolesCount + '):', JSON.stringify(rolesInfo, null, 2));
+  console.log('ROLE BUTTONS:', rolesInfo);
+  for (const r of rolesInfo) {
+    expect(r.type).toBe('button');
+    expect(r.ariaPressed === 'true' || r.ariaPressed === 'false').toBe(true);
+  }
 
-  // Password inputs (3): also wrapped in <label>?
+  // ----- Password inputs a11y -----
+  await expect(page.getByLabel('Current password')).toBeVisible();
+  await expect(page.getByLabel('New password', { exact: true })).toBeVisible();
+  await expect(page.getByLabel('Confirm new password')).toBeVisible();
   const passwordInputs = await page.locator('input[type="password"]').evaluateAll((nodes) =>
     nodes.map((b) => {
       const el = b as HTMLInputElement;
-      const id = el.id || null;
-      const labelsFor = id ? document.querySelectorAll(`label[for="${id}"]`).length : 0;
       const wrappingLabel = el.closest('label');
-      const wrappingLabelText = wrappingLabel?.textContent?.trim() ?? null;
-      const wrappingLabelHasFor = wrappingLabel?.hasAttribute('for') ?? false;
       return {
         autocomplete: el.autocomplete,
-        id,
+        id: el.id || null,
         ariaLabel: el.getAttribute('aria-label'),
-        labelsFor,
-        wrappingLabelText: wrappingLabelText?.slice(0, 40) ?? null,
-        wrappingLabelHasFor,
+        wrappingLabelText: wrappingLabel?.textContent?.trim() ?? null,
       };
     }),
   );
   console.log('PASSWORD INPUTS a11y:', JSON.stringify(passwordInputs, null, 2));
+  expect(passwordInputs.length).toBe(3);
 
-  // Trash / "Revoke key" icon button on each API key row — icon-only?
-  const trashBtns = page.locator('button[title="Revoke key"]');
-  const trashCount = await trashBtns.count();
-  if (trashCount > 0) {
-    const trashInfo = await trashBtns.first().evaluate((el) => ({
-      title: el.getAttribute('title'),
-      ariaLabel: el.getAttribute('aria-label'),
-      textContent: el.textContent?.trim() ?? '',
-      hasOnlySvg: el.children.length === 1 && el.firstElementChild?.tagName.toLowerCase() === 'svg',
-    }));
-    console.log('REVOKE BUTTON (count=' + trashCount + '):', trashInfo);
-  } else {
-    console.log('REVOKE BUTTON: no keys rendered');
+  // ----- "New key" button + revoke buttons -----
+  const newKeyBtn = page.getByRole('button', { name: /^New key$/ });
+  await expect(newKeyBtn).toBeVisible();
+  const newKeyBox = await newKeyBtn.boundingBox();
+  console.log('NEW KEY BUTTON BOX:', newKeyBox);
+  expect(newKeyBox?.height ?? 0).toBeGreaterThan(20);
+
+  // Revoke buttons (icon-only) MUST have aria-label
+  const revokeBtns = page.locator('button[aria-label^="Revoke key"]');
+  const revokeCount = await revokeBtns.count();
+  console.log('REVOKE BUTTONS COUNT:', revokeCount);
+  if (revokeCount > 0) {
+    const firstRevoke = await revokeBtns.first().evaluate((el) => {
+      const r = (el as HTMLElement).getBoundingClientRect();
+      return {
+        ariaLabel: el.getAttribute('aria-label'),
+        title: el.getAttribute('title'),
+        w: Math.round(r.width),
+        h: Math.round(r.height),
+      };
+    });
+    console.log('FIRST REVOKE INFO:', firstRevoke);
+    expect(firstRevoke.ariaLabel).toMatch(/^Revoke key /);
   }
 
-  // "New key" button — has icon + text, just sanity check
-  const newKeyBtn = page.getByRole('button', { name: /New key/i });
-  const newKeyInfo = await newKeyBtn.first().evaluate((el) => ({
-    ariaLabel: el.getAttribute('aria-label'),
-    textContent: el.textContent?.trim() ?? '',
-  }));
-  console.log('NEW KEY BUTTON:', newKeyInfo);
-
-  // Focus styles on the first input
-  const firstInput = page.locator('input').first();
-  await firstInput.focus();
+  // ----- Focus styles on first input -----
+  const nicknameInput = page.getByLabel('Nickname');
+  await nicknameInput.focus();
   await page.waitForTimeout(80);
-  const focusStyles = await firstInput.evaluate((el) => {
+  const focusStyles = await nicknameInput.evaluate((el) => {
     const cs = getComputedStyle(el);
     return {
       outlineStyle: cs.outlineStyle,
       outlineWidth: cs.outlineWidth,
       outlineColor: cs.outlineColor,
-      boxShadow: cs.boxShadow.slice(0, 80),
+      boxShadow: cs.boxShadow.slice(0, 100),
       borderColor: cs.borderColor,
     };
   });
-  console.log('FIRST INPUT :focus styles:', focusStyles);
+  console.log('NICKNAME :focus styles:', focusStyles);
+  const hasFocusIndicator =
+    focusStyles.outlineStyle !== 'none' ||
+    (focusStyles.boxShadow !== 'none' && focusStyles.boxShadow !== '');
+  expect(hasFocusIndicator).toBe(true);
 
-  // Tab from the first input — where do we go?
+  // ----- Tab order -----
   await page.keyboard.press('Tab');
-  const after1 = await page.evaluate(() => ({
+  const afterTab = await page.evaluate(() => ({
     tag: document.activeElement?.tagName ?? null,
     type: (document.activeElement as HTMLInputElement)?.type ?? null,
-    text: document.activeElement?.textContent?.trim()?.slice(0, 40) ?? null,
+    autocomplete: (document.activeElement as HTMLInputElement)?.autocomplete ?? null,
   }));
-  console.log('TAB FROM 1ST INPUT:', after1);
+  console.log('TAB AFTER NICKNAME:', afterTab);
 
-  // ---- Mobile viewport check (375x812) ----
+  // ----- Save button disabled state when not dirty -----
+  const profileForm = page.locator('form').first();
+  const saveBtn = profileForm.getByRole('button', { name: /Save changes/i });
+  const saveDisabled = await saveBtn.first().isDisabled();
+  console.log('PROFILE SAVE BUTTON DISABLED (not dirty):', saveDisabled);
+  expect(saveDisabled).toBe(true);
+
+  // ----- Mobile viewport (375x812) -----
   await page.setViewportSize({ width: 375, height: 812 });
   await page.waitForTimeout(200);
   await page.screenshot({
@@ -174,22 +187,47 @@ test('settings-page: renders four sections with a11y micro-check', async ({ page
     client: document.documentElement.clientWidth,
   }));
   console.log('MOBILE OVERFLOW:', overflow);
+  expect(overflow.scroll).toBeLessThanOrEqual(overflow.client + 1);
 
-  // Capture roles row box on mobile — are 3 buttons readable?
-  const rolesBox = await rolesGrid.boundingBox().catch(() => null);
-  console.log('MOBILE ROLES ROW BOX:', rolesBox);
-
-  // Per-role-button width on mobile
-  const rolesWidths = await rolesButtons.evaluateAll((nodes) =>
+  const rolesBox = await rolesGroup.boundingBox();
+  const rolesWidths = await roleBtns.evaluateAll((nodes) =>
     nodes.map((b) => Math.round((b as HTMLElement).getBoundingClientRect().width)),
   );
-  console.log('MOBILE ROLES BUTTON WIDTHS:', rolesWidths);
+  console.log('MOBILE ROLES BOX:', rolesBox);
+  console.log('MOBILE ROLE BUTTON WIDTHS:', rolesWidths);
+  for (const w of rolesWidths) {
+    expect(w).toBeGreaterThan(60);
+  }
+
+  // API key rows on mobile: do they wrap acceptably? Inspect bounding boxes.
+  const keyRowsCount = await page.locator('button[aria-label^="Revoke key"]').count();
+  if (keyRowsCount > 0) {
+    const rowOverflows = await page
+      .locator('button[aria-label^="Revoke key"]')
+      .evaluateAll((nodes) =>
+        nodes.map((b) => {
+          const row = (b as HTMLElement).parentElement!;
+          return {
+            scroll: row.scrollWidth,
+            client: row.clientWidth,
+          };
+        }),
+      );
+    console.log('MOBILE API KEY ROW SIZES:', rowOverflows);
+    for (const r of rowOverflows) {
+      expect(r.scroll).toBeLessThanOrEqual(r.client + 1);
+    }
+  }
+
+  await page.setViewportSize({ width: 1280, height: 800 });
 
   console.log('PAGE ERRORS:', pageErrors);
   console.log(
     'APP CONSOLE ERRORS:',
-    consoleErrors.filter((e) => !e.includes('Failed to load resource')),
+    consoleErrors.filter((e) => !/Failed to load resource/.test(e)),
   );
 
   expect(pageErrors).toEqual([]);
+  const appErrs = consoleErrors.filter((e) => !/Failed to load resource/.test(e));
+  expect(appErrs).toEqual([]);
 });
