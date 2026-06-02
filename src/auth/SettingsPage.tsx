@@ -436,7 +436,7 @@ function ApiKeysCard() {
   }, []);
 
   return (
-    <Card style={{ padding: 18, display: 'flex', flexDirection: 'column', gap: 14 }}>
+    <Card style={{ padding: 22, display: 'flex', flexDirection: 'column', gap: 14 }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
         <div>
           <h2 className="t-h2" style={{ margin: 0 }}>API keys</h2>
