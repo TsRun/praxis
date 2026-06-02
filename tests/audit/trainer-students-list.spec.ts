@@ -94,12 +94,14 @@ test('trainer-students-list: renders heading, filter, and search', async ({ page
   }));
   console.log('FILTER CONTAINER:', segInfo);
 
-  // Stats span: "{n} students" — is it announced when filter changes? It's a plain span.
+  // Stats span: "{n} students" — when the filter changes the visible count
+  // updates, so it should be announced to AT users via aria-live.
   const countSpan = page.locator('.meta', { hasText: /\bstudents\b/ }).last();
   const countSpanInfo = await countSpan
     .evaluate((el) => ({
       role: el.getAttribute('role'),
       ariaLive: el.getAttribute('aria-live'),
+      ariaAtomic: el.getAttribute('aria-atomic'),
       text: el.textContent?.trim() ?? '',
     }))
     .catch(() => null);
