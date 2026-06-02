@@ -233,6 +233,53 @@ test('trainer-studies-list: renders heading, stats, sections, with a11y/responsi
     .catch(() => null);
   console.log('MOBILE FILTER ROW:', filterRow);
 
+  // ---- Card hover/focus behavior (back to desktop for measurement) ----
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await page.waitForTimeout(150);
+
+  // Find any rendered study card link (any of the three sections may have content).
+  const cardLink = page.locator('a[href^="/trainer/studies/"]').first();
+  const hasCard = (await cardLink.count()) > 0;
+  if (hasCard) {
+    const baseBox = await cardLink.evaluate((a) => {
+      const card = a.querySelector('.card') as HTMLElement | null;
+      const cs = card ? getComputedStyle(card) : null;
+      const r = card ? card.getBoundingClientRect() : null;
+      return {
+        cardClassName: card?.className ?? null,
+        transform: cs?.transform ?? null,
+        boxShadow: cs?.boxShadow ?? null,
+        borderColor: cs?.borderColor ?? null,
+        transition: cs?.transition ?? null,
+        top: r?.top ?? null,
+      };
+    });
+    console.log('STUDY CARD baseline:', baseBox);
+
+    await cardLink.hover();
+    await page.waitForTimeout(220);
+    const hoverBox = await cardLink.evaluate((a) => {
+      const card = a.querySelector('.card') as HTMLElement | null;
+      const cs = card ? getComputedStyle(card) : null;
+      const r = card ? card.getBoundingClientRect() : null;
+      return {
+        transform: cs?.transform ?? null,
+        boxShadow: cs?.boxShadow ?? null,
+        borderColor: cs?.borderColor ?? null,
+        top: r?.top ?? null,
+      };
+    });
+    console.log('STUDY CARD hover:', hoverBox);
+
+    const hoverChanged =
+      hoverBox.transform !== baseBox.transform ||
+      hoverBox.boxShadow !== baseBox.boxShadow ||
+      hoverBox.borderColor !== baseBox.borderColor;
+    console.log('STUDY CARD hover changed:', hoverChanged);
+  } else {
+    console.log('STUDY CARD: no rendered card to test (all sections empty).');
+  }
+
   console.log('PAGE ERRORS:', pageErrors);
   console.log(
     'APP CONSOLE ERRORS:',
