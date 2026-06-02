@@ -106,7 +106,13 @@ export function StudentsPage() {
           ]}
         />
         <div style={{ flex: 1 }} />
-        <span className="meta" style={{ whiteSpace: 'nowrap' }}>
+        <span
+          className="meta"
+          role="status"
+          aria-live="polite"
+          aria-atomic="true"
+          style={{ whiteSpace: 'nowrap' }}
+        >
           {filtered.length} students
         </span>
       </div>

@@ -120,9 +120,9 @@
       "route": "/trainer/students",
       "requiresAuth": true,
       "description": "Navigating to /trainer/students renders the Students heading and filter tabs (All / Linked / Invited) without errors.",
-      "lastTestedAt": "2026-05-29T21:14:00Z",
+      "lastTestedAt": "2026-06-02T00:14:56Z",
       "lastResult": "improved",
-      "lastPr": 142,
+      "lastPr": null,
       "removed": false
     },
     {
