@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { Link, useParams } from 'react-router-dom';
 import {
   trainerStudent,
   trainerStudies,
@@ -17,12 +17,18 @@ export function StudentDetailPage() {
   const { id } = useParams();
   const numId = Number(id);
   const [detail, setDetail] = useState<StudentDetail | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [opens, setOpens] = useState<OpeningStudySummary[]>([]);
   const [games, setGames] = useState<GameStudySummary[]>([]);
   const [tactics, setTactics] = useState<TacticSetSummary[]>([]);
 
   async function refresh() {
-    setDetail(await trainerStudent.get(numId));
+    try {
+      setLoadError(null);
+      setDetail(await trainerStudent.get(numId));
+    } catch (e) {
+      setLoadError(e instanceof Error ? e.message : 'Failed to load student');
+    }
   }
   useEffect(() => {
     refresh();
@@ -38,9 +44,40 @@ export function StudentDetailPage() {
     refresh();
   }
 
+  if (loadError)
+    return (
+      <div
+        className="page-wrap"
+        style={{ paddingTop: 32, paddingBottom: 100 }}
+        role="alert"
+      >
+        <Card
+          style={{
+            padding: '24px 22px',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: 10,
+            alignItems: 'flex-start',
+          }}
+        >
+          <h1 className="t-h2" style={{ margin: 0 }}>Couldn’t load this student</h1>
+          <div className="meta">{loadError}</div>
+          <Link to="/trainer/students" style={{ marginTop: 6 }}>
+            <Btn variant="secondary">← Back to students</Btn>
+          </Link>
+        </Card>
+      </div>
+    );
+
   if (!detail)
     return (
-      <div style={{ padding: 28, color: 'var(--text-faint)' }}>Loading…</div>
+      <div
+        style={{ padding: 28, color: 'var(--text-faint)' }}
+        role="status"
+        aria-live="polite"
+      >
+        Loading…
+      </div>
     );
 
   const assignedIds = new Set(
