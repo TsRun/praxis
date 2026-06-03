@@ -37,7 +37,6 @@ import {
   IconDownload,
   IconAssign,
   IconFlip,
-  IconPlus,
   IconStar,
   IconTrash,
   IconArrowL,
@@ -836,28 +835,15 @@ function CandidatesCard({
 
   return (
     <Card style={{ padding: '16px 18px' }}>
-      <div
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          marginBottom: 14,
-        }}
-      >
-        <div>
-          <h2 className="t-h2" style={{ margin: 0 }}>
-            Candidate replies
-          </h2>
-          <div className="meta">
-            {candidates.length === 0
-              ? 'No replies yet — drag a piece on the board to add one.'
-              : `${candidates.length} ${candidates.length === 1 ? 'move' : 'moves'} from this position · ${totalSub} sub-positions total`}
-          </div>
+      <div style={{ marginBottom: 14 }}>
+        <h2 className="t-h2" style={{ margin: 0 }}>
+          Candidate replies
+        </h2>
+        <div className="meta">
+          {candidates.length === 0
+            ? 'No replies yet — drag a piece on the board to add one.'
+            : `${candidates.length} ${candidates.length === 1 ? 'move' : 'moves'} from this position · ${totalSub} sub-positions total`}
         </div>
-        <Btn variant="secondary" size="sm">
-          <IconPlus size={12} strokeWidth={2.4} />
-          Add move
-        </Btn>
       </div>
 
       {candidates.length === 0 ? (
