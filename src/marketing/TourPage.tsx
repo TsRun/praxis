@@ -144,8 +144,23 @@ function TopBar() {
 }
 
 function SceneTabs({ idx, onPick }: { idx: number; onPick: (i: number) => void }) {
+  const rowRef = useRef<HTMLDivElement>(null);
+
+  // Keep the active scene tab visible as the tour auto-advances.
+  // Without this, mobile users see scenes 4-6 play while the tab strip
+  // stays scrolled at the start, hiding which scene is active.
+  useEffect(() => {
+    const row = rowRef.current;
+    if (!row) return;
+    const active = row.querySelector<HTMLElement>('button[aria-pressed="true"]');
+    if (!active) return;
+    const targetLeft = active.offsetLeft - (row.clientWidth - active.offsetWidth) / 2;
+    row.scrollTo({ left: Math.max(0, targetLeft), behavior: 'smooth' });
+  }, [idx]);
+
   return (
     <div
+      ref={rowRef}
       className="scroll-row"
       role="group"
       aria-label="Tour scenes"
