@@ -174,22 +174,14 @@ export function GameStudyEditor() {
               </label>
               <textarea
                 rows={8}
-                className="font-mono"
+                className="textarea font-mono"
+                aria-label={`Annotation comment for ply ${currentPly} (markdown)`}
                 placeholder="markdown comment for this move…"
                 value={annAtPly?.comment_md ?? ''}
                 onChange={(e) =>
                   upsertAnnotation({ comment_md: e.target.value || null })
                 }
-                style={{
-                  background: 'var(--inset-bg)',
-                  border: '1px solid var(--inset-border)',
-                  borderRadius: 10,
-                  padding: '10px 12px',
-                  fontSize: 12.5,
-                  color: 'var(--text)',
-                  outline: 'none',
-                  resize: 'vertical',
-                }}
+                style={{ fontSize: 12.5, resize: 'vertical' }}
               />
             </>
           )}
