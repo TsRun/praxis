@@ -445,7 +445,15 @@ export function ImportGamesPage() {
                 {stage.games.length} match{stage.games.length === 1 ? '' : 'es'}
               </span>
             )}
-            <Btn variant="primary" onClick={search} disabled={busy}>
+            <Btn
+              variant="primary"
+              onClick={search}
+              disabled={
+                busy ||
+                (source === 'chesscom' && !ccUsername.trim()) ||
+                (source === 'lichess' && !liUsername.trim())
+              }
+            >
               <IconSearch size={13} strokeWidth={2.4} />
               {busy && stage?.kind === 'searching' ? 'Searching…' : 'Search'}
             </Btn>
