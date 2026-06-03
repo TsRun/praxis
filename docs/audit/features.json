@@ -153,9 +153,9 @@
       "route": "/student/dashboard",
       "requiresAuth": true,
       "description": "Navigating to /student/dashboard renders a greeting with the user's name, assignment count stats, Today card, and Activity card — no uncaught errors.",
-      "lastTestedAt": "2026-05-30T12:16:35Z",
+      "lastTestedAt": "2026-06-02T15:15:10Z",
       "lastResult": "improved",
-      "lastPr": 147,
+      "lastPr": 176,
       "removed": false
     },
     {

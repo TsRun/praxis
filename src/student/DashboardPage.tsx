@@ -563,8 +563,6 @@ function AssignmentRowCard({ a }: { a: AssignmentRow }) {
           gap: 14,
           alignItems: 'center',
           padding: 12,
-          background: 'var(--inset-bg)',
-          border: '1px solid var(--inset-border)',
           borderRadius: 12,
           cursor: 'pointer',
         }}

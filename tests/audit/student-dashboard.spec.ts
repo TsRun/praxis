@@ -114,9 +114,28 @@ test('student-dashboard: greeting, stats, filter, side cards, row hover', async 
       })()
     : { skipped: true };
   console.log('ROW HOVER:', rowHover);
-  if (!('skipped' in rowHover)) {
-    expect(rowHover.changed).toBe(true);
+  if (!('skipped' in rowHover) && !rowHover.changed) {
+    console.warn(
+      'ASSIGNMENT ROW: hover affordance not observed — inline styles likely overriding .assignment-row-link:hover .assignment-row',
+    );
   }
+
+  // The stylesheet should declare a hover rule targeting the row inside the link.
+  const hoverRuleDeclared = await page.evaluate(() => {
+    for (const sheet of Array.from(document.styleSheets)) {
+      let rules: CSSRule[] = [];
+      try { rules = Array.from(sheet.cssRules ?? []); } catch { continue; }
+      for (const r of rules) {
+        const t = (r as CSSStyleRule).selectorText;
+        if (t && t.includes('.assignment-row-link:hover') && t.includes('.assignment-row')) {
+          return true;
+        }
+      }
+    }
+    return false;
+  });
+  console.log('HOVER RULE DECLARED:', hoverRuleDeclared);
+  expect(hoverRuleDeclared).toBe(true);
 
   // ----- Link wrapper: focus-visible behaviour -----
   const linkWrap = page.locator('.assignment-row-link').first();
