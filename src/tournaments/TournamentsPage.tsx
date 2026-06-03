@@ -54,11 +54,6 @@ export function TournamentsPage() {
     setParams(next, { replace: true });
   };
 
-  const toggleBtn = (active: boolean): React.CSSProperties => ({
-    padding: '6px 14px', border: 'none', cursor: 'pointer', fontSize: 13,
-    background: active ? '#5b8cff' : 'transparent', color: active ? '#fff' : 'inherit',
-  });
-
   return (
     <div style={{ minHeight: '100vh' }}>
       <TopBar links={TOURNAMENT_NAV} />
@@ -76,13 +71,9 @@ export function TournamentsPage() {
             return (
               <button
                 key={c.key}
+                className="pill-btn"
                 onClick={() => patch('cadence', on ? '' : c.key)}
                 aria-pressed={on}
-                style={{
-                  padding: '5px 12px', borderRadius: 999, cursor: 'pointer', fontSize: 12.5,
-                  border: '1px solid var(--border)',
-                  background: on ? '#5b8cff' : 'transparent', color: on ? '#fff' : 'inherit',
-                }}
               >
                 {c.label}
               </button>
@@ -96,8 +87,8 @@ export function TournamentsPage() {
           </select>
 
           <div style={{ marginLeft: 'auto', display: 'flex', border: '1px solid var(--border)', borderRadius: 8, overflow: 'hidden' }}>
-            <button onClick={() => setView('list')} aria-pressed={view === 'list'} style={toggleBtn(view === 'list')}>Liste</button>
-            <button onClick={() => setView('map')} aria-pressed={view === 'map'} style={toggleBtn(view === 'map')}>Carte</button>
+            <button className="seg-toggle-btn" onClick={() => setView('list')} aria-pressed={view === 'list'}>Liste</button>
+            <button className="seg-toggle-btn" onClick={() => setView('map')} aria-pressed={view === 'map'}>Carte</button>
           </div>
         </div>
 
