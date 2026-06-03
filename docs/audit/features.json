@@ -285,8 +285,8 @@
       "route": "/trainer/studies/game/:id",
       "requiresAuth": true,
       "description": "Navigating to /trainer/studies/game/<id> renders the game study editor with a chess board, move list, and editing controls, without uncaught errors.",
-      "lastTestedAt": null,
-      "lastResult": null,
+      "lastTestedAt": "2026-06-03T15:17:23Z",
+      "lastResult": "improved",
       "lastPr": null,
       "removed": false
     }
