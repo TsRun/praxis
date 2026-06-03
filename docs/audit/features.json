@@ -1,8 +1,8 @@
 {
   "schemaVersion": 2,
   "site": "https://praxis.tsrun.dev/",
-  "lastDiscoveryAt": "2026-05-31T09:14:50Z",
-  "discoveryCount": 3,
+  "lastDiscoveryAt": "2026-06-03T09:15:00Z",
+  "discoveryCount": 4,
   "features": [
     {
       "id": "landing-page-render",
@@ -232,6 +232,61 @@
       "description": "On /trainer/games the Free editor tab opens a position editor with piece picker (king/queen/rook/bishop/knight/pawn for both sides), delete-piece control, and Starting position / Empty board reset buttons.",
       "lastTestedAt": "2026-05-31T12:15:00Z",
       "lastResult": "improved",
+      "lastPr": null,
+      "removed": false
+    },
+    {
+      "id": "tournaments-page",
+      "name": "Tournaments page",
+      "route": "/tournaments",
+      "requiresAuth": true,
+      "description": "Navigating to /tournaments renders the Tournois heading with cadence tabs (Classique / Rapide / Blitz) and a view-mode toggle (Liste / Carte) that switches between list and map views without errors.",
+      "lastTestedAt": null,
+      "lastResult": null,
+      "lastPr": null,
+      "removed": false
+    },
+    {
+      "id": "trainer-opening-study-editor",
+      "name": "Trainer opening study editor",
+      "route": "/trainer/studies/opening/:id",
+      "requiresAuth": true,
+      "description": "Navigating to /trainer/studies/opening/<id> renders the opening study editor with Tree / Chapters tabs and primary actions (Set opening prefix, Import from Lichess, Import games, Assign to student) without errors.",
+      "lastTestedAt": null,
+      "lastResult": null,
+      "lastPr": null,
+      "removed": false
+    },
+    {
+      "id": "trainer-student-detail",
+      "name": "Trainer student detail page",
+      "route": "/trainer/students/:id",
+      "requiresAuth": true,
+      "description": "Navigating to a specific student under /trainer/students/<id> renders the student detail page with their assignments, progress, and back navigation, without uncaught errors.",
+      "lastTestedAt": null,
+      "lastResult": null,
+      "lastPr": null,
+      "removed": false
+    },
+    {
+      "id": "trainer-tactic-set-editor",
+      "name": "Trainer tactic set editor",
+      "route": "/trainer/studies/tactic/:id",
+      "requiresAuth": true,
+      "description": "Navigating to /trainer/studies/tactic/<id> renders the tactic set editor listing puzzles in the set with controls to add or edit puzzles, without uncaught errors.",
+      "lastTestedAt": null,
+      "lastResult": null,
+      "lastPr": null,
+      "removed": false
+    },
+    {
+      "id": "trainer-game-study-editor",
+      "name": "Trainer game study editor",
+      "route": "/trainer/studies/game/:id",
+      "requiresAuth": true,
+      "description": "Navigating to /trainer/studies/game/<id> renders the game study editor with a chess board, move list, and editing controls, without uncaught errors.",
+      "lastTestedAt": null,
+      "lastResult": null,
       "lastPr": null,
       "removed": false
     }
