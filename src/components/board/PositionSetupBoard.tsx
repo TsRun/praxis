@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useId, useMemo, useRef, useState } from 'react';
 import { Chessground } from 'chessground';
 import type { Api as CGApi } from 'chessground/api';
 import type { Key } from 'chessground/types';
@@ -88,6 +88,8 @@ export function PositionSetupBoard({
   const [pieces, setPieces] = useState<Map<Square, Piece>>(initialPieces);
   const [turn, setTurn] = useState<Color>(initialTurn);
   const [brush, setBrush] = useState<Brush>({ type: 'p', color: 'w' });
+  const sideName = useId();
+  const sideLabelId = useId();
 
   useEffect(() => {
     const next = piecesToFen(pieces, turn);
@@ -141,15 +143,21 @@ export function PositionSetupBoard({
       </div>
 
       <div style={{ display: 'flex', gap: 14, alignItems: 'center', flexWrap: 'wrap' }}>
-        <span style={{ fontSize: 13, color: 'var(--text-dim)' }}>Side to move</span>
-        <label style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-          <input type="radio" checked={turn === 'w'} onChange={() => setTurn('w')} />
-          White
-        </label>
-        <label style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-          <input type="radio" checked={turn === 'b'} onChange={() => setTurn('b')} />
-          Black
-        </label>
+        <div
+          role="radiogroup"
+          aria-labelledby={sideLabelId}
+          style={{ display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap' }}
+        >
+          <span id={sideLabelId} style={{ fontSize: 13, color: 'var(--text-dim)' }}>Side to move</span>
+          <label style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            <input type="radio" name={sideName} checked={turn === 'w'} onChange={() => setTurn('w')} />
+            White
+          </label>
+          <label style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            <input type="radio" name={sideName} checked={turn === 'b'} onChange={() => setTurn('b')} />
+            Black
+          </label>
+        </div>
         <div style={{ flex: 1 }} />
         <Btn
           variant="ghost"
