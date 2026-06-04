@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type FormEvent } from 'react';
+import { useEffect, useId, useRef, useState, type FormEvent } from 'react';
 import { Chessground } from 'chessground';
 import type { Api as CGApi } from 'chessground/api';
 import type { Key } from 'chessground/types';
@@ -45,6 +45,8 @@ export function NewOpeningStudyDialog({
   const [sans, setSans] = useState<string[]>([]);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
+  const sideGroupLabelId = useId();
+  const sideRadioName = useId();
 
   // Reset all dialog state when it (re)opens.
   useEffect(() => {
@@ -121,12 +123,12 @@ export function NewOpeningStudyDialog({
         </label>
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-          <span id="opening-study-side-label">
+          <span id={sideGroupLabelId}>
             Which side does the student play?
           </span>
           <div
-            role="group"
-            aria-labelledby="opening-study-side-label"
+            role="radiogroup"
+            aria-labelledby={sideGroupLabelId}
             style={{
               display: 'grid',
               gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
@@ -134,14 +136,18 @@ export function NewOpeningStudyDialog({
             }}
           >
             <SideOption
+              name={sideRadioName}
+              value="w"
               picked={side === 'w'}
-              onClick={() => setSide('w')}
+              onSelect={() => setSide('w')}
               title="White"
               hint="You're preparing 1.e4 / 1.d4 / etc."
             />
             <SideOption
+              name={sideRadioName}
+              value="b"
               picked={side === 'b'}
-              onClick={() => setSide('b')}
+              onSelect={() => setSide('b')}
               title="Black"
               hint="You're preparing replies to White's first move."
             />
@@ -226,24 +232,26 @@ export function NewOpeningStudyDialog({
 }
 
 function SideOption({
+  name,
+  value,
   picked,
-  onClick,
+  onSelect,
   title,
   hint,
 }: {
+  name: string;
+  value: string;
   picked: boolean;
-  onClick: () => void;
+  onSelect: () => void;
   title: string;
   hint: string;
 }) {
   return (
-    <button
-      type="button"
-      onClick={onClick}
-      aria-pressed={picked}
-      aria-label={`${title} — ${hint}`}
+    <label
       className="role-pick"
       style={{
+        position: 'relative',
+        display: 'block',
         textAlign: 'left',
         padding: 14,
         borderRadius: 12,
@@ -254,13 +262,32 @@ function SideOption({
         color: 'inherit',
       }}
     >
+      <input
+        type="radio"
+        name={name}
+        value={value}
+        checked={picked}
+        onChange={onSelect}
+        aria-label={`${title} — ${hint}`}
+        style={{
+          position: 'absolute',
+          width: 1,
+          height: 1,
+          padding: 0,
+          margin: -1,
+          overflow: 'hidden',
+          clip: 'rect(0,0,0,0)',
+          whiteSpace: 'nowrap',
+          border: 0,
+        }}
+      />
       <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text)' }}>
         {title}
       </div>
       <div style={{ fontSize: 12, color: 'var(--text-dim)', marginTop: 2 }}>
         {hint}
       </div>
-    </button>
+    </label>
   );
 }
 
