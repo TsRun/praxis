@@ -145,19 +145,34 @@ export function EditableTitle({
   if (!editing) {
     const Tag = (level === 'h1' ? 'h1' : 'h2') as 'h1' | 'h2';
     const empty = !value || !value.trim();
+    // Wrap the editable content in a real <button> so keyboard users can
+    // Tab to it and press Enter/Space to edit (the surrounding heading
+    // keeps document outline + screen-reader heading navigation intact).
     return (
       <Tag
         className={`t-${level}${className ? ` ${className}` : ''}`}
-        style={{
-          margin: 0,
-          cursor: 'pointer',
-          color: empty ? 'var(--text-faint)' : undefined,
-          ...style,
-        }}
-        onClick={startEditing}
-        title={title}
+        style={{ margin: 0, ...style }}
       >
-        {empty ? placeholder : value}
+        <button
+          type="button"
+          onClick={startEditing}
+          title={title}
+          style={{
+            background: 'transparent',
+            border: 0,
+            padding: 0,
+            margin: 0,
+            font: 'inherit',
+            color: empty ? 'var(--text-faint)' : 'inherit',
+            letterSpacing: 'inherit',
+            lineHeight: 'inherit',
+            textAlign: 'inherit',
+            cursor: 'pointer',
+            display: 'inline',
+          }}
+        >
+          {empty ? placeholder : value}
+        </button>
       </Tag>
     );
   }
