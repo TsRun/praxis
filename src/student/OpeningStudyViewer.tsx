@@ -367,11 +367,15 @@ function DrillView({
   }, [flip]);
 
   if (card === undefined) {
-    return <div className="meta">Loading…</div>;
+    return (
+      <div className="meta" role="status" aria-live="polite">
+        Loading…
+      </div>
+    );
   }
   if (card === null) {
     return (
-      <Card style={{ padding: 32, textAlign: 'center' }}>
+      <Card role="status" style={{ padding: 32, textAlign: 'center' }}>
         <h2 className="t-h2" style={{ margin: '0 0 8px' }}>
           ✓ All caught up.
         </h2>

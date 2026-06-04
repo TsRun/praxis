@@ -104,9 +104,18 @@ test('student-opening-study-viewer: page renders & no uncaught errors', async ({
     expect(allTabsText).toMatch(/Explore tree/);
     expect(allTabsText).toMatch(/Chapters/);
 
+    // Wait for the DrillView to settle into one of its terminal states:
+    // either a card+board ("a card to drill") or "All caught up" (no cards due).
+    await Promise.race([
+      page.locator('cg-board, .cg-wrap, [class*="cg-wrap"]').first().waitFor({ timeout: 15000 }).catch(() => null),
+      page.getByText(/All caught up/i).first().waitFor({ timeout: 15000 }).catch(() => null),
+    ]);
     const boardCount = await page.locator('cg-board, .cg-wrap, [class*="cg-wrap"]').count();
-    console.log('BOARD CONTAINERS:', boardCount);
-    expect(boardCount).toBeGreaterThan(0);
+    const allCaughtUp = await page.getByText(/All caught up/i).count();
+    console.log('BOARD CONTAINERS:', boardCount, 'ALL CAUGHT UP:', allCaughtUp);
+    // Either the drill board renders, or the "all caught up" status is shown
+    // (when no cards are due for this bot user). Both are valid terminal states.
+    expect(boardCount > 0 || allCaughtUp > 0).toBe(true);
 
     const progressInfo = await page.evaluate(() => {
       const bars = Array.from(document.querySelectorAll('[role="progressbar"], .progress, [class*="progress"], .pb'));
