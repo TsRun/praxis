@@ -178,7 +178,9 @@ function EmptyStudents({
     ? 'Try clearing the search box or switching the All / Linked / Invited tab.'
     : isInvitedTab
       ? 'Pending invitations show up here. Invite a student by email to see them on this tab.'
-      : 'Invite your first student to start tracking progress across studies.';
+      : isLinkedTab
+        ? 'Linked students appear here once they accept your invite and sign in.'
+        : 'Invite your first student to start tracking progress across studies.';
   return (
     <div
       role="status"
