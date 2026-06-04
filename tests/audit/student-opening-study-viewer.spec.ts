@@ -104,6 +104,12 @@ test('student-opening-study-viewer: page renders & no uncaught errors', async ({
     expect(allTabsText).toMatch(/Explore tree/);
     expect(allTabsText).toMatch(/Chapters/);
 
+    // Wait for the DrillView to settle into one of its terminal states:
+    // either a card+board ("a card to drill") or "All caught up" (no cards due).
+    await Promise.race([
+      page.locator('cg-board, .cg-wrap, [class*="cg-wrap"]').first().waitFor({ timeout: 15000 }).catch(() => null),
+      page.getByText(/All caught up/i).first().waitFor({ timeout: 15000 }).catch(() => null),
+    ]);
     const boardCount = await page.locator('cg-board, .cg-wrap, [class*="cg-wrap"]').count();
     const allCaughtUp = await page.getByText(/All caught up/i).count();
     console.log('BOARD CONTAINERS:', boardCount, 'ALL CAUGHT UP:', allCaughtUp);
