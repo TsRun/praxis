@@ -414,7 +414,9 @@ function EmailForm({
       <div
         style={{
           display: 'flex',
+          flexWrap: 'wrap',
           gap: 10,
+          rowGap: 14,
           marginTop: 22,
           justifyContent: 'space-between',
           alignItems: 'center',
@@ -423,18 +425,20 @@ function EmailForm({
         <button
           type="button"
           onClick={onSwitchToNickname}
+          className="link"
           style={{
             background: 'transparent',
             border: 0,
             padding: 0,
             cursor: 'pointer',
-            color: 'var(--text-dim)',
+            font: 'inherit',
             fontSize: 13,
+            whiteSpace: 'nowrap',
           }}
         >
           ← Search by nickname instead
         </button>
-        <div style={{ display: 'flex', gap: 10 }}>
+        <div style={{ display: 'flex', gap: 10, marginLeft: 'auto' }}>
           <Btn variant="ghost" type="button" onClick={onCancel}>
             Cancel
           </Btn>
