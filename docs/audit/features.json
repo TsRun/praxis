@@ -188,7 +188,7 @@
       "description": "On /trainer/students the All / Linked / Invited filter tabs switch the rendered list without errors and the active tab is visually distinguished.",
       "lastTestedAt": "2026-06-04T15:14:30Z",
       "lastResult": "improved",
-      "lastPr": null,
+      "lastPr": 192,
       "removed": false
     },
     {
