@@ -45,6 +45,10 @@ export function NewGameStudyDialog({ open, onClose, onCreate }: Props) {
       title="New game study"
       width={520}
     >
+      <p className="meta" style={{ marginTop: -4, marginBottom: 2 }}>
+        Paste a PGN to import the moves of a single game — copy it from
+        chess.com, Lichess, or any other source.
+      </p>
       <form
         onSubmit={submit}
         style={{ display: 'flex', flexDirection: 'column', gap: 14 }}
