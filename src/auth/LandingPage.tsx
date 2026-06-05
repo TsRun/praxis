@@ -34,39 +34,9 @@ export function LandingPage() {
         </Link>
         <div style={{ flex: 1 }} />
         <div className="hide-mobile" style={{ display: 'flex', gap: 6 }}>
-          <a
-            href="#features"
-            style={{
-              color: 'var(--text-dim)',
-              padding: '6px 12px',
-              borderRadius: 8,
-              fontSize: 13.5,
-            }}
-          >
-            Features
-          </a>
-          <Link
-            to="/tour"
-            style={{
-              color: 'var(--text-dim)',
-              padding: '6px 12px',
-              borderRadius: 8,
-              fontSize: 13.5,
-            }}
-          >
-            Tour
-          </Link>
-          <a
-            href="#auth"
-            style={{
-              color: 'var(--text-dim)',
-              padding: '6px 12px',
-              borderRadius: 8,
-              fontSize: 13.5,
-            }}
-          >
-            Sign in
-          </a>
+          <a href="#features" className="landing-nav-link">Features</a>
+          <Link to="/tour" className="landing-nav-link">Tour</Link>
+          <a href="#auth" className="landing-nav-link">Sign in</a>
         </div>
         <a href="#auth" className="btn btn-primary btn-sm">Get started</a>
       </div>
