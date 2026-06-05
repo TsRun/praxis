@@ -76,8 +76,8 @@
       "route": "/trainer/studies",
       "requiresAuth": true,
       "description": "Choosing 'Opening study' from the New study menu opens a dialog where a name can be entered and the study created successfully.",
-      "lastTestedAt": "2026-06-01T12:20:17Z",
-      "lastResult": "improved",
+      "lastTestedAt": "2026-06-05T03:08:00Z",
+      "lastResult": "ok",
       "lastPr": 138,
       "removed": false
     },
