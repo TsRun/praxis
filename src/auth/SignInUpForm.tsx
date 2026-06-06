@@ -294,6 +294,7 @@ export function SignInUpForm({ inviteToken, inviteEmail, inviteName }: Props) {
                   onClick={() => toggle(r)}
                   aria-pressed={on}
                   aria-label={`${title} — ${sub}`}
+                  className="role-pick"
                   style={{
                     padding: '14px 10px',
                     borderRadius: 12,
