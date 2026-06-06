@@ -504,9 +504,19 @@ input[type='range']::-moz-range-thumb {
 .assignment-row-link { display: block; text-decoration: none; color: inherit; border-radius: 12px; }
 .assignment-row-link:focus-visible { outline-offset: 3px; }
 .assignment-row {
+  display: grid;
+  grid-template-columns: 56px 1fr 130px auto;
+  gap: 14px;
+  align-items: center;
+  padding: 12px;
+  border-radius: 12px;
+  cursor: pointer;
   background: var(--inset-bg);
   border: 1px solid var(--inset-border);
   transition: background 120ms ease, border-color 120ms ease;
+}
+@media (max-width: 640px) {
+  .assignment-row { grid-template-columns: 56px minmax(0,1fr) auto; gap: 12px; padding: 10px; }
 }
 .assignment-row-link:hover .assignment-row { background: rgba(255,255,255,0.05); border-color: rgba(255,255,255,0.08); }
 
