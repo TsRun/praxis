@@ -185,7 +185,42 @@ test('signup-form-render: Create account mode shows name, email, password, role 
       boxShadow: cs.boxShadow,
     };
   });
-  console.log('TRAINER role :focus styles:', roleFocus);
+  console.log('TRAINER role :focus styles (programmatic):', roleFocus);
+
+  // Keyboard tab focus — should trigger :focus-visible (2px accent outline)
+  await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());
+  await pwInput.focus();
+  await page.keyboard.press('Tab');
+  await page.waitForTimeout(80);
+  const kbFocusInfo = await page.evaluate(() => {
+    const el = document.activeElement as HTMLElement | null;
+    if (!el) return null;
+    const cs = getComputedStyle(el);
+    return {
+      tag: el.tagName,
+      ariaLabel: el.getAttribute('aria-label'),
+      outlineStyle: cs.outlineStyle,
+      outlineWidth: cs.outlineWidth,
+      outlineColor: cs.outlineColor,
+      boxShadow: cs.boxShadow,
+    };
+  });
+  console.log('TRAINER role :focus-visible (kbd tab):', kbFocusInfo);
+  if (kbFocusInfo?.outlineStyle !== 'solid') {
+    console.warn(`WARN: role-picker has no visible outline on keyboard focus (style=${kbFocusInfo?.outlineStyle}).`);
+  }
+
+  // Hover on Student button — role-pick class should add accent-ring inset shadow
+  await studentBtn.hover();
+  await page.waitForTimeout(80);
+  const hoverInfo = await studentBtn.evaluate((el) => {
+    const cs = getComputedStyle(el as HTMLElement);
+    return { boxShadow: cs.boxShadow };
+  });
+  console.log('STUDENT role :hover boxShadow:', hoverInfo);
+  if (hoverInfo.boxShadow === 'none') {
+    console.warn('WARN: role-picker buttons have no hover affordance (boxShadow=none); .role-pick class not applied.');
+  }
 
   // Desktop screenshot
   await page.screenshot({
