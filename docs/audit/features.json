@@ -1,8 +1,8 @@
 {
   "schemaVersion": 2,
   "site": "https://praxis.tsrun.dev/",
-  "lastDiscoveryAt": "2026-06-03T09:15:00Z",
-  "discoveryCount": 4,
+  "lastDiscoveryAt": "2026-06-06T15:05:18Z",
+  "discoveryCount": 5,
   "features": [
     {
       "id": "landing-page-render",
@@ -288,6 +288,39 @@
       "lastTestedAt": "2026-06-03T15:17:23Z",
       "lastResult": "improved",
       "lastPr": 184,
+      "removed": false
+    },
+    {
+      "id": "student-game-study-viewer",
+      "name": "Student game study viewer",
+      "route": "/student/study/game/:id",
+      "requiresAuth": true,
+      "description": "Navigating to /student/study/game/<id> as a student renders the game study viewer with a chess board and move list, without uncaught errors.",
+      "lastTestedAt": null,
+      "lastResult": null,
+      "lastPr": null,
+      "removed": false
+    },
+    {
+      "id": "student-tactic-set-viewer",
+      "name": "Student tactic set viewer",
+      "route": "/student/study/tactic/:id",
+      "requiresAuth": true,
+      "description": "Navigating to /student/study/tactic/<id> as a student renders the tactic set viewer presenting puzzles to solve, without uncaught errors.",
+      "lastTestedAt": null,
+      "lastResult": null,
+      "lastPr": null,
+      "removed": false
+    },
+    {
+      "id": "trainer-assign-study-dialog",
+      "name": "Trainer assign-study-to-student dialog",
+      "route": "/trainer/studies/opening/:id",
+      "requiresAuth": true,
+      "description": "Inside the opening study editor, clicking 'Assign to student' opens a dialog listing students that can be picked and assigned to the study, without uncaught errors.",
+      "lastTestedAt": null,
+      "lastResult": null,
+      "lastPr": null,
       "removed": false
     }
   ]
