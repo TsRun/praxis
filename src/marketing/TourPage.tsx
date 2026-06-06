@@ -171,7 +171,6 @@ function SceneTabs({ idx, onPick }: { idx: number; onPick: (i: number) => void }
     >
       {SCENES.map((s, i) => {
         const active = i === idx;
-        const past = i < idx;
         return (
           <button
             key={s.id}
@@ -189,9 +188,7 @@ function SceneTabs({ idx, onPick }: { idx: number; onPick: (i: number) => void }
               background: active ? 'var(--accent-soft)' : 'transparent',
               color: active
                 ? 'var(--accent)'
-                : past
-                ? 'var(--text-dim)'
-                : 'var(--text-faint)',
+                : 'var(--text-dim)',
               cursor: 'pointer',
               letterSpacing: 0.2,
               flexShrink: 0,
