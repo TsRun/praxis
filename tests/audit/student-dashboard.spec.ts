@@ -190,6 +190,55 @@ test('student-dashboard: greeting, stats, filter, side cards, row hover', async 
   console.log('MOBILE OVERFLOW:', overflow);
   expect(overflow.scroll).toBeLessThanOrEqual(overflow.client + 1);
 
+  // ----- Mobile assignment-row layout -----
+  // The desktop layout is `56px 1fr 130px auto` — column 3 holds the progress
+  // bar which is hidden via `.hide-mobile` at ≤640px. Without a mobile
+  // grid-template override the column still consumes ~130px, squeezing the
+  // name into many lines. Observe column widths and warn if the unused 130px
+  // column is still present at 375.
+  const rowGridInfo = await page.evaluate(() => {
+    const row = document.querySelector('.assignment-row') as HTMLElement | null;
+    if (!row) return null;
+    const cs = getComputedStyle(row);
+    const cols = cs.gridTemplateColumns.split(/\s+/).map((v) => parseFloat(v));
+    const nameCell = row.children[1] as HTMLElement | undefined;
+    const nameW = nameCell ? Math.round(nameCell.getBoundingClientRect().width) : 0;
+    return { gridTemplateColumns: cs.gridTemplateColumns, cols, nameW };
+  });
+  console.log('MOBILE ASSIGNMENT ROW:', rowGridInfo);
+  if (rowGridInfo && rowGridInfo.cols.length === 4 && rowGridInfo.cols[2] >= 100) {
+    console.warn(
+      'ASSIGNMENT ROW: mobile grid still has a 130px column for the hidden progress bar — name column gets squeezed.',
+    );
+  }
+
+  // Stylesheet should declare a mobile-width override on `.assignment-row` so
+  // the empty progress-bar column collapses below 640px.
+  const mobileGridRuleDeclared = await page.evaluate(() => {
+    for (const sheet of Array.from(document.styleSheets)) {
+      let rules: CSSRule[] = [];
+      try { rules = Array.from(sheet.cssRules ?? []); } catch { continue; }
+      for (const r of rules) {
+        if (!(r instanceof CSSMediaRule)) continue;
+        if (!/max-width:\s*640/.test(r.conditionText)) continue;
+        for (const inner of Array.from(r.cssRules)) {
+          const sel = (inner as CSSStyleRule).selectorText ?? '';
+          const style = (inner as CSSStyleRule).style;
+          if (sel.includes('.assignment-row') && style && style.gridTemplateColumns) {
+            return true;
+          }
+        }
+      }
+    }
+    return false;
+  });
+  console.log('MOBILE GRID RULE DECLARED:', mobileGridRuleDeclared);
+  if (!mobileGridRuleDeclared) {
+    console.warn(
+      'ASSIGNMENT ROW: no mobile grid-template-columns override declared — prod build is stale relative to the fix.',
+    );
+  }
+
   console.log('PAGE ERRORS:', pageErrors);
   console.log(
     'APP CONSOLE ERRORS:',

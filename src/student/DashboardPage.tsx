@@ -555,18 +555,7 @@ function AssignmentRowCard({ a }: { a: AssignmentRow }) {
   const isDone = a.completed_at != null;
   return (
     <Link to={path} className="assignment-row-link">
-      <div
-        className="assignment-row"
-        style={{
-          display: 'grid',
-          gridTemplateColumns: '56px 1fr 130px auto',
-          gap: 14,
-          alignItems: 'center',
-          padding: 12,
-          borderRadius: 12,
-          cursor: 'pointer',
-        }}
-      >
+      <div className="assignment-row">
         <FenBoard fen={START_FEN} size={56} coordinates={false} />
         <div style={{ minWidth: 0 }}>
           <div
