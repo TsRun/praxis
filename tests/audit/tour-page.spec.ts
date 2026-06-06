@@ -158,6 +158,50 @@ test('tour-page: renders + UI/a11y audit', async ({ page }) => {
   });
   console.log('MOBILE CTA:', mobileControlBar);
 
+  // ─── Contrast check: future scene tabs vs page background ───
+  // Future (unvisited, non-active) scene tabs are interactive nav. Their
+  // label text must meet WCAG AA (4.5:1) at the 12.5px font-size used.
+  const futureTabContrast = await page.evaluate(() => {
+    function srgbToLinear(v: number) {
+      v /= 255;
+      return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4);
+    }
+    function luminance(rgb: string) {
+      const m = rgb.match(/\d+(?:\.\d+)?/g);
+      if (!m) return 0;
+      const [r, g, b] = m.map(Number);
+      return (
+        0.2126 * srgbToLinear(r) +
+        0.7152 * srgbToLinear(g) +
+        0.0722 * srgbToLinear(b)
+      );
+    }
+    function contrast(a: string, b: string) {
+      const la = luminance(a);
+      const lb = luminance(b);
+      const lighter = Math.max(la, lb);
+      const darker = Math.min(la, lb);
+      return (lighter + 0.05) / (darker + 0.05);
+    }
+    const bg = getComputedStyle(document.body).backgroundColor;
+    const row = document.querySelector('.scroll-row');
+    if (!row) return null;
+    const btns = Array.from(row.querySelectorAll('button'));
+    return btns
+      .filter((b) => b.getAttribute('aria-pressed') === 'false')
+      .map((b) => {
+        const cs = getComputedStyle(b);
+        return {
+          text: b.textContent?.trim().slice(0, 24),
+          color: cs.color,
+          bg,
+          fontSize: cs.fontSize,
+          contrast: Number(contrast(cs.color, bg).toFixed(2)),
+        };
+      });
+  });
+  console.log('FUTURE TAB CONTRAST:', JSON.stringify(futureTabContrast, null, 2));
+
   // ─── Filter app-level console errors (browser network errors are waived) ───
   const appConsoleErrors = consoleErrors.filter(
     (e) => !e.includes('Failed to load resource')
@@ -173,4 +217,10 @@ test('tour-page: renders + UI/a11y audit', async ({ page }) => {
 
   // Sign up button must be present
   await expect(page.getByText('Sign up →')).toBeVisible();
+
+  // Future scene tabs are nav targets at 12.5px — they need to be readable.
+  // We assert non-null & non-empty here; contrast values are logged above
+  // and used to justify any improvement PR.
+  expect(futureTabContrast, 'have future scene tabs').not.toBeNull();
+  expect((futureTabContrast ?? []).length, 'at least one future scene tab').toBeGreaterThan(0);
 });
