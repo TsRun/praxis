@@ -1,12 +1,23 @@
 import { useEffect, useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, Link } from 'react-router-dom';
 import { Chess } from 'chess.js';
 import { ChessBoard } from '../components/board/ChessBoard';
 import { MoveList } from '../components/board/MoveList';
 import { useGameStore } from '../store/gameStore';
 import { student, type GameStudyForStudent } from '../lib/api';
 import { Card, Btn, Chip } from '../components/ui/atoms';
-import { IconCheck, IconAlert } from '../components/ui/Icons';
+import { IconCheck, IconAlert, IconArrowL } from '../components/ui/Icons';
+
+// Strip leaky server-internal error strings (Postgres "column \"x\" does not
+// exist" etc.) before showing to students. HTTP-shaped messages like
+// "GET /api/... → 500" stay since they aren't leaky.
+function userVisibleErrorDetail(msg: string): string | null {
+  const m = msg.trim();
+  if (!m) return null;
+  if (/(column|relation|constraint|function|operator|type)\s+"[^"]+"\s+does not exist/i.test(m)) return null;
+  if (/^(syntax error|invalid input syntax|null value in column|duplicate key value|permission denied for)/i.test(m)) return null;
+  return m;
+}
 
 type QuizState =
   | { ply: number; phase: 'asking' }
@@ -23,6 +34,7 @@ export function GameStudyViewer() {
   const { id } = useParams();
   const numId = Number(id);
   const [study, setStudy] = useState<GameStudyForStudent | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [showComments, setShowComments] = useState(true);
   const [quizState, setQuizState] = useState<QuizState>(null);
 
@@ -31,16 +43,28 @@ export function GameStudyViewer() {
   const loadLine = useGameStore((s) => s.loadLine);
 
   useEffect(() => {
-    student.game(numId).then((s) => {
-      setStudy(s);
-      const c = new Chess();
-      try {
-        c.loadPgn(s.pgn);
-      } catch {
-        /* ignore */
-      }
-      loadLine(c.history(), 0);
-    });
+    let cancelled = false;
+    setLoadError(null);
+    student.game(numId).then(
+      (s) => {
+        if (cancelled) return;
+        setStudy(s);
+        const c = new Chess();
+        try {
+          c.loadPgn(s.pgn);
+        } catch {
+          /* ignore */
+        }
+        loadLine(c.history(), 0);
+      },
+      (e: unknown) => {
+        if (cancelled) return;
+        setLoadError(e instanceof Error ? e.message : 'Failed to load study');
+      },
+    );
+    return () => {
+      cancelled = true;
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [numId]);
 
@@ -81,9 +105,53 @@ export function GameStudyViewer() {
     );
   }
 
+  if (loadError) {
+    const detail = userVisibleErrorDetail(loadError);
+    return (
+      <div className="page-wrap" style={{ paddingTop: 24 }}>
+        <Card role="alert" style={{ padding: 22, borderRadius: 14 }}>
+          <h2 className="t-h2" style={{ margin: '0 0 8px' }}>
+            Couldn't load this study
+          </h2>
+          <p className="meta" style={{ margin: '0 0 6px' }}>
+            The study can't be opened right now. It may have been removed,
+            you may no longer be assigned to it, or the server is temporarily
+            unavailable.
+          </p>
+          {detail && (
+            <p
+              className="mono meta"
+              style={{ fontSize: 12, margin: '0 0 14px', wordBreak: 'break-word' }}
+            >
+              {detail}
+            </p>
+          )}
+          <Link
+            to="/student/dashboard"
+            style={{
+              display: 'inline-flex',
+              gap: 6,
+              alignItems: 'center',
+              color: 'var(--text-dim)',
+              fontSize: 13,
+            }}
+          >
+            <IconArrowL size={14} /> Back to dashboard
+          </Link>
+        </Card>
+      </div>
+    );
+  }
+
   if (!study)
     return (
-      <div style={{ padding: 28, color: 'var(--text-faint)' }}>Loading…</div>
+      <div
+        role="status"
+        aria-live="polite"
+        style={{ padding: 28, color: 'var(--text-faint)' }}
+      >
+        Loading…
+      </div>
     );
   const noteByPly = new Map(
     study.annotations.map((a) => [a.ply, a] as const),
