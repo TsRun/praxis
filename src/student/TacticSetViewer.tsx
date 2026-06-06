@@ -150,34 +150,64 @@ export function TacticSetViewer() {
         <Chip variant="mono">
           {Math.min(index + 1, set.puzzles.length)} / {set.puzzles.length}
         </Chip>
-        <Chip variant={solvedIds.size === set.puzzles.length ? 'success' : 'default'}>
+        <Chip
+          variant={
+            set.puzzles.length > 0 && solvedIds.size === set.puzzles.length
+              ? 'success'
+              : 'default'
+          }
+        >
           {solvedIds.size} solved
         </Chip>
       </div>
 
       {completed ? (
         <Card style={{ padding: 32, textAlign: 'center' }}>
-          <h2 className="t-h2">End of set</h2>
-          <p className="meta">
-            You answered {solvedIds.size} of {set.puzzles.length} puzzles
-            correctly. Come back tomorrow to drill the ones you missed.
-          </p>
-          <div
-            style={{
-              display: 'flex',
-              gap: 10,
-              justifyContent: 'center',
-              marginTop: 14,
-            }}
-          >
-            <Btn variant="ghost" onClick={prev}>
-              <IconArrowL size={13} strokeWidth={2.4} />
-              Back to last puzzle
-            </Btn>
-            <Btn variant="primary" onClick={() => nav('/student/dashboard')}>
-              Done
-            </Btn>
-          </div>
+          {set.puzzles.length === 0 ? (
+            <>
+              <h2 className="t-h2">No puzzles yet</h2>
+              <p className="meta">
+                This tactical set is empty. Your trainer hasn't added any
+                puzzles to drill.
+              </p>
+              <div
+                style={{
+                  display: 'flex',
+                  gap: 10,
+                  justifyContent: 'center',
+                  marginTop: 14,
+                }}
+              >
+                <Btn variant="primary" onClick={() => nav('/student/dashboard')}>
+                  Back to dashboard
+                </Btn>
+              </div>
+            </>
+          ) : (
+            <>
+              <h2 className="t-h2">End of set</h2>
+              <p className="meta">
+                You answered {solvedIds.size} of {set.puzzles.length} puzzles
+                correctly. Come back tomorrow to drill the ones you missed.
+              </p>
+              <div
+                style={{
+                  display: 'flex',
+                  gap: 10,
+                  justifyContent: 'center',
+                  marginTop: 14,
+                }}
+              >
+                <Btn variant="ghost" onClick={prev}>
+                  <IconArrowL size={13} strokeWidth={2.4} />
+                  Back to last puzzle
+                </Btn>
+                <Btn variant="primary" onClick={() => nav('/student/dashboard')}>
+                  Done
+                </Btn>
+              </div>
+            </>
+          )}
         </Card>
       ) : (
         <div className="grid-2" style={{ gap: 24, alignItems: 'start' }}>
