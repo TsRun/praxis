@@ -439,25 +439,44 @@ export function ImportGamesPage() {
             )}
           </Card>
 
-          <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: 10 }}>
-            {stage?.kind === 'results' && (
-              <span className="meta" style={{ fontSize: 12 }}>
-                {stage.games.length} match{stage.games.length === 1 ? '' : 'es'}
-              </span>
-            )}
-            <Btn
-              variant="primary"
-              onClick={search}
-              disabled={
-                busy ||
-                (source === 'chesscom' && !ccUsername.trim()) ||
-                (source === 'lichess' && !liUsername.trim())
-              }
-            >
-              <IconSearch size={13} strokeWidth={2.4} />
-              {busy && stage?.kind === 'searching' ? 'Searching…' : 'Search'}
-            </Btn>
-          </div>
+          {(() => {
+            const missingCc = source === 'chesscom' && !ccUsername.trim();
+            const missingLi = source === 'lichess' && !liUsername.trim();
+            const missingUsername = missingCc || missingLi;
+            const disabledReason = missingCc
+              ? 'Enter a Chess.com username to search'
+              : missingLi
+                ? 'Enter a Lichess username to search'
+                : undefined;
+            return (
+              <div
+                style={{
+                  display: 'flex',
+                  justifyContent: 'flex-end',
+                  alignItems: 'center',
+                  gap: 10,
+                  flexWrap: 'wrap',
+                }}
+              >
+                {stage?.kind === 'results' ? (
+                  <span className="meta" style={{ fontSize: 12 }}>
+                    {stage.games.length} match{stage.games.length === 1 ? '' : 'es'}
+                  </span>
+                ) : disabledReason ? (
+                  <span className="meta" style={{ fontSize: 12 }}>{disabledReason}</span>
+                ) : null}
+                <Btn
+                  variant="primary"
+                  onClick={search}
+                  disabled={busy || missingUsername}
+                  title={disabledReason}
+                >
+                  <IconSearch size={13} strokeWidth={2.4} />
+                  {busy && stage?.kind === 'searching' ? 'Searching…' : 'Search'}
+                </Btn>
+              </div>
+            );
+          })()}
         </div>
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>

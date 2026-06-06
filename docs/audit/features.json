@@ -142,7 +142,7 @@
       "route": "/trainer/games",
       "requiresAuth": true,
       "description": "Navigating to /trainer/games renders the 'Browse games' heading with source tabs (Chess.com, Lichess, Database) and a board with Undo/Reset controls.",
-      "lastTestedAt": "2026-06-03T06:14:11Z",
+      "lastTestedAt": "2026-06-06T12:13:28Z",
       "lastResult": "improved",
       "lastPr": null,
       "removed": false

@@ -219,6 +219,7 @@ test('trainer-games-browser: renders sources, filters, and inputs', async ({ pag
     disabled: el.disabled,
     ariaDisabled: el.getAttribute('aria-disabled'),
     text: el.textContent?.trim() ?? '',
+    title: el.getAttribute('title'),
   }));
   console.log('SEARCH BUTTON (cc empty):', searchBtnInfo);
 
