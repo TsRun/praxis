@@ -6,7 +6,7 @@ import franceGeo from './france-regions.geo.json';
 
 const W = 720;
 const H = 720;
-const CAD_COLOR: Record<string, string> = { classic: '#2e7d5b', rapid: '#b8860b', blitz: '#9c4dcc' };
+const CAD_COLOR: Record<string, string> = { classic: '#2e7d5b', rapid: '#8b6914', blitz: '#9c4dcc' };
 
 export function TournamentMap({ rows, onSelect }: {
   rows: TournamentRow[];
