@@ -199,24 +199,9 @@ test('trainer-assign-study-dialog: opens dialog with student picker + UI/a11y ch
   });
   console.log('ASSIGN :focus:', assignFocus);
 
-  // 11) Search input :focus
-  await search.focus();
-  const searchFocus = await search.evaluate((el) => {
-    const cs = getComputedStyle(el);
-    return {
-      outlineStyle: cs.outlineStyle,
-      outlineWidth: cs.outlineWidth,
-      boxShadow: cs.boxShadow,
-      borderColor: cs.borderColor,
-    };
-  });
-  console.log('SEARCH :focus:', searchFocus);
-
-  // 12) Close button (X) aria-label
+  // 11) Close button (X) aria-label
   const closeX = dialog.getByRole('button', { name: /^Close$/ });
-  const closeXCount = await closeX.count();
-  console.log('CLOSE X COUNT:', closeXCount);
-  expect(closeXCount).toBeGreaterThan(0);
+  expect(await closeX.count()).toBeGreaterThan(0);
 
   // 13) Mobile viewport pass — 375x812
   await page.setViewportSize({ width: 375, height: 812 });
