@@ -89,6 +89,21 @@ test('trainer-games-free-editor: palette, controls, mobile', async ({ page }) =>
   await expect(whiteRadio).toBeVisible();
   await expect(blackRadio).toBeVisible();
 
+  // Legibility observation — black palette glyphs are #1a1a1a on a
+  // near-black inset background; logging the rendered text-stroke so
+  // post-deploy runs confirm the light outline is in effect.
+  const blackQueen = page.getByRole('button', { name: /^Black (q|queen)$/ });
+  const blackQueenStyle = await blackQueen.evaluate((el) => {
+    const cs = getComputedStyle(el);
+    return {
+      color: cs.color,
+      strokeColor: cs.webkitTextStrokeColor,
+      strokeWidth: cs.webkitTextStrokeWidth,
+    };
+  });
+  console.log('BLACK QUEEN glyph style:', blackQueenStyle);
+  await expect(blackQueen).toBeVisible();
+
   // Picking a piece: aria-pressed should flip.
   const whiteQueen = page.getByRole('button', { name: /^White (q|queen)$/ });
   const queenBefore = await whiteQueen.evaluate((el: HTMLButtonElement) => ({
