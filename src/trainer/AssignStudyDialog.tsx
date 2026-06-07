@@ -119,7 +119,11 @@ export function AssignStudyDialog({
           />
           {!students && <div className="meta">Loading roster…</div>}
           {students && filtered.length === 0 && (
-            <div className="meta">No students match that search.</div>
+            <div className="meta">
+              {students.length === 0
+                ? 'No students yet — invite one from the Students page.'
+                : 'No students match that search.'}
+            </div>
           )}
           {filtered.length > 0 && (
             <div
