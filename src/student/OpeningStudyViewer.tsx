@@ -198,7 +198,7 @@ export function OpeningStudyViewer() {
               {seen} / {totalChapters} chapters · {pct}%
             </div>
           </div>
-          <ProgressBar pct={pct} className="" />
+          <ProgressBar pct={pct} ariaLabel={`${study.name} progress`} />
           <div
             style={{
               display: 'flex',
