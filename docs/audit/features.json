@@ -263,7 +263,7 @@
       "route": "/trainer/students/:id",
       "requiresAuth": true,
       "description": "Navigating to a specific student under /trainer/students/<id> renders the student detail page with their assignments, progress, and back navigation, without uncaught errors.",
-      "lastTestedAt": "2026-06-03T21:15:29Z",
+      "lastTestedAt": "2026-06-07T12:08:46Z",
       "lastResult": "improved",
       "lastPr": null,
       "removed": false
