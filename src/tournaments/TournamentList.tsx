@@ -1,7 +1,7 @@
 import type { TournamentRow } from '../lib/api';
 
 const CAD_LABEL: Record<string, string> = { classic: 'Classique', rapid: 'Rapide', blitz: 'Blitz' };
-const CAD_COLOR: Record<string, string> = { classic: '#2e7d5b', rapid: '#b8860b', blitz: '#9c4dcc' };
+const CAD_COLOR: Record<string, string> = { classic: '#2e7d5b', rapid: '#8b6914', blitz: '#9c4dcc' };
 
 function fmtDate(iso: string | null): string {
   if (!iso) return '—';

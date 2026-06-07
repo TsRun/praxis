@@ -206,6 +206,23 @@ test('tournaments-page: heading, cadence tabs, view toggle work with UI checks',
     fullPage: true,
   });
 
+  // ---- WCAG-AA contrast: cadence pill colors (white text on these fills,
+  //      ~11px font, so AA threshold is 4.5:1).
+  //      Keep this list in sync with CAD_COLOR in src/tournaments/TournamentList.tsx
+  //      and src/tournaments/TournamentMap.tsx. ----
+  const wcagContrastVsWhite = (hex: string): number => {
+    const ch = hex.replace('#', '').match(/.{2}/g)!.map((h) => parseInt(h, 16) / 255);
+    const lin = ch.map((c) => (c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4)));
+    const L = 0.2126 * lin[0] + 0.7152 * lin[1] + 0.0722 * lin[2];
+    return 1.05 / (L + 0.05);
+  };
+  const cadenceColors = { classic: '#2e7d5b', rapid: '#8b6914', blitz: '#9c4dcc' };
+  for (const [name, hex] of Object.entries(cadenceColors)) {
+    const ratio = wcagContrastVsWhite(hex);
+    console.log(`CADENCE pill contrast (${name}=${hex}): ${ratio.toFixed(2)}:1`);
+    expect(ratio, `cadence pill ${name} (${hex}) must meet WCAG-AA 4.5:1`).toBeGreaterThanOrEqual(4.5);
+  }
+
   // ---- Final error tallies ----
   const appErrs = consoleErrors.filter((e) => !/Failed to load resource/i.test(e));
   console.log('PAGE ERRORS:', pageErrors);
