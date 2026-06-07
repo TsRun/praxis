@@ -252,7 +252,7 @@
       "route": "/trainer/studies/opening/:id",
       "requiresAuth": true,
       "description": "Navigating to /trainer/studies/opening/<id> renders the opening study editor with Tree / Chapters tabs and primary actions (Set opening prefix, Import from Lichess, Import games, Assign to student) without errors.",
-      "lastTestedAt": "2026-06-03T18:18:00Z",
+      "lastTestedAt": "2026-06-07T09:08:38Z",
       "lastResult": "improved",
       "lastPr": 185,
       "removed": false

@@ -155,6 +155,7 @@ a.link:hover, button.link:hover { text-decoration: underline; text-underline-off
 }
 .btn:active { transform: translateY(0.5px); }
 .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 
 .btn-primary {
   background: var(--accent);
