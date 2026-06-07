@@ -253,17 +253,25 @@ function PlyList({
         >
           {history[i]}
           {wA?.is_quiz && (
-            <span style={{ marginLeft: 4, color: 'var(--accent)', fontSize: 10 }}>
+            <span
+              aria-hidden="true"
+              title="Quiz on this move"
+              style={{ marginLeft: 4, color: 'var(--accent)', fontSize: 10 }}
+            >
               ●Q
             </span>
           )}
+          {wA?.is_quiz && <span className="sr-only">, quiz</span>}
           {wA?.comment_md && (
             <span
+              aria-hidden="true"
+              title="Has a comment"
               style={{ marginLeft: 4, color: 'var(--text-faint)', fontSize: 10 }}
             >
               ●
             </span>
           )}
+          {wA?.comment_md && <span className="sr-only">, has comment</span>}
         </button>
         {history[i + 1] && (
           <button
@@ -284,13 +292,18 @@ function PlyList({
             {history[i + 1]}
             {bA?.is_quiz && (
               <span
+                aria-hidden="true"
+                title="Quiz on this move"
                 style={{ marginLeft: 4, color: 'var(--accent)', fontSize: 10 }}
               >
                 ●Q
               </span>
             )}
+            {bA?.is_quiz && <span className="sr-only">, quiz</span>}
             {bA?.comment_md && (
               <span
+                aria-hidden="true"
+                title="Has a comment"
                 style={{
                   marginLeft: 4,
                   color: 'var(--text-faint)',
@@ -300,6 +313,7 @@ function PlyList({
                 ●
               </span>
             )}
+            {bA?.comment_md && <span className="sr-only">, has comment</span>}
           </button>
         )}
       </div>,
