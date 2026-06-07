@@ -27,7 +27,14 @@ export function StudentDetailPage() {
       setLoadError(null);
       setDetail(await trainerStudent.get(numId));
     } catch (e) {
-      setLoadError(e instanceof Error ? e.message : 'Failed to load student');
+      const raw = e instanceof Error ? e.message : '';
+      if (/not your student/i.test(raw)) {
+        setLoadError(
+          "You don’t have access to this student. They may belong to a different trainer or have been removed.",
+        );
+      } else {
+        setLoadError(raw || 'Failed to load student');
+      }
     }
   }
   useEffect(() => {
