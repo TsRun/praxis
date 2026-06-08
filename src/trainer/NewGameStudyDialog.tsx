@@ -78,7 +78,9 @@ export function NewGameStudyDialog({ open, onClose, onCreate }: Props) {
         </label>
 
         {err && (
-          <span style={{ fontSize: 12, color: 'var(--danger)' }}>{err}</span>
+          <span role="alert" style={{ fontSize: 12, color: 'var(--danger)' }}>
+            {err}
+          </span>
         )}
 
         <div
