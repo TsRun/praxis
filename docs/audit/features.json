@@ -208,9 +208,9 @@
       "route": "/settings",
       "requiresAuth": true,
       "description": "On /settings the API keys section's 'New key' button opens a creation flow or reveals a new key, with no console/page errors.",
-      "lastTestedAt": "2026-06-04T09:10:17Z",
-      "lastResult": "ok",
-      "lastPr": null,
+      "lastTestedAt": "2026-06-08T00:09:40Z",
+      "lastResult": "improved",
+      "lastPr": 220,
       "removed": false
     },
     {
