@@ -6,8 +6,12 @@ import { IconSearch, IconX, IconCheck } from '../components/ui/Icons';
 
 type Mode = 'nickname' | 'email';
 
+const FOCUSABLE_SELECTOR =
+  'a[href], area[href], button:not([disabled]), input:not([disabled]):not([type="hidden"]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
+
 export function InviteStudentDialog({ onClose }: { onClose: () => void }) {
   const [mode, setMode] = useState<Mode>('nickname');
+  const dialogRef = useRef<HTMLDivElement>(null);
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [emailName, setEmailName] = useState('');
@@ -91,9 +95,42 @@ export function InviteStudentDialog({ onClose }: { onClose: () => void }) {
     return () => document.removeEventListener('keydown', onKey);
   }, [onClose]);
 
+  // Trap Tab/Shift+Tab inside the dialog so focus can't escape to elements
+  // behind the modal. Restore focus to the previously focused element on close.
+  useEffect(() => {
+    const root = dialogRef.current;
+    if (!root) return;
+    const prevFocus = document.activeElement as HTMLElement | null;
+    function onKey(e: KeyboardEvent) {
+      if (e.key !== 'Tab' || !root) return;
+      const nodes = Array.from(
+        root.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR),
+      ).filter((el) => el.offsetParent !== null || el === document.activeElement);
+      if (nodes.length === 0) return;
+      const first = nodes[0];
+      const last = nodes[nodes.length - 1];
+      const active = document.activeElement as HTMLElement | null;
+      if (e.shiftKey && (active === first || !root.contains(active))) {
+        e.preventDefault();
+        last.focus();
+      } else if (!e.shiftKey && (active === last || !root.contains(active))) {
+        e.preventDefault();
+        first.focus();
+      }
+    }
+    root.addEventListener('keydown', onKey);
+    return () => {
+      root.removeEventListener('keydown', onKey);
+      if (prevFocus && typeof prevFocus.focus === 'function') {
+        prevFocus.focus();
+      }
+    };
+  }, []);
+
   return createPortal(
     <div className="modal-backdrop" onClick={onClose}>
       <div
+        ref={dialogRef}
         role="dialog"
         aria-modal="true"
         aria-labelledby="invite-student-title"
