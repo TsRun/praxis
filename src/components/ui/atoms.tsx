@@ -38,6 +38,7 @@ export function Btn({
   const sizeCls = size === 'sm' ? 'btn-sm' : size === 'lg' ? 'btn-lg' : '';
   return (
     <button
+      type="button"
       className={`btn btn-${variant} ${sizeCls} ${className}`.trim()}
       {...rest}
     >
