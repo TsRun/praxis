@@ -11,8 +11,6 @@ test('trainer-new-opening-study-dialog: UI/a11y audit', async ({ page }) => {
   page.on('console', (msg) => {
     if (msg.type() === 'error') {
       const text = msg.text();
-      // Waive browser-level "Failed to load resource: <status>" noise — these
-      // are the browser logging a non-2xx fetch and cannot be suppressed.
       if (text.startsWith('Failed to load resource:')) return;
       consoleErrors.push(text);
     }
@@ -23,191 +21,213 @@ test('trainer-new-opening-study-dialog: UI/a11y audit', async ({ page }) => {
 
   // ---- Sign in ----
   await page.goto(`${PROD_URL}/`, { waitUntil: 'domcontentloaded' });
-  await page.locator('input[placeholder="you@studio.club"]').fill(EMAIL);
+  await page.locator('input[autocomplete="email"]').fill(EMAIL);
   await page.locator('input[type="password"]').first().fill(PASSWORD);
   await page.getByRole('button', { name: /Sign in →/ }).click();
   await page.waitForURL(/\/trainer\/studies/, { timeout: 15000 });
-
-  // Resolve the studies page
   await page.waitForSelector('h1, h2', { timeout: 15000 });
 
-  // ---- Open New study menu ----
+  // ---- Open New study menu → Opening study ----
   await page.getByRole('button', { name: /New study/i }).first().click();
-  // Dropdown items: "Opening study", "Game study", "Tactical set"
-  const openingStudyItem = page.getByRole('button', { name: /^Opening study/i }).or(
-    page.getByText('Opening study', { exact: false }),
-  );
-  await openingStudyItem.first().click();
+  await page.getByRole('menuitem', { name: /Opening study/i }).first().click();
 
-  // ---- Dialog should be open ----
-  const dialog = page.getByRole('dialog');
-  await expect(dialog).toBeVisible();
+  const dialog = page.getByRole('dialog', { name: /new opening study/i });
+  await expect(dialog).toBeVisible({ timeout: 5000 });
 
-  await page.screenshot({ path: 'tests/audit/screenshots/trainer-new-opening-study-dialog.png', fullPage: true });
+  // Desktop screenshot
+  await page.setViewportSize({ width: 1280, height: 800 });
+  await page.waitForTimeout(300);
+  await page.screenshot({
+    path: 'tests/audit/screenshots/trainer-new-opening-study-dialog.png',
+    fullPage: false,
+  });
 
-  // ---- Inspect inputs and a11y ----
-  // Name input
+  // ---- Name input a11y ----
   const nameInput = dialog.locator('input.input').first();
   const nameInfo = await nameInput.evaluate((el) => {
-    const id = el.id || null;
-    const ariaLabel = el.getAttribute('aria-label');
-    const ariaLabelledBy = el.getAttribute('aria-labelledby');
-    let labelFor = 0;
-    if (id) labelFor = document.querySelectorAll(`label[for="${id}"]`).length;
-    const wrappingLabel = el.closest('label');
-    const wrappingLabelText = wrappingLabel ? (wrappingLabel.textContent || '').trim() : null;
-    return { id, ariaLabel, ariaLabelledBy, labelFor, wrappingLabelText };
-  });
-  console.log('NAME INPUT a11y:', nameInfo);
-
-  // Name input focus styles
-  await nameInput.focus();
-  const nameFocusStyles = await nameInput.evaluate((el) => {
-    const cs = getComputedStyle(el);
+    const i = el as HTMLInputElement;
+    const wrappingLabel = i.closest('label');
     return {
-      outlineStyle: cs.outlineStyle,
-      outlineWidth: cs.outlineWidth,
-      boxShadow: cs.boxShadow,
-      borderColor: cs.borderColor,
+      id: i.id || null,
+      ariaLabel: i.getAttribute('aria-label'),
+      placeholder: i.placeholder,
+      wrappingLabelText: wrappingLabel ? (wrappingLabel.textContent || '').trim() : null,
     };
   });
-  console.log('NAME INPUT :focus styles:', nameFocusStyles);
+  console.log('NAME INPUT:', nameInfo);
 
-  // Side picker — pair of buttons (White / Black)
-  const sideButtons = dialog.locator('button').filter({ hasText: /^(White|Black)$/ });
-  const sideCount = await sideButtons.count();
-  console.log('SIDE BUTTONS count (exact match White/Black):', sideCount);
+  await nameInput.focus();
+  const nameFocus = await nameInput.evaluate((el) => {
+    const s = getComputedStyle(el);
+    return {
+      outlineStyle: s.outlineStyle,
+      outlineWidth: s.outlineWidth,
+      boxShadow: s.boxShadow,
+      borderColor: s.borderColor,
+    };
+  });
+  console.log('NAME INPUT :focus styles:', nameFocus);
 
-  // Broader: buttons whose first text node is White or Black
-  const sideOptions = dialog.locator('button').filter({ hasText: /(White|Black)/ });
-  const sideOptionsAll = await sideOptions.all();
-  const sideInfos: Array<{ title: string; ariaPressed: string | null; role: string | null; tabIndex: number }> = [];
-  for (const btn of sideOptionsAll) {
-    const info = await btn.evaluate((el) => {
-      const txt = (el.textContent || '').trim();
-      // Only collect the actual SideOption buttons (have White/Black title + hint)
-      if (!/^(White|Black)/.test(txt)) return null;
+  // ---- Side radiogroup a11y ----
+  const radioGroup = dialog.locator('[role="radiogroup"]');
+  const rgInfo = await radioGroup.evaluate((el) => {
+    const labelId = el.getAttribute('aria-labelledby');
+    const labelEl = labelId ? document.getElementById(labelId) : null;
+    return {
+      ariaLabelledBy: labelId,
+      labelText: labelEl ? (labelEl.textContent || '').trim() : null,
+      radioCount: el.querySelectorAll('input[type="radio"]').length,
+    };
+  });
+  console.log('RADIO GROUP:', rgInfo);
+
+  // Side option labels (visible)
+  const sideLabels = dialog.locator('label.role-pick');
+  const sideCount = await sideLabels.count();
+  console.log('SIDE LABEL count:', sideCount);
+  const sideInfos = [];
+  for (let i = 0; i < sideCount; i++) {
+    const info = await sideLabels.nth(i).evaluate((el) => {
+      const title = el.querySelector('div')?.textContent?.trim() || '';
+      const hint = el.querySelectorAll('div')[1]?.textContent?.trim() || '';
+      const radio = el.querySelector('input[type="radio"]') as HTMLInputElement | null;
+      const cs = getComputedStyle(el);
       return {
-        title: txt.slice(0, 80),
-        ariaPressed: el.getAttribute('aria-pressed'),
-        ariaLabel: el.getAttribute('aria-label'),
-        role: el.getAttribute('role'),
-        tabIndex: (el as HTMLButtonElement).tabIndex,
+        title,
+        hint,
+        radioValue: radio?.value || null,
+        radioChecked: !!radio?.checked,
+        background: cs.backgroundColor,
+        borderColor: cs.borderColor,
       };
     });
-    if (info) sideInfos.push(info as any);
+    sideInfos.push(info);
   }
   console.log('SIDE OPTIONS:', sideInfos);
 
-  // Focus via keyboard so :focus-visible kicks in. Tab from the name input.
+  // Keyboard nav from name input → next focusable should be the W radio
   await nameInput.focus();
   await page.keyboard.press('Tab');
-  // The next tab stop should be the first side option.
   const tabbedTo = await page.evaluate(() => {
     const a = document.activeElement as HTMLElement | null;
     if (!a) return null;
+    const cs = getComputedStyle(a);
     return {
       tag: a.tagName,
-      text: (a.textContent || '').trim().slice(0, 40),
+      type: (a as HTMLInputElement).type || null,
+      value: (a as HTMLInputElement).value || null,
       matchesFocusVisible: a.matches(':focus-visible'),
-    };
-  });
-  console.log('TABBED-TO element:', tabbedTo);
-
-  const firstSide = sideOptions.first();
-  const firstSideFocusStyles = await firstSide.evaluate((el) => {
-    const cs = getComputedStyle(el);
-    const fv = el.matches(':focus-visible');
-    return {
-      matchesFocusVisible: fv,
       outlineStyle: cs.outlineStyle,
       outlineWidth: cs.outlineWidth,
       outlineColor: cs.outlineColor,
-      outlineOffset: cs.outlineOffset,
       boxShadow: cs.boxShadow,
-      borderColor: cs.borderColor,
     };
   });
-  console.log('SIDE OPTION (first) keyboard-focus styles:', firstSideFocusStyles);
+  console.log('TAB stop 1 (after Name input):', tabbedTo);
 
-  // Also tab once more — second side option
-  await page.keyboard.press('Tab');
-  const secondSide = sideOptions.nth(1);
-  const secondSideFocusStyles = await secondSide.evaluate((el) => {
-    const cs = getComputedStyle(el);
-    const fv = el.matches(':focus-visible');
-    return {
-      matchesFocusVisible: fv,
-      outlineStyle: cs.outlineStyle,
-      outlineWidth: cs.outlineWidth,
-      outlineColor: cs.outlineColor,
-      outlineOffset: cs.outlineOffset,
-      boxShadow: cs.boxShadow,
-      borderColor: cs.borderColor,
-    };
+  // The radio is visually hidden — verify the side-option label visually
+  // updates on focus/selection (i.e. there's any visible cue).
+  const blackInputSelector = 'input[type="radio"][value="b"]';
+  await dialog.locator(blackInputSelector).focus();
+  const blackLabelStyleOnFocus = await dialog
+    .locator('label.role-pick')
+    .nth(1)
+    .evaluate((el) => {
+      const cs = getComputedStyle(el);
+      return {
+        background: cs.backgroundColor,
+        borderColor: cs.borderColor,
+        boxShadow: cs.boxShadow,
+        outlineStyle: cs.outlineStyle,
+        outlineWidth: cs.outlineWidth,
+      };
+    });
+  console.log('Black label style (with black radio focused):', blackLabelStyleOnFocus);
+
+  // Pick black via keyboard space
+  await page.keyboard.press('Space');
+  const blackCheckedAfterSpace = await dialog
+    .locator(blackInputSelector)
+    .evaluate((el) => (el as HTMLInputElement).checked);
+  console.log('BLACK CHECKED AFTER Space:', blackCheckedAfterSpace);
+
+  // Back to white
+  await dialog.locator('input[type="radio"][value="w"]').focus();
+  await page.keyboard.press('Space');
+
+  // ---- Move list empty hint ----
+  const hint = dialog.locator('text=/Standard start — drag a piece to set a prefix/i');
+  await expect(hint).toBeVisible();
+  const hintStyle = await hint.evaluate((el) => {
+    const s = getComputedStyle(el);
+    return { color: s.color, fontSize: s.fontSize };
   });
-  console.log('SIDE OPTION (second) keyboard-focus styles:', secondSideFocusStyles);
+  console.log('MOVE LIST HINT:', hintStyle);
 
-  await page.screenshot({ path: 'tests/audit/screenshots/trainer-new-opening-study-dialog-side-focus.png', fullPage: true });
+  // ---- Create button enablement ----
+  const createBtn = dialog.getByRole('button', { name: /^create study$/i });
+  await nameInput.fill('');
+  const disabledEmpty = await createBtn.evaluate((el) => (el as HTMLButtonElement).disabled);
+  await nameInput.fill('Audit probe — Caro-Kann');
+  const disabledFilled = await createBtn.evaluate((el) => (el as HTMLButtonElement).disabled);
+  console.log('CREATE BTN disabled empty/filled:', disabledEmpty, disabledFilled);
 
-  // ---- Close button on Dialog ----
-  const closeBtn = dialog.locator('button').filter({ hasText: '' }).first();
-  // Better: the close button is the small ghost button next to the title containing the X icon
-  const headerCloseBtn = dialog.locator('h2 + button, button.btn-sm').first();
-  const closeInfo = await headerCloseBtn.evaluate((el) => ({
-    ariaLabel: el.getAttribute('aria-label'),
-    textContent: (el.textContent || '').trim(),
-  })).catch(() => null);
+  // ---- Dialog close button (Dialog component renders one in the header) ----
+  const closeBtn = dialog
+    .locator('button')
+    .filter({ has: page.locator('svg, span:has-text("×")') })
+    .first();
+  const closeInfo = await closeBtn
+    .evaluate((el) => ({
+      ariaLabel: el.getAttribute('aria-label'),
+      title: el.getAttribute('title'),
+      text: (el.textContent || '').trim(),
+    }))
+    .catch(() => null);
   console.log('CLOSE BUTTON:', closeInfo);
 
-  // ---- Form validation: Create button disabled with empty name ----
-  await nameInput.fill('');
-  const createBtn = dialog.getByRole('button', { name: /Create study|Create \+ import/ }).first();
-  const createDisabledEmpty = await createBtn.evaluate((el) => (el as HTMLButtonElement).disabled);
-  console.log('CREATE BTN DISABLED (empty name):', createDisabledEmpty);
-
-  await nameInput.fill('Audit test — Caro-Kann');
-  const createDisabledFilled = await createBtn.evaluate((el) => (el as HTMLButtonElement).disabled);
-  console.log('CREATE BTN DISABLED (filled name):', createDisabledFilled);
-
   // ---- Mobile viewport ----
-  // Close dialog first via Escape, then reopen at small viewport
-  await page.keyboard.press('Escape');
   await page.setViewportSize({ width: 375, height: 812 });
   await page.waitForTimeout(300);
-
-  await page.screenshot({ path: 'tests/audit/screenshots/trainer-new-opening-study-dialog-mobile.png', fullPage: true });
-
-  await page.getByRole('button', { name: /New study/i }).first().click();
-  await page.getByText('Opening study', { exact: false }).first().click();
-  const mobileDialog = page.getByRole('dialog');
-  await expect(mobileDialog).toBeVisible();
-  await page.waitForTimeout(200);
-
-  await page.screenshot({ path: 'tests/audit/screenshots/trainer-new-opening-study-dialog-mobile-dialog.png', fullPage: true });
-
-  const mobileDialogBox = await mobileDialog.evaluate((el) => {
-    const r = el.getBoundingClientRect();
-    return { width: Math.round(r.width), height: Math.round(r.height), left: Math.round(r.left), right: Math.round(r.right) };
+  await page.screenshot({
+    path: 'tests/audit/screenshots/trainer-new-opening-study-dialog-mobile.png',
+    fullPage: false,
   });
-  console.log('MOBILE DIALOG BOX:', mobileDialogBox, 'viewport 375');
 
-  const mobileSideButtons = mobileDialog.locator('button').filter({ hasText: /(White|Black)/ });
-  const mobileSideRects: Array<any> = [];
-  for (const b of await mobileSideButtons.all()) {
-    const info = await b.evaluate((el) => {
-      const t = (el.textContent || '').trim();
-      if (!/^(White|Black)/.test(t)) return null;
+  const dialogBoxMobile = await dialog.evaluate((el) => {
+    const r = el.getBoundingClientRect();
+    return {
+      width: Math.round(r.width),
+      height: Math.round(r.height),
+      left: Math.round(r.left),
+      right: Math.round(r.right),
+      scrollH: el.scrollHeight,
+      clientH: el.clientHeight,
+    };
+  });
+  console.log('MOBILE DIALOG BOX:', dialogBoxMobile, 'viewport 375x812');
+
+  // Side option rect on mobile
+  const mobileSideRects = [];
+  for (let i = 0; i < sideCount; i++) {
+    const info = await sideLabels.nth(i).evaluate((el) => {
       const r = el.getBoundingClientRect();
-      return { txt: t.slice(0, 40), width: Math.round(r.width), height: Math.round(r.height) };
+      return { width: Math.round(r.width), height: Math.round(r.height) };
     });
-    if (info) mobileSideRects.push(info);
+    mobileSideRects.push(info);
   }
-  console.log('MOBILE SIDE OPTION RECTS:', mobileSideRects);
+  console.log('MOBILE side-option rects:', mobileSideRects);
+
+  // Footer reachable?
+  const createBoxMobile = await createBtn.boundingBox();
+  console.log('MOBILE create btn box:', createBoxMobile);
+
+  // ---- Close ----
+  await dialog.getByRole('button', { name: /^cancel$/i }).click();
+  await expect(dialog).toBeHidden({ timeout: 3000 });
 
   console.log('PAGE ERRORS:', pageErrors);
   console.log('APP CONSOLE ERRORS:', consoleErrors);
 
-  // Don't fail the spec on observed UI issues — we report them.
-  expect(pageErrors).toEqual([]);
+  expect(pageErrors, 'no uncaught page errors').toEqual([]);
 });
