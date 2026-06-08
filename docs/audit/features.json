@@ -175,8 +175,8 @@
       "route": "/trainer/studies",
       "requiresAuth": true,
       "description": "Clicking the avatar/name button in the top-right header opens a profile menu showing user name, email, role chips and a sign-out button — present across all authed pages.",
-      "lastTestedAt": "2026-06-05T06:06:00Z",
-      "lastResult": "ok",
+      "lastTestedAt": "2026-06-08T21:11:15Z",
+      "lastResult": "improved",
       "lastPr": 139,
       "removed": false
     },
