@@ -89,7 +89,7 @@
       "description": "Choosing 'Game study' from the New study menu opens a dialog with a name field and a PGN textarea that can be submitted.",
       "lastTestedAt": "2026-06-08T15:07:43Z",
       "lastResult": "improved",
-      "lastPr": null,
+      "lastPr": 225,
       "removed": false
     },
     {
