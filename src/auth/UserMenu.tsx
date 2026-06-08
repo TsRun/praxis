@@ -118,12 +118,27 @@ export function UserMenu() {
                 to="/settings"
                 onClick={() => setOpen(false)}
                 style={{
-                  color: 'var(--text-dim)',
-                  fontSize: 12,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  color: 'var(--text)',
+                  fontSize: 13,
                   textDecoration: 'none',
+                  padding: '6px 8px',
+                  margin: '0 -8px',
+                  borderRadius: 8,
                 }}
+                onMouseOver={(e) =>
+                  (e.currentTarget.style.background = 'var(--inset-bg)')
+                }
+                onMouseOut={(e) =>
+                  (e.currentTarget.style.background = 'transparent')
+                }
               >
-                Open settings →
+                <span>Open settings</span>
+                <span aria-hidden="true" style={{ color: 'var(--text-faint)' }}>
+                  →
+                </span>
               </Link>
               <div
                 style={{
