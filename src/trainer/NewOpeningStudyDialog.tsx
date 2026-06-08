@@ -256,7 +256,7 @@ function SideOption({
         padding: 14,
         borderRadius: 12,
         background: picked ? 'var(--accent-soft)' : 'var(--inset-bg)',
-        border: `1px solid ${picked ? 'var(--accent-ring)' : 'var(--inset-border)'}`,
+        border: `1px solid ${picked ? 'var(--accent-ring)' : 'var(--hairline-2)'}`,
         cursor: 'pointer',
         transition: 'background 120ms ease, border-color 120ms ease, box-shadow 120ms ease',
         color: 'inherit',
