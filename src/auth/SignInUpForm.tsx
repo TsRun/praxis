@@ -299,7 +299,7 @@ export function SignInUpForm({ inviteToken, inviteEmail, inviteName }: Props) {
                     padding: '14px 10px',
                     borderRadius: 12,
                     background: on ? 'var(--accent-soft)' : 'var(--inset-bg)',
-                    border: `1px solid ${on ? 'var(--accent-ring)' : 'var(--inset-border)'}`,
+                    border: `1px solid ${on ? 'var(--accent-ring)' : 'rgba(255, 255, 255, 0.14)'}`,
                     cursor: 'pointer',
                     textAlign: 'center',
                     color: on ? 'var(--text)' : 'var(--text-dim)',
