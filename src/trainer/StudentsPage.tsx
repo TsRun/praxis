@@ -113,7 +113,7 @@ export function StudentsPage() {
           aria-atomic="true"
           style={{ whiteSpace: 'nowrap' }}
         >
-          {filtered.length} students
+          {rows == null ? 'Loading…' : `${filtered.length} students`}
         </span>
       </div>
 
