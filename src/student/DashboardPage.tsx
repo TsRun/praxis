@@ -610,6 +610,7 @@ function AssignmentRowCard({ a }: { a: AssignmentRow }) {
         </div>
         {isDone ? (
           <span
+            className="assignment-row-status"
             style={{
               color: 'var(--success)',
               fontSize: 12,
@@ -622,6 +623,7 @@ function AssignmentRowCard({ a }: { a: AssignmentRow }) {
           </span>
         ) : a.progress_pct > 0 ? (
           <span
+            className="assignment-row-status"
             style={{
               display: 'inline-flex',
               alignItems: 'center',
@@ -638,7 +640,7 @@ function AssignmentRowCard({ a }: { a: AssignmentRow }) {
             in progress
           </span>
         ) : (
-          <span className="chip" style={{ color: 'var(--text-faint)' }}>
+          <span className="chip assignment-row-status" style={{ color: 'var(--text-faint)' }}>
             <IconClock size={12} /> not started
           </span>
         )}

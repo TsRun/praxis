@@ -517,7 +517,15 @@ input[type='range']::-moz-range-thumb {
   transition: background 120ms ease, border-color 120ms ease;
 }
 @media (max-width: 640px) {
-  .assignment-row { grid-template-columns: 56px minmax(0,1fr) auto; gap: 12px; padding: 10px; }
+  .assignment-row {
+    grid-template-columns: 56px minmax(0,1fr);
+    grid-template-rows: auto auto;
+    align-items: start;
+    gap: 4px 12px;
+    padding: 10px;
+  }
+  .assignment-row > :first-child { grid-row: 1 / span 2; align-self: center; }
+  .assignment-row-status { grid-column: 2; grid-row: 2; justify-self: start; }
 }
 .assignment-row-link:hover .assignment-row { background: rgba(255,255,255,0.05); border-color: rgba(255,255,255,0.08); }
 
