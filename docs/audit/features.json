@@ -65,7 +65,7 @@
       "route": "/trainer/studies",
       "requiresAuth": true,
       "description": "Clicking 'New study' on the studies page opens a dropdown with three options — Opening study, Game study, and Tactical set.",
-      "lastTestedAt": "2026-06-05T09:09:00Z",
+      "lastTestedAt": "2026-06-09T00:10:00Z",
       "lastResult": "ok",
       "lastPr": 140,
       "removed": false
