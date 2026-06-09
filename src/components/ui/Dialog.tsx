@@ -1,4 +1,4 @@
-import { useEffect, useRef, type ReactNode } from 'react';
+import { useEffect, useId, useRef, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import { Btn } from './atoms';
 import { IconX } from './Icons';
@@ -27,6 +27,7 @@ export function Dialog({
   width = 460,
 }: Props) {
   const dialogRef = useRef<HTMLDivElement>(null);
+  const titleId = useId();
 
   useEffect(() => {
     if (!open) return;
@@ -89,7 +90,7 @@ export function Dialog({
         ref={dialogRef}
         role="dialog"
         aria-modal="true"
-        aria-label={title}
+        aria-labelledby={title ? titleId : undefined}
         onClick={(e) => e.stopPropagation()}
         style={{
           width,
@@ -116,7 +117,7 @@ export function Dialog({
               justifyContent: 'space-between',
             }}
           >
-            <h2 className="t-h2" style={{ margin: 0 }}>{title}</h2>
+            <h2 id={titleId} className="t-h2" style={{ margin: 0 }}>{title}</h2>
             <Btn
               variant="ghost"
               size="sm"
