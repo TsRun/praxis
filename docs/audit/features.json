@@ -318,9 +318,9 @@
       "route": "/trainer/studies/opening/:id",
       "requiresAuth": true,
       "description": "Inside the opening study editor, clicking 'Assign to student' opens a dialog listing students that can be picked and assigned to the study, without uncaught errors.",
-      "lastTestedAt": "2026-06-07T00:13:00Z",
+      "lastTestedAt": "2026-06-10T18:08:00Z",
       "lastResult": "improved",
-      "lastPr": 212,
+      "lastPr": null,
       "removed": false
     }
   ]
