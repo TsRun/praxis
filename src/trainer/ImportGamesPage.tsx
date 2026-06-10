@@ -670,6 +670,7 @@ function FilterControls({
   const yearToId = useId();
   const ecoId = useId();
   const minEloId = useId();
+  const colorName = useId();
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
       <div role="group" aria-label="Color">
@@ -682,6 +683,8 @@ function FilterControls({
             >
               <input
                 type="radio"
+                name={colorName}
+                value={c}
                 checked={filters.color === c}
                 onChange={() => setFilters({ ...filters, color: c })}
               />

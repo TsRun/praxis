@@ -200,6 +200,22 @@ test('trainer-games-browser: renders sources, filters, and inputs', async ({ pag
   });
   console.log('FILTERS DETAILS:', filterDetailsInfo);
 
+  // Color radios — should share a `name` so they form a single radio group
+  // (otherwise each radio gets its own tab stop and arrow-key navigation
+  // between them is broken). Logged, not asserted, so the spec stays green
+  // against any prod state — the source-side fix is the deliverable.
+  const colorRadios = page.locator('div[role="group"][aria-label="Color"] input[type="radio"]');
+  const colorRadioInfo = await colorRadios.evaluateAll((nodes) =>
+    nodes.map((r) => ({
+      name: (r as HTMLInputElement).name || null,
+      value: (r as HTMLInputElement).value || null,
+      checked: (r as HTMLInputElement).checked,
+    })),
+  );
+  console.log('COLOR RADIOS:', colorRadioInfo);
+  const colorRadioNames = new Set(colorRadioInfo.map((r) => r.name).filter(Boolean));
+  console.log('UNIQUE COLOR RADIO NAMES:', Array.from(colorRadioNames));
+
   // The "Find games passing through this position" checkbox — wrapping label?
   const posCheckLabel = page.locator('label', {
     hasText: /Find games passing through this position/,
