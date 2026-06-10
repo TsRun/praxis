@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { Dialog } from '../components/ui/Dialog';
 import { trainer, trainerStudent, type StudentRow } from '../lib/api';
 import { Btn, Avatar } from '../components/ui/atoms';
@@ -120,9 +121,17 @@ export function AssignStudyDialog({
           {!students && <div className="meta">Loading roster…</div>}
           {students && filtered.length === 0 && (
             <div className="meta">
-              {students.length === 0
-                ? 'No students yet — invite one from the Students page.'
-                : 'No students match that search.'}
+              {students.length === 0 ? (
+                <>
+                  No students yet —{' '}
+                  <Link to="/trainer/students" className="link" onClick={onClose}>
+                    invite one from the Students page
+                  </Link>
+                  .
+                </>
+              ) : (
+                'No students match that search.'
+              )}
             </div>
           )}
           {filtered.length > 0 && (
