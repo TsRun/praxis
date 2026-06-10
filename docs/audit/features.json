@@ -296,9 +296,9 @@
       "route": "/student/study/game/:id",
       "requiresAuth": true,
       "description": "Navigating to /student/study/game/<id> as a student renders the game study viewer with a chess board and move list, without uncaught errors.",
-      "lastTestedAt": "2026-06-06T18:09:00Z",
+      "lastTestedAt": "2026-06-10T12:07:22Z",
       "lastResult": "improved",
-      "lastPr": null,
+      "lastPr": 240,
       "removed": false
     },
     {
