@@ -307,7 +307,7 @@
       "route": "/student/study/tactic/:id",
       "requiresAuth": true,
       "description": "Navigating to /student/study/tactic/<id> as a student renders the tactic set viewer presenting puzzles to solve, without uncaught errors.",
-      "lastTestedAt": "2026-06-06T21:30:00Z",
+      "lastTestedAt": "2026-06-10T15:09:00Z",
       "lastResult": "improved",
       "lastPr": null,
       "removed": false

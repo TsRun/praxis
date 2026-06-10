@@ -147,18 +147,20 @@ export function TacticSetViewer() {
         <h1 className="t-h1" style={{ flex: 1, minWidth: 240, margin: 0 }}>
           {set.name}
         </h1>
-        <Chip variant="mono">
-          {Math.min(index + 1, set.puzzles.length)} / {set.puzzles.length}
-        </Chip>
-        <Chip
-          variant={
-            set.puzzles.length > 0 && solvedIds.size === set.puzzles.length
-              ? 'success'
-              : 'default'
-          }
-        >
-          {solvedIds.size} solved
-        </Chip>
+        {set.puzzles.length > 0 && (
+          <>
+            <Chip variant="mono">
+              {Math.min(index + 1, set.puzzles.length)} / {set.puzzles.length}
+            </Chip>
+            <Chip
+              variant={
+                solvedIds.size === set.puzzles.length ? 'success' : 'default'
+              }
+            >
+              {solvedIds.size} solved
+            </Chip>
+          </>
+        )}
       </div>
 
       {completed ? (

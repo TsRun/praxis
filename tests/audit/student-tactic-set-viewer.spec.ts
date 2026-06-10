@@ -94,8 +94,9 @@ test('student-tactic-set-viewer: page renders & no uncaught errors', async ({ pa
 
     const boardCount = await page.locator('cg-board, .cg-wrap, [class*="cg-wrap"]').count();
     const endOfSet = await page.getByText(/End of set/i).count();
-    console.log('BOARD COUNT:', boardCount, 'END-OF-SET:', endOfSet);
-    expect(boardCount > 0 || endOfSet > 0).toBe(true);
+    const emptySet = await page.getByText(/No puzzles yet/i).count();
+    console.log('BOARD COUNT:', boardCount, 'END-OF-SET:', endOfSet, 'EMPTY-SET:', emptySet);
+    expect(boardCount > 0 || endOfSet > 0 || emptySet > 0).toBe(true);
 
     // Chip annotations (counter + solved)
     const chips = await page.locator('.chip, [class*="chip"]').evaluateAll((els) =>
