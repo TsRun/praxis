@@ -202,6 +202,19 @@ test('tour-page: renders + UI/a11y audit', async ({ page }) => {
   });
   console.log('FUTURE TAB CONTRAST:', JSON.stringify(futureTabContrast, null, 2));
 
+  // ─── Nested interactive elements (a>button or button>a) ───
+  // Wrapping a <button> inside an <a> is invalid HTML and confuses
+  // screen readers / disables anchor activation. Logged for the PR rationale.
+  const nestedInteractive = await page.evaluate(() => {
+    const nodes = Array.from(document.querySelectorAll('a button, button a'));
+    return nodes.map((el) => ({
+      self: el.tagName,
+      parent: el.parentElement?.tagName,
+      text: (el.textContent || '').trim().slice(0, 40),
+    }));
+  });
+  console.log('NESTED INTERACTIVES (a>button or button>a):', nestedInteractive);
+
   // ─── Filter app-level console errors (browser network errors are waived) ───
   const appConsoleErrors = consoleErrors.filter(
     (e) => !e.includes('Failed to load resource')

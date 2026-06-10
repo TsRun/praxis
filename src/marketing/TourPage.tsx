@@ -258,10 +258,8 @@ function ControlBar({
           ↺ Play again
         </Btn>
       )}
-      <a href="/#auth">
-        <Btn variant="primary" size="md">
-          Sign up →
-        </Btn>
+      <a href="/#auth" className="btn btn-primary">
+        Sign up →
       </a>
     </div>
   );
@@ -935,15 +933,11 @@ function CtaScene() {
         {cfg.sub}
       </p>
       <div style={{ display: 'flex', gap: 10, marginTop: 18 }}>
-        <a href="/#auth">
-          <Btn variant="primary" size="lg">
-            Create a free account →
-          </Btn>
+        <a href="/#auth" className="btn btn-primary btn-lg">
+          Create a free account →
         </a>
-        <Link to="/">
-          <Btn variant="ghost" size="lg">
-            Back to home
-          </Btn>
+        <Link to="/" className="btn btn-ghost btn-lg">
+          Back to home
         </Link>
       </div>
     </div>
