@@ -222,7 +222,7 @@ export function GameStudyViewer() {
                 checked={showComments}
                 onChange={(e) => setShowComments(e.target.checked)}
               />
-              comments
+              Show comments
             </label>
           </div>
           <MoveList />
