@@ -216,6 +216,7 @@ a.link:hover, button.link:hover { text-decoration: underline; text-underline-off
   box-shadow: 0 0 0 3px var(--accent-soft);
 }
 .input-lg { height: 44px; font-size: 15px; border-radius: 12px; }
+@media (max-width: 640px) { .input { height: 44px; } }
 
 .textarea {
   background: var(--inset-bg);
