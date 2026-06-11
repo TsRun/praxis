@@ -430,6 +430,28 @@ a.link:hover, button.link:hover { text-decoration: underline; text-underline-off
   border-radius: 6px;
 }
 
+/* ---------------- position-setup palette button ---------------- */
+.palette-btn {
+  flex: 1;
+  height: 44px;
+  line-height: 1;
+  padding: 0;
+  background: var(--inset-bg);
+  border: 1px solid var(--inset-border);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 120ms ease, border-color 120ms ease;
+}
+.palette-btn:hover:not(:disabled) {
+  background: rgba(251, 191, 36, 0.06);
+  border-color: rgba(251, 191, 36, 0.2);
+}
+.palette-btn-active,
+.palette-btn-active:hover {
+  background: var(--accent-soft);
+  border-color: var(--accent-ring);
+}
+
 /* ---------------- chessground board overrides ---------------- */
 .cg-wrap {
   border-radius: 10px;
