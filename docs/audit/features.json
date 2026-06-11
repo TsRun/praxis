@@ -241,7 +241,7 @@
       "route": "/tournaments",
       "requiresAuth": true,
       "description": "Navigating to /tournaments renders the Tournois heading with cadence tabs (Classique / Rapide / Blitz) and a view-mode toggle (Liste / Carte) that switches between list and map views without errors.",
-      "lastTestedAt": "2026-06-07T03:10:00Z",
+      "lastTestedAt": "2026-06-11T00:08:28Z",
       "lastResult": "improved",
       "lastPr": 213,
       "removed": false
