@@ -240,16 +240,7 @@ function PlyList({
         <button
           type="button"
           onClick={() => onJump(wPly)}
-          style={{
-            textAlign: 'left',
-            padding: '2px 6px',
-            borderRadius: 6,
-            background: currentPly === wPly ? 'var(--accent-soft)' : 'transparent',
-            border: 0,
-            color: currentPly === wPly ? 'var(--text)' : 'var(--text)',
-            cursor: 'pointer',
-            font: 'inherit',
-          }}
+          className={`ply-btn${currentPly === wPly ? ' current' : ''}`}
         >
           {history[i]}
           {wA?.is_quiz && (
@@ -277,17 +268,7 @@ function PlyList({
           <button
             type="button"
             onClick={() => onJump(bPly)}
-            style={{
-              textAlign: 'left',
-              padding: '2px 6px',
-              borderRadius: 6,
-              background:
-                currentPly === bPly ? 'var(--accent-soft)' : 'transparent',
-              border: 0,
-              color: 'var(--text)',
-              cursor: 'pointer',
-              font: 'inherit',
-            }}
+            className={`ply-btn${currentPly === bPly ? ' current' : ''}`}
           >
             {history[i + 1]}
             {bA?.is_quiz && (

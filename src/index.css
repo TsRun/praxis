@@ -307,6 +307,21 @@ a.link:hover, button.link:hover { text-decoration: underline; text-underline-off
   box-shadow: 0 0 0 1px var(--accent), 0 0 30px -8px var(--accent-glow);
 }
 
+.ply-btn {
+  text-align: left;
+  padding: 2px 6px;
+  border-radius: 6px;
+  background: transparent;
+  border: 0;
+  color: var(--text);
+  cursor: pointer;
+  font: inherit;
+  transition: background 100ms ease;
+}
+.ply-btn:hover { background: var(--chip-bg-hover); }
+.ply-btn.current,
+.ply-btn.current:hover { background: var(--accent-soft); }
+
 /* ---------------- segmented control ---------------- */
 .segmented {
   display: inline-flex;
