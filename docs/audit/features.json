@@ -274,9 +274,9 @@
       "route": "/trainer/studies/tactic/:id",
       "requiresAuth": true,
       "description": "Navigating to /trainer/studies/tactic/<id> renders the tactic set editor listing puzzles in the set with controls to add or edit puzzles, without uncaught errors.",
-      "lastTestedAt": "2026-06-07T15:09:40Z",
-      "lastResult": "ok",
-      "lastPr": 187,
+      "lastTestedAt": "2026-06-11T12:07:50Z",
+      "lastResult": "improved",
+      "lastPr": null,
       "removed": false
     },
     {

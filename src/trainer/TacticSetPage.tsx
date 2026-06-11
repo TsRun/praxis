@@ -130,12 +130,52 @@ export function TacticSetPage() {
       </div>
 
       {set.puzzles.length === 0 ? (
-        <Card style={{ padding: 24 }}>
-          <div className="meta">
-            No puzzles yet. Click <strong>Add puzzle</strong> to author one — set
-            the position on the board, then play the solution moves.
+        <div
+          role="status"
+          aria-live="polite"
+          style={{
+            border: '1px dashed var(--inset-border)',
+            borderRadius: 14,
+            padding: '40px 24px',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            textAlign: 'center',
+            gap: 6,
+          }}
+        >
+          <div
+            style={{
+              width: 56,
+              height: 56,
+              borderRadius: 16,
+              background: 'var(--inset-bg)',
+              color: 'var(--text-dim)',
+              display: 'inline-flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              marginBottom: 6,
+            }}
+          >
+            <IconBolt size={22} strokeWidth={2.2} />
           </div>
-        </Card>
+          <div className="meta-strong">No puzzles yet</div>
+          <div className="meta" style={{ maxWidth: 360 }}>
+            Author your first puzzle — set the position on the board, then play
+            the solution moves.
+          </div>
+          <div style={{ marginTop: 10 }}>
+            <Btn
+              variant="primary"
+              onClick={() =>
+                nav(`/trainer/studies/tactic/${numId}/puzzles/new`)
+              }
+            >
+              <IconPlus size={13} strokeWidth={2.4} />
+              Add puzzle
+            </Btn>
+          </div>
+        </div>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
           {set.puzzles.map((p, i) => (
