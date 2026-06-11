@@ -287,7 +287,7 @@
       "description": "Navigating to /trainer/studies/game/<id> renders the game study editor with a chess board, move list, and editing controls, without uncaught errors.",
       "lastTestedAt": "2026-06-11T03:07:39Z",
       "lastResult": "improved",
-      "lastPr": null,
+      "lastPr": 244,
       "removed": false
     },
     {
