@@ -79,11 +79,14 @@ export function StudentDetailPage() {
   if (!detail)
     return (
       <div
-        style={{ padding: 28, color: 'var(--text-faint)' }}
+        className="page-wrap"
+        style={{ paddingTop: 32, paddingBottom: 100 }}
         role="status"
         aria-live="polite"
       >
-        Loading…
+        <Card style={{ padding: '24px 22px', color: 'var(--text-dim)' }}>
+          Loading…
+        </Card>
       </div>
     );
 
