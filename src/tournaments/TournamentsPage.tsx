@@ -66,19 +66,21 @@ export function TournamentsPage() {
             {regions.map((r) => <option key={r} value={r}>{r}</option>)}
           </select>
 
-          {CADENCES.map((c) => {
-            const on = cadence === c.key;
-            return (
-              <button
-                key={c.key}
-                className="pill-btn"
-                onClick={() => patch('cadence', on ? '' : c.key)}
-                aria-pressed={on}
-              >
-                {c.label}
-              </button>
-            );
-          })}
+          <div role="group" aria-label="Cadence" style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+            {CADENCES.map((c) => {
+              const on = cadence === c.key;
+              return (
+                <button
+                  key={c.key}
+                  className="pill-btn"
+                  onClick={() => patch('cadence', on ? '' : c.key)}
+                  aria-pressed={on}
+                >
+                  {c.label}
+                </button>
+              );
+            })}
+          </div>
 
           <select value={sort} onChange={(e) => patch('sort', e.target.value)} aria-label="Trier" style={selectStyle}>
             <option value="date">Trier : date</option>
