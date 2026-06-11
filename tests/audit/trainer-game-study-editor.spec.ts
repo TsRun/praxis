@@ -174,6 +174,17 @@ test('trainer-game-study-editor: editor renders + UI/a11y checks', async ({
   const saveDisabledBefore = await saveBtn.isDisabled();
   console.log('SAVE DISABLED (before):', saveDisabledBefore);
 
+  // 9b) Move-list button hover feedback (UI quality)
+  const secondPlyBtn = page.locator('.font-mono').first().locator('button').nth(1);
+  if (await secondPlyBtn.count()) {
+    await secondPlyBtn.hover();
+    await page.waitForTimeout(150);
+    const hoverBg = await secondPlyBtn.evaluate(
+      (el) => getComputedStyle(el).backgroundColor,
+    );
+    console.log('PLY BTN :hover bg:', hoverBg);
+  }
+
   // 10) Mobile viewport check
   await page.setViewportSize({ width: 375, height: 812 });
   await page.waitForTimeout(300);
