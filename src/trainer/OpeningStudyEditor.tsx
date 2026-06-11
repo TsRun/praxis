@@ -407,7 +407,6 @@ export function OpeningStudyEditor() {
                   padding: 0,
                   cursor: 'pointer',
                   fontSize: 12,
-                  color: 'var(--text-dim)',
                 }}
               >
                 Set opening prefix…
