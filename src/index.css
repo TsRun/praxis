@@ -812,6 +812,21 @@ input[type='range']::-moz-range-thumb {
   .crumbs { flex-wrap: wrap; }
 }
 
+/* Chapters view: two-column on wide, stacked on narrow.
+   Without this, an empty/short right column collapses to its min-content
+   width and the grid's intrinsic width overflows the mobile viewport. */
+.chapters-grid {
+  display: grid;
+  grid-template-columns: 260px minmax(0, 1fr);
+  gap: 24px;
+  align-items: start;
+}
+.chapters-grid-side { position: sticky; top: 72px; }
+@media (max-width: 640px) {
+  .chapters-grid { grid-template-columns: minmax(0, 1fr); gap: 14px; }
+  .chapters-grid-side { position: static; top: auto; }
+}
+
 /* Horizontally-scrollable tab rows for narrow viewports */
 .scroll-row {
   display: flex;

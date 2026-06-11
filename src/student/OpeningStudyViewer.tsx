@@ -1113,15 +1113,8 @@ function ChaptersView({
   }
 
   return (
-    <div
-      style={{
-        display: 'grid',
-        gridTemplateColumns: '260px 1fr',
-        gap: 24,
-        alignItems: 'start',
-      }}
-    >
-      <Card style={{ padding: 0, position: 'sticky', top: 72 }}>
+    <div className="chapters-grid">
+      <Card className="chapters-grid-side" style={{ padding: 0 }}>
         <div
           style={{
             padding: '14px 16px',
