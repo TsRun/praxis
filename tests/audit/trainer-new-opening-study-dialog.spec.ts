@@ -222,6 +222,29 @@ test('trainer-new-opening-study-dialog: UI/a11y audit', async ({ page }) => {
   const createBoxMobile = await createBtn.boundingBox();
   console.log('MOBILE create btn box:', createBoxMobile);
 
+  // Stacking: the sticky footer must paint ABOVE the chessground pieces.
+  // chessground sets piece z-index: 11 !important; if the board wrapper
+  // doesn't create its own stacking context, those pieces escape and end up
+  // on top of the footer, swallowing button clicks at overlap points.
+  if (createBoxMobile) {
+    const cx = Math.round(createBoxMobile.x + createBoxMobile.width / 2);
+    const cy = Math.round(createBoxMobile.y + createBoxMobile.height / 2);
+    const topmost = await page.evaluate(
+      ({ x, y }) => {
+        const el = document.elementFromPoint(x, y) as HTMLElement | null;
+        if (!el) return null;
+        const btn = el.closest('button');
+        return {
+          tag: el.tagName,
+          className: el.className?.toString?.() || '',
+          insideFooterButton: !!btn && /create study|cancel/i.test(btn.textContent || ''),
+        };
+      },
+      { x: cx, y: cy },
+    );
+    console.log('TOPMOST AT CREATE-BTN CENTER (mobile):', topmost);
+  }
+
   // ---- Close ----
   await dialog.getByRole('button', { name: /^cancel$/i }).click();
   await expect(dialog).toBeHidden({ timeout: 3000 });
