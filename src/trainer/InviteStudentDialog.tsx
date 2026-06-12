@@ -400,13 +400,10 @@ function EmailForm({
           fontWeight: 500,
           color: 'var(--text-dim)',
           marginBottom: 6,
-          display: 'flex',
-          gap: 6,
-          alignItems: 'baseline',
         }}
       >
-        Suggested nickname
-        <span style={{ color: 'var(--text-faint)', fontWeight: 400 }}>
+        Suggested nickname{' '}
+        <span style={{ color: 'var(--text-dim)', fontWeight: 400 }}>
           (we'll suggest this if they don't pick their own)
         </span>
       </label>
