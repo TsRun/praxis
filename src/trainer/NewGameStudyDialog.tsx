@@ -45,27 +45,44 @@ export function NewGameStudyDialog({ open, onClose, onCreate }: Props) {
       title="New game study"
       width={520}
     >
-      <p className="meta" style={{ marginTop: -4, marginBottom: 2 }}>
-        Paste a PGN to import the moves of a single game — copy it from
-        chess.com, Lichess, or any other source.
-      </p>
       <form
         onSubmit={submit}
         style={{ display: 'flex', flexDirection: 'column', gap: 14 }}
       >
-        <label style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-          <span>Study name</span>
+        <label
+          htmlFor="game-study-name"
+          style={{ display: 'flex', flexDirection: 'column', gap: 6 }}
+        >
+          <span>
+            Study name{' '}
+            <span aria-hidden="true" style={{ color: 'var(--danger)' }}>
+              *
+            </span>
+          </span>
           <input
+            id="game-study-name"
             autoFocus
             className="input"
             placeholder="e.g. Carlsen vs Caruana, WCC 2018, Game 1"
             value={name}
             onChange={(e) => setName(e.target.value)}
+            required
+            aria-required="true"
+            aria-invalid={err && !name.trim() ? true : undefined}
           />
         </label>
-        <label style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-          <span>PGN</span>
+        <label
+          htmlFor="game-study-pgn"
+          style={{ display: 'flex', flexDirection: 'column', gap: 6 }}
+        >
+          <span>
+            PGN{' '}
+            <span aria-hidden="true" style={{ color: 'var(--danger)' }}>
+              *
+            </span>
+          </span>
           <textarea
+            id="game-study-pgn"
             rows={10}
             className="textarea font-mono"
             placeholder={
@@ -74,11 +91,25 @@ export function NewGameStudyDialog({ open, onClose, onCreate }: Props) {
             value={pgn}
             onChange={(e) => setPgn(e.target.value)}
             style={{ fontSize: 12.5, resize: 'vertical' }}
+            required
+            aria-required="true"
+            aria-invalid={err && !pgn.trim() ? true : undefined}
+            aria-describedby={
+              err ? 'game-study-pgn-help game-study-error' : 'game-study-pgn-help'
+            }
           />
+          <p id="game-study-pgn-help" className="meta" style={{ margin: 0 }}>
+            Paste a PGN to import the moves of a single game — copy it from
+            chess.com, Lichess, or any other source.
+          </p>
         </label>
 
         {err && (
-          <span role="alert" style={{ fontSize: 12, color: 'var(--danger)' }}>
+          <span
+            id="game-study-error"
+            role="alert"
+            style={{ fontSize: 12, color: 'var(--danger)' }}
+          >
             {err}
           </span>
         )}
