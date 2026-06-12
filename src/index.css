@@ -354,6 +354,9 @@ a.link:hover, button.link:hover { text-decoration: underline; text-underline-off
   color: var(--accent-on);
   font-weight: 600;
 }
+@media (max-width: 640px) {
+  .segmented button, .segmented a { height: 36px; padding: 0 14px; }
+}
 
 /* ---------------- dropdown menu items ---------------- */
 .dropdown-menuitem {
