@@ -1,0 +1,8 @@
+# Audit run — 2026-06-12T12:10:06Z
+**Mode:** TEST_ONE
+**Subject:** trainer-import-lichess
+**Result:** OK+MERGED
+
+Exercised the "Import from Lichess" flow on /trainer/studies at desktop 1280×720 and mobile 375×812. The button on the Studies header opens `NewOpeningStudyDialog` with `lichessHint=true`: title reads "Import from Lichess", hint paragraph explains the next step ("Name the study and pick the student's side. The next screen will ask for the Lichess PGN."), and the CTA reads "Create + import PGN →". The dialog has `role=dialog`, `aria-modal=true`, and `aria-labelledby` pointing at the visible `<h2>`. The Study name input is wrapped by a `<label>` carrying the visible "Study name" text, giving it a programmatic name.
+
+Keyboard nav is healthy: autoFocus lands on the name input; Tab moves into the White/Black radiogroup (`role="radiogroup"` with `aria-labelledby` on the group); ArrowRight flips the selection from `w` to `b` as expected for native radios. `.role-pick:has(input:focus-visible)` paints the 2px amber outline at outline-offset 2px on the focused tile, so keyboard focus is plainly visible despite the sr-only `<input>` underneath. Escape closes the dialog, the CTA is correctly disabled with an empty name and enabled once non-empty. No `pageerror` events, no application-level console errors. Mobile dialog box at 375 viewport: 345×780 with 8px gutters, no horizontal overflow (scroll=360 < client=375); side tiles stack to 301×70 each and remain comfortably tappable; close button 36×36, CTA 174×36 (matches the site's design-system button height). Nothing observable to fix on this dialog — marking OK and rotating the cursor.
