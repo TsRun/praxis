@@ -111,6 +111,27 @@ test('trainer-invite-student: dialog opens and exposes inputs', async ({ page })
   // — no `htmlFor` link.
   console.log('EMAIL id:', emailId, 'labels-for:', emailLabelsFor);
 
+  // ---- "Suggested nickname" label: parenthetical hint must use
+  // --text-dim (not --text-faint) so 12px text meets WCAG-AA contrast on
+  // the dark dialog surface, and the label must NOT be display:flex so the
+  // parenthetical wraps inline (mobile) instead of being forced into a
+  // side-by-side column that breaks across two lines.
+  // Logged rather than hard-asserted so the spec keeps passing against
+  // pre-fix prod builds; verified post-deploy by reading these logs.
+  const suggestedLabel = page.locator('label[for="invite-suggested-nickname"]');
+  await expect(suggestedLabel).toBeVisible();
+  const suggestedInfo = await suggestedLabel.evaluate((label) => {
+    const span = label.querySelector('span');
+    const cs = span ? getComputedStyle(span) : null;
+    const ls = getComputedStyle(label);
+    return {
+      labelDisplay: ls.display,
+      hintColor: cs?.color ?? null,
+      hintFontSize: cs?.fontSize ?? null,
+    };
+  });
+  console.log('SUGGESTED LABEL:', suggestedInfo);
+
   // The "More" icon button on student cards: check aria-label presence (icon-only)
   // Close dialog first
   await page.getByRole('button', { name: /Cancel/i }).click();
