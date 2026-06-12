@@ -111,6 +111,22 @@ test('trainer-games-free-editor: palette, controls, mobile', async ({ page }) =>
     bg: getComputedStyle(el).backgroundColor,
     borderColor: getComputedStyle(el).borderColor,
   }));
+
+  // Hover the white rook (not active) and log its bg/border — desktop users
+  // expect some hover feedback on a clickable piece tile.
+  const whiteRook = page.getByRole('button', { name: /^White (r|rook)$/ });
+  const rookIdle = await whiteRook.evaluate((el) => ({
+    bg: getComputedStyle(el).backgroundColor,
+    borderColor: getComputedStyle(el).borderColor,
+  }));
+  await whiteRook.hover();
+  await page.waitForTimeout(180);
+  const rookHover = await whiteRook.evaluate((el) => ({
+    bg: getComputedStyle(el).backgroundColor,
+    borderColor: getComputedStyle(el).borderColor,
+  }));
+  console.log('WHITE ROOK idle → hover:', rookIdle, '→', rookHover);
+
   await whiteQueen.click();
   await page.waitForTimeout(80);
   const queenAfter = await whiteQueen.evaluate((el: HTMLButtonElement) => ({

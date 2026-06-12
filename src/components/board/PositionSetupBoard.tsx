@@ -262,16 +262,9 @@ function PaletteButton({
       aria-label={label}
       aria-pressed={active}
       title={label}
+      className={`palette-btn${active ? ' palette-btn-active' : ''}`}
       style={{
-        flex: 1,
-        height: 44,
         fontSize: wide ? 16 : 28,
-        lineHeight: 1,
-        background: active ? 'var(--accent-soft)' : 'var(--inset-bg)',
-        border: `1px solid ${active ? 'var(--accent-ring)' : 'var(--inset-border)'}`,
-        borderRadius: 8,
-        cursor: 'pointer',
-        transition: 'background 120ms ease, border-color 120ms ease',
         ...glyphStyle,
       }}
     >
