@@ -384,6 +384,12 @@ function PrefixBoard({
         maxWidth: 320,
         aspectRatio: '1 / 1',
         alignSelf: 'center',
+        // chessground gives its pieces z-index 11 !important and the wrapper
+        // is position:relative with no z-index — so the pieces escape into
+        // the parent stacking context. On short viewports the dialog
+        // scrolls and the sticky footer below ends up painted UNDER those
+        // pieces. Containing the stacking context keeps the footer on top.
+        isolation: 'isolate',
       }}
     />
   );
