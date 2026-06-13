@@ -18,8 +18,9 @@ export function LandingPage() {
 
   return (
     <div style={{ minHeight: '100vh' }}>
+      <a href="#main" className="skip-link">Skip to main content</a>
       {/* nav */}
-      <div
+      <header
         className="page-wrap"
         style={{
           display: 'flex',
@@ -33,13 +34,19 @@ export function LandingPage() {
           <span className="accent">xis</span>
         </Link>
         <div style={{ flex: 1 }} />
-        <div className="hide-mobile" style={{ display: 'flex', gap: 6 }}>
+        <nav
+          className="hide-mobile"
+          aria-label="Primary"
+          style={{ display: 'flex', gap: 6 }}
+        >
           <a href="#features" className="landing-nav-link">Features</a>
           <Link to="/tour" className="landing-nav-link">Tour</Link>
           <a href="#auth" className="landing-nav-link">Sign in</a>
-        </div>
+        </nav>
         <a href="#auth" className="btn btn-primary btn-sm">Get started</a>
-      </div>
+      </header>
+
+      <main id="main">
 
       {/* hero */}
       <div
@@ -235,8 +242,9 @@ export function LandingPage() {
           <SignInUpForm />
         </Card>
       </div>
+      </main>
 
-      <div
+      <footer
         style={{
           textAlign: 'center',
           padding: '40px 32px',
@@ -246,7 +254,7 @@ export function LandingPage() {
         }}
       >
         Praxis · made for chess coaches.
-      </div>
+      </footer>
     </div>
   );
 }
