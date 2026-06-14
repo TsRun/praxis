@@ -695,7 +695,7 @@ function FilterControls({
       </div>
 
       <div
-        style={{ display: 'flex', gap: 10 }}
+        style={{ display: 'flex', gap: 10, opacity: yearEnabled ? 1 : 0.5 }}
         title={yearEnabled ? undefined : 'Only available for the database source'}
       >
         <div style={{ display: 'flex', flexDirection: 'column', gap: 6, flex: 1 }}>
