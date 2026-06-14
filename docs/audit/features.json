@@ -309,7 +309,7 @@
       "description": "Navigating to /student/study/tactic/<id> as a student renders the tactic set viewer presenting puzzles to solve, without uncaught errors.",
       "lastTestedAt": "2026-06-14T21:04:00Z",
       "lastResult": "improved",
-      "lastPr": null,
+      "lastPr": 275,
       "removed": false
     },
     {
