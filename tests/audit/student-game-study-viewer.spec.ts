@@ -121,6 +121,28 @@ test('student-game-study-viewer: page renders & no uncaught errors', async ({ pa
       };
     });
     console.log('COMMENTS LABEL:', commentsLabel);
+
+    // Move-list playback controls are icon-only buttons; they need an
+    // accessible name via aria-label (title alone is not consistently
+    // announced by assistive tech). Logged here so post-deploy rotation
+    // can confirm the fix landed; not asserted hard so the spec stays
+    // green against either pre- or post-deploy prod.
+    const playbackButtons = await page.evaluate(() => {
+      const btns = Array.from(document.querySelectorAll('button')).filter((b) => {
+        const t = (b.textContent || '').trim();
+        const titleAttr = b.getAttribute('title') || '';
+        return (
+          /^(Reset|Back|Forward|Jump to end)\b/.test(titleAttr) ||
+          (t === '▸▸')
+        );
+      });
+      return btns.map((b) => ({
+        text: (b.textContent || '').trim(),
+        ariaLabel: b.getAttribute('aria-label'),
+        title: b.getAttribute('title'),
+      }));
+    });
+    console.log('PLAYBACK BUTTONS:', playbackButtons);
   } else if (apiFailed) {
     const hasErrorCard = await page
       .locator('[role="alert"]', { hasText: /Couldn't load this study/i })
