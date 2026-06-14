@@ -68,6 +68,7 @@ export function MoveList() {
             onClick={reset}
             disabled={!canBack}
             title="Reset (Home)"
+            aria-label="Reset to start"
             className="p-1 rounded hover:bg-zinc-800/60 disabled:opacity-30 disabled:hover:bg-transparent text-zinc-400"
           >
             <Icon name="reset" className="w-3.5 h-3.5" />
@@ -76,6 +77,7 @@ export function MoveList() {
             onClick={stepBack}
             disabled={!canBack}
             title="Back (←)"
+            aria-label="Previous move"
             className="p-1 rounded hover:bg-zinc-800/60 disabled:opacity-30 disabled:hover:bg-transparent text-zinc-400"
           >
             <Icon name="arrow-left" className="w-3.5 h-3.5" />
@@ -84,6 +86,7 @@ export function MoveList() {
             onClick={stepForward}
             disabled={!canFwd}
             title="Forward (→)"
+            aria-label="Next move"
             className="p-1 rounded hover:bg-zinc-800/60 disabled:opacity-30 disabled:hover:bg-transparent text-zinc-400"
           >
             <Icon name="arrow-right" className="w-3.5 h-3.5" />
@@ -92,9 +95,10 @@ export function MoveList() {
             onClick={jumpToEnd}
             disabled={!canFwd}
             title="Jump to end (End)"
+            aria-label="Jump to end"
             className="p-1 rounded hover:bg-zinc-800/60 disabled:opacity-30 disabled:hover:bg-transparent text-zinc-400"
           >
-            <span className="font-mono text-[10px]">▸▸</span>
+            <span aria-hidden="true" className="font-mono text-[10px]">▸▸</span>
           </button>
         </div>
       </div>
