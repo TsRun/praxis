@@ -120,7 +120,9 @@ export function TacticSetViewer() {
   if (!set) {
     return (
       <div className="page-wrap" style={{ paddingTop: 32 }}>
-        <div className="meta">Loading…</div>
+        <div className="meta" role="status" aria-live="polite">
+          Loading…
+        </div>
       </div>
     );
   }
