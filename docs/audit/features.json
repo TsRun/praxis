@@ -298,7 +298,7 @@
       "description": "Navigating to /student/study/game/<id> as a student renders the game study viewer with a chess board and move list, without uncaught errors.",
       "lastTestedAt": "2026-06-14T18:07:03Z",
       "lastResult": "improved",
-      "lastPr": 240,
+      "lastPr": 274,
       "removed": false
     },
     {
