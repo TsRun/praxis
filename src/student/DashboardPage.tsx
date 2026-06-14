@@ -217,16 +217,6 @@ export function DashboardPage() {
                     Pick up where you left off. The schedule will revisit the
                     positions you've seen before.
                   </div>
-                  <div
-                    className="grid-3"
-                    style={{
-                      gap: 10,
-                    }}
-                  >
-                    <BreakdownTile l="Due now" v="—" accent />
-                    <BreakdownTile l="New today" v="—" />
-                    <BreakdownTile l="Reviewing" v="—" />
-                  </div>
                   <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
                     <Link
                       to={
@@ -502,49 +492,6 @@ function MiniStat({
         }}
       >
         {label}
-      </div>
-    </div>
-  );
-}
-
-function BreakdownTile({
-  l,
-  v,
-  accent = false,
-}: {
-  l: string;
-  v: string | number;
-  accent?: boolean;
-}) {
-  return (
-    <div
-      style={{
-        padding: '12px 14px',
-        borderRadius: 10,
-        background: 'var(--inset-bg)',
-        border: '1px solid var(--inset-border)',
-      }}
-    >
-      <div
-        style={{
-          fontSize: 11,
-          color: 'var(--text-faint)',
-          textTransform: 'uppercase',
-          letterSpacing: '0.04em',
-        }}
-      >
-        {l}
-      </div>
-      <div
-        className="mono"
-        style={{
-          fontSize: 16,
-          fontWeight: 600,
-          marginTop: 2,
-          color: accent ? 'var(--accent)' : 'var(--text)',
-        }}
-      >
-        {v}
       </div>
     </div>
   );
