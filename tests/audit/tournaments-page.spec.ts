@@ -41,7 +41,7 @@ test('tournaments-page: heading, cadence tabs, view toggle, UI checks', async ({
   await expect(btnListe).toBeVisible();
   await expect(btnCarte).toBeVisible();
 
-  // Selects a11y
+  // Selects a11y — must have aria-label; height bump verified via log
   const selects = await page.locator('select').all();
   console.log('SELECT count:', selects.length);
   for (let i = 0; i < selects.length; i++) {
@@ -50,9 +50,19 @@ test('tournaments-page: heading, cadence tabs, view toggle, UI checks', async ({
       labelledby: el.getAttribute('aria-labelledby'),
       id: el.id,
       title: el.getAttribute('title'),
+      height: el.getBoundingClientRect().height,
     }));
     console.log(`SELECT[${i}] a11y:`, info);
+    expect(info.ariaLabel, `select[${i}] must have aria-label`).toBeTruthy();
+    if (info.height < 36) {
+      console.warn(`WARN: select[${i}] tap target ${info.height}px < 36px`);
+    }
   }
+
+  // View toggle group label (post-fix); fall back to plain button checks if not yet deployed.
+  const viewGroup = page.getByRole('group', { name: /Vue/i });
+  const viewGroupCount = await viewGroup.count();
+  console.log('VIEW group(role=group, name=Vue) present:', viewGroupCount > 0);
 
   // Cadence pressed states
   const beforePressed = {
