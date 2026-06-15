@@ -114,6 +114,7 @@ export function AssignStudyDialog({
           <input
             className="input"
             placeholder="search students…"
+            aria-label="Search students"
             value={q}
             onChange={(e) => setQ(e.target.value)}
             autoFocus
@@ -152,6 +153,8 @@ export function AssignStudyDialog({
                     key={s.id}
                     type="button"
                     onClick={() => setPicked(s.id)}
+                    aria-pressed={on}
+                    aria-label={`${on ? 'Unpick' : 'Pick'} student ${s.name}`}
                     style={{
                       display: 'grid',
                       gridTemplateColumns: '32px 1fr auto',
