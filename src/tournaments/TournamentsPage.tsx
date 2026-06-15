@@ -18,7 +18,7 @@ const CADENCES: { key: Cadence; label: string }[] = [
 ];
 
 const selectStyle: React.CSSProperties = {
-  height: 32, padding: '0 8px', borderRadius: 8,
+  height: 36, padding: '0 8px', borderRadius: 8,
   border: '1px solid var(--border)', background: 'var(--inset-bg)', color: 'inherit', fontSize: 13,
 };
 
@@ -88,14 +88,14 @@ export function TournamentsPage() {
             <option value="region">Trier : région</option>
           </select>
 
-          <div style={{ marginLeft: 'auto', display: 'flex', border: '1px solid var(--border)', borderRadius: 8, overflow: 'hidden' }}>
+          <div role="group" aria-label="Vue" style={{ marginLeft: 'auto', display: 'flex', border: '1px solid var(--border)', borderRadius: 8, overflow: 'hidden' }}>
             <button className="seg-toggle-btn" onClick={() => setView('list')} aria-pressed={view === 'list'}>Liste</button>
             <button className="seg-toggle-btn" onClick={() => setView('map')} aria-pressed={view === 'map'}>Carte</button>
           </div>
         </div>
 
-        {error && <p style={{ color: 'crimson' }}>{error}</p>}
-        {loading && !error && <p style={{ color: 'var(--text-dim)' }}>Chargement…</p>}
+        {error && <p role="alert" style={{ color: 'crimson' }}>{error}</p>}
+        {loading && !error && <p role="status" aria-live="polite" style={{ color: 'var(--text-dim)' }}>Chargement…</p>}
         {!loading && !error && (
           view === 'list'
             ? <TournamentList rows={rows} />
