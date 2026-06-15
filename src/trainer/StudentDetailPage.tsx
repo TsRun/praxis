@@ -69,8 +69,12 @@ export function StudentDetailPage() {
         >
           <h1 className="t-h2" style={{ margin: 0 }}>Couldn’t load this student</h1>
           <div className="meta">{loadError}</div>
-          <Link to="/trainer/students" style={{ marginTop: 6 }}>
-            <Btn variant="secondary">← Back to students</Btn>
+          <Link
+            to="/trainer/students"
+            className="btn btn-secondary"
+            style={{ marginTop: 6 }}
+          >
+            ← Back to students
           </Link>
         </Card>
       </div>
