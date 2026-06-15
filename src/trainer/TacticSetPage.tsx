@@ -131,8 +131,6 @@ export function TacticSetPage() {
 
       {set.puzzles.length === 0 ? (
         <div
-          role="status"
-          aria-live="polite"
           style={{
             border: '1px dashed var(--inset-border)',
             borderRadius: 14,
@@ -159,7 +157,9 @@ export function TacticSetPage() {
           >
             <IconBolt size={22} strokeWidth={2.2} />
           </div>
-          <div className="meta-strong">No puzzles yet</div>
+          <div className="meta-strong" role="status" aria-live="polite">
+            No puzzles yet
+          </div>
           <div className="meta" style={{ maxWidth: 360 }}>
             Author your first puzzle — set the position on the board, then play
             the solution moves.
@@ -177,7 +177,11 @@ export function TacticSetPage() {
           </div>
         </div>
       ) : (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+        <div
+          role="list"
+          aria-label="Puzzles in this set"
+          style={{ display: 'flex', flexDirection: 'column', gap: 12 }}
+        >
           {set.puzzles.map((p, i) => (
             <PuzzleRow
               key={p.id}
@@ -244,6 +248,7 @@ function PuzzleRow({
 }) {
   return (
     <Card
+      role="listitem"
       style={{
         padding: 14,
         display: 'flex',
@@ -254,6 +259,7 @@ function PuzzleRow({
     >
       <Link
         to={`/trainer/studies/tactic/${setId}/puzzles/${puzzle.id}`}
+        aria-label={`Edit puzzle ${index + 1}`}
         style={{
           textDecoration: 'none',
           color: 'inherit',
@@ -285,6 +291,7 @@ function PuzzleRow({
         <button
           type="button"
           onClick={onDelete}
+          aria-label={`Delete puzzle ${index + 1}`}
           title="Delete puzzle"
           style={{
             background: 'transparent',
