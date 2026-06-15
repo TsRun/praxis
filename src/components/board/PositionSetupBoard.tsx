@@ -186,7 +186,11 @@ function PalettePanel({
   onPick: (b: Brush) => void;
 }) {
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+    <div
+      role="group"
+      aria-label="Piece palette"
+      style={{ display: 'flex', flexDirection: 'column', gap: 6 }}
+    >
       <PaletteRow color="w" brush={brush} onPick={onPick} />
       <PaletteRow color="b" brush={brush} onPick={onPick} />
       <div style={{ display: 'flex', gap: 6 }}>

@@ -63,6 +63,13 @@ test('trainer-games-free-editor: palette, controls, mobile', async ({ page }) =>
   }));
   console.log('POSITION MODE SEGMENTED a11y:', posSegInfo);
 
+  // Palette container a11y — the toggle buttons should be wrapped in a
+  // labelled group so screen readers announce "Piece palette" before the
+  // first piece button. Tolerate either old (no group) or new (group) prod.
+  const paletteGroup = page.locator('[role="group"][aria-label="Piece palette"]');
+  const paletteGroupCount = await paletteGroup.count();
+  console.log('PALETTE GROUP a11y:', { count: paletteGroupCount });
+
   // Palette buttons — six pieces × 2 colours + erase = 13 buttons.
   // Match either old single-letter labels ("White k") or new word labels
   // ("White king") so this passes against both pre- and post-deploy prod.
