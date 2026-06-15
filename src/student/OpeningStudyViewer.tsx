@@ -377,7 +377,7 @@ function DrillView({
     return (
       <Card role="status" style={{ padding: 32, textAlign: 'center' }}>
         <h2 className="t-h2" style={{ margin: '0 0 8px' }}>
-          ✓ All caught up.
+          <span aria-hidden="true">✓ </span>All caught up.
         </h2>
         <p className="meta">
           No cards are due right now. Come back later to keep your repertoire fresh.
