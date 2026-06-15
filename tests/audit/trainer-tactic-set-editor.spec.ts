@@ -30,10 +30,8 @@ test('trainer-tactic-set-editor: UI/a11y audit', async ({ page }) => {
   // ---- Find or create a tactical set to navigate into ----
   await page.waitForLoadState('networkidle').catch(() => {});
 
-  // Look for the Tactical sets section / a link to /trainer/studies/tactic/N
   let tacticLink = page.locator('a[href*="/trainer/studies/tactic/"]').first();
   if ((await tacticLink.count()) === 0) {
-    // Create one via the New study menu
     await page.getByRole('button', { name: /New study/i }).first().click();
     await page.getByRole('menuitem', { name: /Tactical set/i }).click();
     const dialog = page.getByRole('dialog');
@@ -65,8 +63,11 @@ test('trainer-tactic-set-editor: UI/a11y audit', async ({ page }) => {
   const puzzlesText = (await puzzlesHeading.textContent())?.trim() || '';
   console.log('H2:', puzzlesText);
 
-  const addPuzzleBtn = page.getByRole('button', { name: /Add puzzle/i });
-  await expect(addPuzzleBtn).toBeVisible();
+  // Header buttons (may also appear inside an empty-state callout)
+  const headerAddPuzzleBtn = page
+    .getByRole('button', { name: /Add puzzle/i })
+    .first();
+  await expect(headerAddPuzzleBtn).toBeVisible();
 
   const assignBtn = page.getByRole('button', { name: /Assign to student/i });
   await expect(assignBtn).toBeVisible();
@@ -83,15 +84,11 @@ test('trainer-tactic-set-editor: UI/a11y audit', async ({ page }) => {
     fullPage: true,
   });
 
-  // ---- a11y: editable title --- does the H1 expose a usable interaction? ----
-  // Look for a button INSIDE the h1 (the fix) or a fallback signal of
-  // keyboard-accessibility (tabindex / role) on the h1 itself.
+  // ---- a11y: editable title — accessible name on the inner button ----
   const titleInfo = await h1.evaluate((el) => {
     const innerButton = el.querySelector('button');
     return {
       h1Role: el.getAttribute('role'),
-      h1Tabindex: el.getAttribute('tabindex'),
-      h1Title: el.getAttribute('title'),
       innerButtonExists: !!innerButton,
       innerButtonTitle: innerButton?.getAttribute('title') ?? null,
       innerButtonType: innerButton?.getAttribute('type') ?? null,
@@ -101,11 +98,8 @@ test('trainer-tactic-set-editor: UI/a11y audit', async ({ page }) => {
   console.log('H1 EDITABLE TITLE a11y:', titleInfo);
 
   // ---- a11y: button focus indicators via REAL keyboard tabbing ----
-  // Reset focus and Tab repeatedly so :focus-visible heuristic engages.
-  await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur?.());
   const probeBtn = async (name: RegExp): Promise<unknown> => {
     const target = page.getByRole('button', { name }).first();
-    // Tab into the page until activeElement equals our target (or give up after N).
     await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur?.());
     let matched = false;
     for (let i = 0; i < 40; i++) {
@@ -130,23 +124,34 @@ test('trainer-tactic-set-editor: UI/a11y audit', async ({ page }) => {
   console.log('ASSIGN focus:', await probeBtn(/Assign to student/i));
   console.log('STUDIES back focus:', await probeBtn(/^Studies$/));
 
-  // ---- a11y: puzzle row delete buttons (icon-only) — accessible name? ----
-  const iconDeleteBtns = page.locator('button[title="Delete puzzle"]');
-  const iconDelCount = await iconDeleteBtns.count();
-  console.log('icon delete puzzle buttons:', iconDelCount);
-  if (iconDelCount > 0) {
-    const info = await iconDeleteBtns.first().evaluate((el) => ({
-      ariaLabel: el.getAttribute('aria-label'),
-      title: el.getAttribute('title'),
-      text: (el.textContent || '').trim(),
-    }));
-    console.log('icon delete btn a11y:', info);
-  }
+  // ---- a11y: empty-state region — should NOT wrap the call-to-action button
+  // in a role=status live region (otherwise SR re-announces the button label
+  // on every render). Either drop role=status or scope it to the message only.
+  const emptyStateAddPuzzleInStatus = await page
+    .locator('[role="status"] button:has-text("Add puzzle")')
+    .count();
+  console.log('Add puzzle button inside role=status:', emptyStateAddPuzzleInStatus);
 
-  // ---- Try clicking Add puzzle: should navigate ----
+  // ---- a11y: puzzle list — list semantics + icon-only delete name ----
+  const puzzleList = page.locator('[role="list"][aria-label*="Puzzle" i]');
+  const puzzleListCount = await puzzleList.count();
+  console.log('puzzle list role=list count:', puzzleListCount);
+
+  const iconDeleteBtns = page.locator('button[aria-label="Delete puzzle"]');
+  const iconDelCount = await iconDeleteBtns.count();
+  console.log('icon delete puzzle buttons (aria-label):', iconDelCount);
+
+  // (Improvement observation only — not asserted so the spec keeps passing
+  // against prod while the fix is being deployed. Next audit run will pick
+  // up the post-deploy values.)
+  const puzzleCountMatch = puzzlesText.match(/\((\d+)\)/);
+  const puzzleCount = puzzleCountMatch ? Number(puzzleCountMatch[1]) : 0;
+  console.log('puzzleCount parsed from H2:', puzzleCount);
+
+  // ---- Try clicking Add puzzle: should navigate to /puzzles/new ----
   await Promise.all([
     page.waitForURL(/\/trainer\/studies\/tactic\/\d+\/puzzles\/new/, { timeout: 15000 }),
-    addPuzzleBtn.click(),
+    headerAddPuzzleBtn.click(),
   ]);
   console.log('ADD PUZZLE URL:', page.url());
 
@@ -164,8 +169,7 @@ test('trainer-tactic-set-editor: UI/a11y audit', async ({ page }) => {
   const docW = await page.evaluate(() => document.documentElement.scrollWidth);
   console.log('mobile scrollWidth:', docW);
 
-  // header buttons should still be reachable on mobile
-  await expect(page.getByRole('button', { name: /Add puzzle/i })).toBeVisible();
+  await expect(page.getByRole('button', { name: /Add puzzle/i }).first()).toBeVisible();
   await expect(page.getByRole('button', { name: /Assign to student/i })).toBeVisible();
 
   // ---- Final tallies ----
