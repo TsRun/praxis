@@ -122,11 +122,15 @@ export function GameStudyEditor() {
             flexWrap: 'wrap',
           }}
         >
-          <Btn variant="secondary" onClick={save} disabled={busy}>
+          <Btn variant="secondary" onClick={save} disabled={busy} aria-busy={busy}>
             {busy ? 'Saving…' : 'Save annotations'}
           </Btn>
           {savedAt && (
-            <span style={{ fontSize: 12, color: 'var(--success)' }}>
+            <span
+              role="status"
+              aria-live="polite"
+              style={{ fontSize: 12, color: 'var(--success)' }}
+            >
               saved {savedAt}
             </span>
           )}
@@ -225,6 +229,7 @@ function PlyList({
     rows.push(
       <div
         key={i}
+        role="listitem"
         className="font-mono"
         style={{
           display: 'grid',
@@ -240,6 +245,7 @@ function PlyList({
         <button
           type="button"
           onClick={() => onJump(wPly)}
+          aria-current={currentPly === wPly ? 'true' : undefined}
           className={`ply-btn${currentPly === wPly ? ' current' : ''}`}
         >
           {history[i]}
@@ -268,6 +274,7 @@ function PlyList({
           <button
             type="button"
             onClick={() => onJump(bPly)}
+            aria-current={currentPly === bPly ? 'true' : undefined}
             className={`ply-btn${currentPly === bPly ? ' current' : ''}`}
           >
             {history[i + 1]}
@@ -301,7 +308,11 @@ function PlyList({
     );
   }
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+    <div
+      role="list"
+      aria-label="Move list"
+      style={{ display: 'flex', flexDirection: 'column', gap: 2 }}
+    >
       {rows}
     </div>
   );
