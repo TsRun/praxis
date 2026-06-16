@@ -210,7 +210,7 @@
       "description": "On /settings the API keys section's 'New key' button opens a creation flow or reveals a new key, with no console/page errors.",
       "lastTestedAt": "2026-06-16T00:07:00Z",
       "lastResult": "improved",
-      "lastPr": null,
+      "lastPr": 284,
       "removed": false
     },
     {
