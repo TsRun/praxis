@@ -30,56 +30,87 @@ test('trainer-import-lichess: dialog opens and exposes inputs', async ({ page })
   await page.goto(`${PROD_URL}/trainer/studies`, { waitUntil: 'domcontentloaded' });
   await expect(page.getByRole('heading', { name: /Studies/i }).first()).toBeVisible();
 
-  // ---- Click "Import from Lichess" ----
+  // ---- Open "Import from Lichess" dialog ----
   await page.getByRole('button', { name: /Import from Lichess/i }).click();
   const dialog = page.getByRole('dialog');
   await expect(dialog).toBeVisible();
 
-  // The first stage is the NewOpeningStudyDialog with lichessHint=true.
-  // Title should read "Import from Lichess" (not "New opening study").
   const dialogTitle = await dialog.locator('h2').first().innerText();
   console.log('DIALOG TITLE:', dialogTitle);
+  expect(dialogTitle).toMatch(/Import from Lichess/i);
 
-  // Dialog a11y: aria-label, aria-modal, aria-labelledby
   const dialogAttrs = await dialog.evaluate((el) => ({
     role: el.getAttribute('role'),
     ariaModal: el.getAttribute('aria-modal'),
-    ariaLabel: el.getAttribute('aria-label'),
     ariaLabelledBy: el.getAttribute('aria-labelledby'),
   }));
   console.log('DIALOG A11Y:', dialogAttrs);
+  expect(dialogAttrs.ariaModal).toBe('true');
+  expect(dialogAttrs.ariaLabelledBy).toBeTruthy();
 
   await page.screenshot({
     path: 'tests/audit/screenshots/trainer-import-lichess.png',
     fullPage: true,
   });
 
-  // ---- Name input ----
+  // ---- Name input — empty CTA disabled, filled CTA enabled ----
   const nameInput = dialog.locator('input.input').first();
   await expect(nameInput).toBeVisible();
-  const nameInfo = await nameInput.evaluate((el) => {
-    const id = el.id || null;
-    const ariaLabel = el.getAttribute('aria-label');
-    const ariaLabelledBy = el.getAttribute('aria-labelledby');
-    const labelFor = id ? document.querySelectorAll(`label[for="${id}"]`).length : 0;
-    const wrap = el.closest('label');
-    const wrapTxt = wrap ? (wrap.textContent || '').trim().slice(0, 60) : null;
-    return { id, ariaLabel, ariaLabelledBy, labelFor, wrapTxt };
-  });
-  console.log('NAME INPUT a11y:', nameInfo);
-
-  // ---- CTA ----
-  // With lichessHint=true the CTA reads "Create + import PGN →"
   const cta = dialog.getByRole('button', { name: /Create \+ import PGN/i });
   await expect(cta).toBeVisible();
-  const ctaDisabledEmpty = await cta.evaluate((el) => (el as HTMLButtonElement).disabled);
-  console.log('CTA DISABLED (empty name):', ctaDisabledEmpty);
-
+  expect(await cta.evaluate((el) => (el as HTMLButtonElement).disabled)).toBe(true);
   await nameInput.fill('Audit import test');
-  const ctaDisabledFilled = await cta.evaluate((el) => (el as HTMLButtonElement).disabled);
-  console.log('CTA DISABLED (filled name):', ctaDisabledFilled);
+  expect(await cta.evaluate((el) => (el as HTMLButtonElement).disabled)).toBe(false);
 
-  // ---- Close button on header ----
+  // ---- Side picker — proper native radio group ----
+  const radioGroup = dialog.locator('[role="radiogroup"]');
+  await expect(radioGroup).toHaveCount(1);
+  const radios = radioGroup.locator('input[type="radio"]');
+  expect(await radios.count()).toBe(2);
+
+  // Clicking the Black label flips React state; visible label paint follows.
+  await dialog.locator('label').filter({ hasText: /^Black/i }).first().click();
+  await page.waitForTimeout(150);
+  const stateAfter = await page.evaluate(() => {
+    const ins = Array.from(document.querySelectorAll('input[type="radio"]')) as HTMLInputElement[];
+    return ins.map((i) => ({ value: i.value, checked: i.checked }));
+  });
+  console.log('RADIO state after Black click:', stateAfter);
+  expect(stateAfter).toEqual([
+    { value: 'w', checked: false },
+    { value: 'b', checked: true },
+  ]);
+  const blackBg = await dialog.locator('label').filter({ hasText: /^Black/i }).first().evaluate(
+    (el) => getComputedStyle(el).backgroundColor,
+  );
+  const whiteBg = await dialog.locator('label').filter({ hasText: /^White/i }).first().evaluate(
+    (el) => getComputedStyle(el).backgroundColor,
+  );
+  console.log('LABEL BG — Black:', blackBg, 'White:', whiteBg);
+  // Picked label paints accent; unpicked paints inset. They must differ.
+  expect(blackBg).not.toBe(whiteBg);
+
+  // ---- Keyboard: Tab from name lands on the checked radio (b) ----
+  await nameInput.focus();
+  await page.keyboard.press('Tab');
+  const tabbedTo = await page.evaluate(() => {
+    const a = document.activeElement as HTMLInputElement | null;
+    return a ? { tag: a.tagName, type: a.type, value: a.value, focusVisible: a.matches(':focus-visible') } : null;
+  });
+  console.log('TABBED-TO from name:', tabbedTo);
+  expect(tabbedTo?.tag).toBe('INPUT');
+  expect(tabbedTo?.focusVisible).toBe(true);
+  const focusedLabelStyles = await page.evaluate(() => {
+    const a = document.activeElement as HTMLElement | null;
+    const lab = a?.closest('label');
+    if (!lab) return null;
+    const cs = getComputedStyle(lab);
+    return { outlineStyle: cs.outlineStyle, outlineWidth: cs.outlineWidth };
+  });
+  console.log('FOCUSED LABEL outline:', focusedLabelStyles);
+  expect(focusedLabelStyles?.outlineStyle).toBe('solid');
+
+  // ---- Close button on header (tap target ≥ 24px) ----
   const closeBtn = dialog.locator('button[aria-label="Close"]');
   await expect(closeBtn).toHaveCount(1);
   const closeBox = await closeBtn.first().evaluate((el) => {
@@ -87,62 +118,18 @@ test('trainer-import-lichess: dialog opens and exposes inputs', async ({ page })
     return { width: Math.round(r.width), height: Math.round(r.height) };
   });
   console.log('CLOSE BUTTON BOX:', closeBox);
-
-  // ---- Hint paragraph mentions PGN ----
-  const hintTxt = await dialog.locator('p.meta').first().innerText().catch(() => '');
-  console.log('HINT TEXT:', hintTxt.slice(0, 200));
-
-  // ---- Side picker buttons ----
-  const sideButtons = dialog.locator('button[aria-pressed]');
-  const sideCount = await sideButtons.count();
-  console.log('SIDE BUTTONS count:', sideCount);
-
-  // Keyboard focus: tab from name input. The autoFocus puts cursor on the
-  // name input. Press Tab once — should land on first side option.
-  await nameInput.focus();
-  await page.keyboard.press('Tab');
-  const tabbedTo = await page.evaluate(() => {
-    const a = document.activeElement as HTMLElement | null;
-    if (!a) return null;
-    return {
-      tag: a.tagName,
-      ariaPressed: a.getAttribute('aria-pressed'),
-      text: (a.textContent || '').trim().slice(0, 40),
-      matchesFocusVisible: a.matches(':focus-visible'),
-    };
-  });
-  console.log('TABBED-TO from name input:', tabbedTo);
-
-  const firstSide = sideButtons.first();
-  const firstSideFocusStyles = await firstSide.evaluate((el) => {
-    const cs = getComputedStyle(el);
-    return {
-      outlineStyle: cs.outlineStyle,
-      outlineWidth: cs.outlineWidth,
-      outlineColor: cs.outlineColor,
-      boxShadow: cs.boxShadow,
-      borderColor: cs.borderColor,
-    };
-  });
-  console.log('SIDE OPTION (first) focus styles:', firstSideFocusStyles);
+  expect(closeBox.width).toBeGreaterThanOrEqual(24);
+  expect(closeBox.height).toBeGreaterThanOrEqual(24);
 
   // ---- Escape closes ----
   await page.keyboard.press('Escape');
   await page.waitForTimeout(150);
-  const closedAfterEsc = (await page.getByRole('dialog').count()) === 0;
-  console.log('CLOSES ON ESC:', closedAfterEsc);
-  if (!closedAfterEsc) {
-    // Pre-fix or unrelated — leave dialog as-is for the mobile pass below.
-  }
+  expect(await page.getByRole('dialog').count()).toBe(0);
 
   // ---- Mobile viewport 375x812 ----
   await page.setViewportSize({ width: 375, height: 812 });
   await page.waitForTimeout(200);
-
-  // Reopen if needed
-  if ((await page.getByRole('dialog').count()) === 0) {
-    await page.getByRole('button', { name: /Import from Lichess/i }).click();
-  }
+  await page.getByRole('button', { name: /Import from Lichess/i }).click();
   await expect(page.getByRole('dialog')).toBeVisible();
 
   await page.screenshot({
@@ -150,38 +137,28 @@ test('trainer-import-lichess: dialog opens and exposes inputs', async ({ page })
     fullPage: true,
   });
 
-  const dlg = page.getByRole('dialog');
-  const dlgBox = await dlg.evaluate((el) => {
-    const r = el.getBoundingClientRect();
-    return {
-      width: Math.round(r.width),
-      height: Math.round(r.height),
-      left: Math.round(r.left),
-      right: Math.round(r.right),
-    };
-  });
-  console.log('MOBILE DIALOG BOX:', dlgBox, 'viewport 375');
-
   const overflow = await page.evaluate(() => ({
     scroll: document.documentElement.scrollWidth,
     client: document.documentElement.clientWidth,
   }));
   console.log('MOBILE OVERFLOW:', overflow);
+  expect(overflow.scroll).toBeLessThanOrEqual(overflow.client);
 
-  // Side option button heights at mobile
-  const mobileSideBtns = dlg.locator('button[aria-pressed]');
-  const mobileSideInfos: Array<any> = [];
-  for (const b of await mobileSideBtns.all()) {
-    const info = await b.evaluate((el) => {
+  const mobileSideBoxes: Array<{ w: number; h: number }> = [];
+  for (const l of await page.locator('[role="radiogroup"] label').all()) {
+    mobileSideBoxes.push(await l.evaluate((el) => {
       const r = el.getBoundingClientRect();
       return { w: Math.round(r.width), h: Math.round(r.height) };
-    });
-    mobileSideInfos.push(info);
+    }));
   }
-  console.log('MOBILE SIDE BUTTON RECTS:', mobileSideInfos);
+  console.log('MOBILE SIDE LABEL RECTS:', mobileSideBoxes);
+  // Sides should be tappable (>= 44 px on shortest dimension)
+  for (const b of mobileSideBoxes) {
+    expect(Math.min(b.w, b.h)).toBeGreaterThanOrEqual(44);
+  }
 
   console.log('PAGE ERRORS:', pageErrors);
   console.log('APP CONSOLE ERRORS:', consoleErrors);
-
   expect(pageErrors).toEqual([]);
+  expect(consoleErrors).toEqual([]);
 });

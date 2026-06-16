@@ -109,7 +109,7 @@
       "route": "/trainer/studies",
       "requiresAuth": true,
       "description": "Clicking 'Import from Lichess' opens a dialog or flow requesting a Lichess study URL, without JS errors.",
-      "lastTestedAt": "2026-06-12T12:10:06Z",
+      "lastTestedAt": "2026-06-16T21:08:46Z",
       "lastResult": "ok",
       "lastPr": 193,
       "removed": false
