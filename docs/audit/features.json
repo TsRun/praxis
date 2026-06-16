@@ -197,8 +197,8 @@
       "route": "/student/dashboard",
       "requiresAuth": true,
       "description": "On /student/dashboard the 'Active' and 'Completed' tabs under the assignments list switch between the two states without errors and reflect the selected tab visually.",
-      "lastTestedAt": "2026-06-12T06:02:54Z",
-      "lastResult": "ok",
+      "lastTestedAt": "2026-06-16T15:07:31Z",
+      "lastResult": "improved",
       "lastPr": null,
       "removed": false
     },

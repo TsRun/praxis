@@ -283,8 +283,8 @@ export function DashboardPage() {
                 onChange={setFilter}
                 ariaLabel="Filter assignments by state"
                 options={[
-                  { value: 'active', label: 'Active' },
-                  { value: 'completed', label: 'Completed' },
+                  { value: 'active', label: 'Active', count: active.length },
+                  { value: 'completed', label: 'Completed', count: done.length },
                 ]}
               />
             </div>

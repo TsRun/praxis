@@ -375,6 +375,15 @@ a.link:focus-visible, button.link:focus-visible {
   color: var(--accent-on);
   font-weight: 600;
 }
+.segmented button .num, .segmented a .num {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text-faint);
+  letter-spacing: 0.02em;
+}
+.segmented button.active .num, .segmented a.active .num {
+  color: var(--text-dim);
+}
 @media (max-width: 640px) {
   .segmented button, .segmented a { height: 36px; padding: 0 14px; }
 }
