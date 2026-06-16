@@ -492,22 +492,10 @@ function ApiKeysCard() {
               </div>
               <button
                 type="button"
+                className="icon-btn icon-btn-danger"
                 onClick={() => setRevoking(k)}
                 title={`Revoke key "${k.name}"`}
                 aria-label={`Revoke key "${k.name}"`}
-                style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  background: 'transparent',
-                  border: 0,
-                  cursor: 'pointer',
-                  color: 'var(--text-dim)',
-                  padding: 6,
-                  minWidth: 32,
-                  minHeight: 32,
-                  borderRadius: 6,
-                }}
               >
                 <IconTrash size={14} strokeWidth={2.4} aria-hidden="true" />
               </button>
