@@ -78,7 +78,7 @@
       "description": "Choosing 'Opening study' from the New study menu opens a dialog where a name can be entered and the study created successfully.",
       "lastTestedAt": "2026-06-17T06:10:25Z",
       "lastResult": "improved",
-      "lastPr": null,
+      "lastPr": 290,
       "removed": false
     },
     {
