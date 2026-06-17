@@ -109,105 +109,121 @@ export function NewOpeningStudyDialog({
       )}
       <form
         onSubmit={submit}
-        style={{ display: 'flex', flexDirection: 'column', gap: 16 }}
+        style={{
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 0,
+          // flex-basis: auto so the dialog sizes to natural content; only
+          // shrink (via the inner overflow) when the dialog hits its maxHeight.
+          flex: '1 1 auto',
+          minHeight: 0,
+        }}
       >
-        <label style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-          <span>Study name</span>
-          <input
-            autoFocus
-            className="input"
-            placeholder="e.g. Caro-Kann Advance — White"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-          />
-        </label>
-
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-          <span id={sideGroupLabelId}>
-            Which side does the student play?
-          </span>
-          <div
-            role="radiogroup"
-            aria-labelledby={sideGroupLabelId}
-            style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
-              gap: 8,
-            }}
-          >
-            <SideOption
-              name={sideRadioName}
-              value="w"
-              picked={side === 'w'}
-              onSelect={() => setSide('w')}
-              title="White"
-              hint="You're preparing 1.e4 / 1.d4 / etc."
-            />
-            <SideOption
-              name={sideRadioName}
-              value="b"
-              picked={side === 'b'}
-              onSelect={() => setSide('b')}
-              title="Black"
-              hint="You're preparing replies to White's first move."
-            />
-          </div>
-        </div>
-
+        {/* Scroll the form content INSIDE this region so the footer stays
+            outside the scrollable area. A sticky footer painted opaque
+            otherwise covers the move-list hint at non-max scroll positions. */}
         <div
           style={{
             display: 'flex',
             flexDirection: 'column',
-            gap: 8,
-            borderTop: '1px solid var(--hairline)',
-            paddingTop: 14,
+            gap: 16,
+            flex: '1 1 auto',
+            minHeight: 0,
+            overflowY: 'auto',
           }}
         >
+          <label style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+            <span>Study name</span>
+            <input
+              autoFocus
+              className="input"
+              placeholder="e.g. Caro-Kann Advance — White"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+            />
+          </label>
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            <span id={sideGroupLabelId}>
+              Which side does the student play?
+            </span>
+            <div
+              role="radiogroup"
+              aria-labelledby={sideGroupLabelId}
+              style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
+                gap: 8,
+              }}
+            >
+              <SideOption
+                name={sideRadioName}
+                value="w"
+                picked={side === 'w'}
+                onSelect={() => setSide('w')}
+                title="White"
+                hint="You're preparing 1.e4 / 1.d4 / etc."
+              />
+              <SideOption
+                name={sideRadioName}
+                value="b"
+                picked={side === 'b'}
+                onSelect={() => setSide('b')}
+                title="Black"
+                hint="You're preparing replies to White's first move."
+              />
+            </div>
+          </div>
+
           <div
             style={{
               display: 'flex',
-              alignItems: 'baseline',
-              justifyContent: 'space-between',
+              flexDirection: 'column',
               gap: 8,
-              flexWrap: 'wrap',
+              borderTop: '1px solid var(--hairline)',
+              paddingTop: 14,
             }}
           >
-            <span style={{ fontWeight: 500 }}>Starting position</span>
-            <span className="meta" style={{ fontSize: 12 }}>
-              Optional · play moves on the board to anchor the tree.
-            </span>
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'baseline',
+                justifyContent: 'space-between',
+                gap: 8,
+                flexWrap: 'wrap',
+              }}
+            >
+              <span style={{ fontWeight: 500 }}>Starting position</span>
+              <span className="meta" style={{ fontSize: 12 }}>
+                Optional · play moves on the board to anchor the tree.
+              </span>
+            </div>
+            <PrefixBoard
+              fen={currentFen}
+              flip={side === 'b'}
+              onPlay={(san) => setSans((prev) => [...prev, san])}
+            />
+            <PrefixMoveList
+              sans={sans}
+              onUndo={() => setSans((prev) => prev.slice(0, -1))}
+              onReset={() => setSans([])}
+            />
           </div>
-          <PrefixBoard
-            fen={currentFen}
-            flip={side === 'b'}
-            onPlay={(san) => setSans((prev) => [...prev, san])}
-          />
-          <PrefixMoveList
-            sans={sans}
-            onUndo={() => setSans((prev) => prev.slice(0, -1))}
-            onReset={() => setSans([])}
-          />
-        </div>
 
-        {err && (
-          <span style={{ fontSize: 12, color: 'var(--danger)' }}>{err}</span>
-        )}
+          {err && (
+            <span style={{ fontSize: 12, color: 'var(--danger)' }}>{err}</span>
+          )}
+        </div>
 
         <div
           style={{
             display: 'flex',
             gap: 10,
             justifyContent: 'flex-end',
-            // Pin the action buttons to the bottom of the (scrollable)
-            // dialog so they stay reachable on short viewports — the
-            // optional starting-position board can otherwise push them
-            // below the scroll fold.
-            position: 'sticky',
-            bottom: 0,
+            paddingTop: 14,
+            marginTop: 14,
             marginInline: -22,
             paddingInline: 22,
-            paddingBlock: 10,
-            background: 'var(--card-bg)',
             borderTop: '1px solid var(--hairline)',
           }}
         >
