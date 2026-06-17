@@ -162,10 +162,13 @@ export function StudiesPage() {
     s.name.toLowerCase().includes(q.toLowerCase()),
   );
 
-  const totalChapters = (opens ?? []).reduce(
-    (s, o) => s + o.annotation_count,
-    0,
-  ) + (games ?? []).reduce((s, g) => s + g.annotation_count, 0);
+  const studiesAuthored =
+    opens == null || games == null ? null : opens.length + games.length;
+  const totalChapters =
+    opens == null || games == null
+      ? null
+      : opens.reduce((s, o) => s + o.annotation_count, 0) +
+        games.reduce((s, g) => s + g.annotation_count, 0);
 
   const showOpenings = filter === 'all' || filter === 'opening';
   const showGames = filter === 'all' || filter === 'game';
@@ -280,7 +283,7 @@ export function StudiesPage() {
         <StatTile
           accent
           Icon={IconBookOpen}
-          value={(opens?.length ?? 0) + (games?.length ?? 0)}
+          value={studiesAuthored ?? '—'}
           label="studies authored"
         />
         <StatTile
@@ -288,7 +291,11 @@ export function StudiesPage() {
           value={studentCount ?? '—'}
           label="students linked"
         />
-        <StatTile Icon={IconList} value={totalChapters} label="chapters total" />
+        <StatTile
+          Icon={IconList}
+          value={totalChapters ?? '—'}
+          label="chapters total"
+        />
       </div>
 
       {/* filter bar */}
