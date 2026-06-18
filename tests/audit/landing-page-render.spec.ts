@@ -133,7 +133,7 @@ test('landing-page-render: hero, features, auth form render with UI a11y check',
   console.log('EMAIL :focus styles:', emailFocus);
 
   // Nav links: do they have visible text and reach reasonable targets?
-  const navLinks = page.locator('div.hide-mobile a');
+  const navLinks = page.locator('nav.hide-mobile a');
   const navInfo = await navLinks.evaluateAll((nodes) =>
     nodes.map((a) => {
       const el = a as HTMLAnchorElement;
@@ -204,7 +204,7 @@ test('landing-page-render: hero, features, auth form render with UI a11y check',
   console.log('MOBILE BOARD BOX:', boardBox);
 
   // Mobile nav: the hide-mobile class hides desktop nav. What's left?
-  const mobileNavVisible = await page.locator('div.hide-mobile').evaluate((el) => {
+  const mobileNavVisible = await page.locator('nav.hide-mobile').evaluate((el) => {
     const cs = getComputedStyle(el);
     return { display: cs.display, visibility: cs.visibility };
   });
