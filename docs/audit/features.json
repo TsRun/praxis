@@ -164,9 +164,9 @@
       "route": "/settings",
       "requiresAuth": true,
       "description": "Navigating to /settings renders all four sections — Profile (name/email save), Roles (toggle buttons), Password (change form), and API keys (New key button) — without errors.",
-      "lastTestedAt": "2026-06-13T21:06:58Z",
+      "lastTestedAt": "2026-06-18T09:07:57Z",
       "lastResult": "improved",
-      "lastPr": null,
+      "lastPr": 299,
       "removed": false
     },
     {
