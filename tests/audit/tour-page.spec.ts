@@ -127,6 +127,33 @@ test('tour-page: renders + UI/a11y audit', async ({ page }) => {
   });
   console.log('FIRST SCENE TAB FOCUS:', focusStyle);
 
+  // ─── Hover affordance on an inactive scene tab ───
+  // Without a hover state, users can't tell the inactive tabs are clickable.
+  // Warn (don't fail) so the spec keeps passing on prod until the fix rolls out.
+  const inactiveTab = page.locator('.scroll-row button[aria-pressed="false"]').first();
+  const beforeHover = await inactiveTab.evaluate((el) => {
+    const cs = getComputedStyle(el);
+    return { background: cs.backgroundColor, color: cs.color, borderColor: cs.borderColor };
+  });
+  await inactiveTab.hover();
+  await page.waitForTimeout(200);
+  const afterHover = await inactiveTab.evaluate((el) => {
+    const cs = getComputedStyle(el);
+    return { background: cs.backgroundColor, color: cs.color, borderColor: cs.borderColor };
+  });
+  console.log('INACTIVE TAB HOVER:', { beforeHover, afterHover });
+  const hoverChanged =
+    beforeHover.background !== afterHover.background ||
+    beforeHover.color !== afterHover.color ||
+    beforeHover.borderColor !== afterHover.borderColor;
+  if (!hoverChanged) {
+    console.warn(
+      'INACTIVE SCENE TAB: no hover affordance — background/color/border unchanged on mouse-over.',
+    );
+  }
+  // un-hover to keep subsequent layout stable
+  await page.mouse.move(0, 0);
+
   // ─── Mobile viewport check ───
   await page.setViewportSize({ width: 375, height: 812 });
   await page.waitForTimeout(800);
