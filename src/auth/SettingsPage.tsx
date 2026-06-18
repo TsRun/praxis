@@ -242,7 +242,7 @@ function RolesCard({
           aria-label="Active roles"
           style={{
             display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))',
+            gridTemplateColumns: 'repeat(3, minmax(0, 1fr))',
             gap: 8,
           }}
         >
