@@ -178,6 +178,8 @@ function SceneTabs({ idx, onPick }: { idx: number; onPick: (i: number) => void }
             onClick={() => onPick(i)}
             aria-pressed={active}
             aria-label={`Scene ${i + 1}: ${s.label}`}
+            className="tour-scene-tab"
+            data-active={active ? 'true' : 'false'}
             style={{
               fontSize: 12.5,
               padding: '5px 10px',

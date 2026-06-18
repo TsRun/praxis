@@ -915,6 +915,15 @@ input[type='range']::-moz-range-thumb {
 .scroll-row::-webkit-scrollbar { height: 4px; }
 .scroll-row::-webkit-scrollbar-thumb { background: var(--hairline-2); border-radius: 999px; }
 
+/* Inactive scene tabs (tour page) need a hover affordance so users
+   discover they're clickable — inline styles can't express :hover. */
+.tour-scene-tab { transition: background 120ms ease, color 120ms ease, border-color 120ms ease; }
+.tour-scene-tab[data-active="false"]:hover {
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--text);
+  border-color: var(--hairline-2);
+}
+
 /* Top-bar tightens its padding on mobile */
 @media (max-width: 640px) {
   .topbar { padding-left: 12px !important; padding-right: 12px !important; }
