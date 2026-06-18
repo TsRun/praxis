@@ -65,7 +65,9 @@ test('student-dashboard: greeting, stats, filter, side cards, row hover', async 
     const seg = row?.querySelector('.segmented') as HTMLElement | null;
     const btns = Array.from(seg?.querySelectorAll('button') ?? []).map((b) => ({
       text: b.textContent?.trim() ?? '',
+      labelText: (b.childNodes[0]?.textContent ?? '').trim(),
       ariaPressed: b.getAttribute('aria-pressed'),
+      ariaLabel: b.getAttribute('aria-label'),
     }));
     return {
       ariaLabel: seg?.getAttribute('aria-label'),
@@ -74,8 +76,16 @@ test('student-dashboard: greeting, stats, filter, side cards, row hover', async 
     };
   });
   console.log('ASSIGNMENT FILTER:', filterInfo);
-  expect(filterInfo.btns.map((b) => b.text)).toEqual(['Active', 'Completed']);
+  expect(filterInfo.btns.map((b) => b.labelText)).toEqual(['Active', 'Completed']);
   expect(filterInfo.btns.some((b) => b.ariaPressed === 'true')).toBe(true);
+  // Per-button aria-label disambiguates "Active 26" for screen readers.
+  // Warn (don't fail) so the spec keeps working on prod until this rolls out.
+  const filterMissingAria = filterInfo.btns.every((b) => !b.ariaLabel);
+  if (filterMissingAria) {
+    console.warn(
+      'ASSIGNMENT FILTER: buttons render label+count but have no per-button aria-label — screen-reader output is ambiguous.',
+    );
+  }
 
   // ----- Toggle filter -----
   const completedBtn = page.locator('h2:has-text("All assignments")')
