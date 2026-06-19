@@ -351,9 +351,9 @@
       "route": "/tournaments",
       "requiresAuth": true,
       "description": "Segmented control on the Tournaments page that swaps between the list view and a lazy-loaded map view.",
-      "lastTestedAt": null,
-      "lastResult": null,
-      "lastPr": null,
+      "lastTestedAt": "2026-06-19T09:09:31Z",
+      "lastResult": "improved",
+      "lastPr": 307,
       "removed": false
     }
   ]
