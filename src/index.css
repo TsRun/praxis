@@ -664,7 +664,7 @@ input[type='range']::-moz-range-thumb {
   border-color: var(--text-dim);
 }
 .pill-btn[aria-pressed="true"] {
-  background: #5b8cff; color: #fff; border-color: #5b8cff;
+  background: #2563eb; color: #fff; border-color: #2563eb;
 }
 .pill-btn:focus-visible {
   outline: 2px solid var(--accent);
@@ -682,7 +682,7 @@ input[type='range']::-moz-range-thumb {
   background: rgba(127, 127, 127, 0.08);
 }
 .seg-toggle-btn[aria-pressed="true"] {
-  background: #5b8cff; color: #fff;
+  background: #2563eb; color: #fff;
 }
 .seg-toggle-btn:focus-visible {
   outline: 2px solid var(--accent);
