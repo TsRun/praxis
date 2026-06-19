@@ -1,0 +1,8 @@
+# Audit run — 2026-06-19T12:05:00Z
+**Mode:** TEST_ONE
+**Subject:** trainer-studies-type-filter
+**Result:** OK+MERGED
+
+Exercised the All / Opening / Game / Tactic Segmented (`role="group"` + `aria-label="Filter studies by type"`) on /trainer/studies against prod with the bot creds. Initial state correctly has All active (`aria-pressed="true"`) and the other three inactive. Clicking each chip toggles `aria-pressed` and reduces the rendered sections to the matching one: Opening alone shows "Opening studies", Game alone shows "Game studies", Tactic alone shows "Tactical sets", and "All" restores all three. The active chip has `color: rgb(236, 236, 239)` + `bg rgba(255, 255, 255, 0.06)` + inset shadow against the `--inset-bg` container; the inactive chips use `color: rgb(160, 160, 168)` (`--text-dim`). Hover on an inactive chip transitions text color to `rgb(231, 231, 235)` per the `.segmented button:hover` rule, cursor remains pointer. No application console errors, no uncaught page errors.
+
+At 375×812 there is no horizontal overflow (scrollWidth 360 vs clientWidth 375); the type-filter row wraps cleanly and each chip becomes 36px tall via the `@media (max-width: 640px)` rule in `src/index.css:387` (vs 28px on desktop), keeping touch targets comfortable. Switching to "Tactic" on mobile correctly leaves only the Tactical sets section visible. The component is the shared `Segmented` atom (`src/components/ui/atoms.tsx:153`), so any future contrast tweaks would benefit both the studies type filter and the view-mode toggle next to it. Nothing actionable on this filter — marking OK and rotating.
