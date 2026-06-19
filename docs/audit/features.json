@@ -353,7 +353,7 @@
       "description": "Segmented control on the Tournaments page that swaps between the list view and a lazy-loaded map view.",
       "lastTestedAt": "2026-06-19T09:09:31Z",
       "lastResult": "improved",
-      "lastPr": null,
+      "lastPr": 307,
       "removed": false
     }
   ]
