@@ -342,7 +342,7 @@
       "description": "Password card on the Settings page requiring current password + new password + confirmation, with validation feedback.",
       "lastTestedAt": "2026-06-19T06:06:03Z",
       "lastResult": "improved",
-      "lastPr": null,
+      "lastPr": 306,
       "removed": false
     },
     {
