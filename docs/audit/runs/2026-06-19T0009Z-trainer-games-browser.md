@@ -1,0 +1,8 @@
+# Audit run — 2026-06-19T00:09:31Z
+**Mode:** TEST_ONE
+**Subject:** trainer-games-browser
+**Result:** OK+MERGED
+
+Exercised /trainer/games against prod with the bot credentials. The "Browse games" heading rendered together with the source-tabs Segmented (Chess.com / Lichess / Database, `role="group"` + `aria-label="Game source"`), the Filters disclosure (open by default), the position-checkbox card with the "Find games passing through this position" wrapping label, and the empty-state "Run a search to see games." card on the right. All text inputs (Chess.com username, Year from/to, ECO/opening, Min Elo, Player name) had a paired `<label for>` (`labelsFor: 1` for every one). The three Color radios shared a single `useId()`-derived `name` so they form a single radio group with arrow-key navigation (`UNIQUE COLOR RADIO NAMES: [':r6:']`). Focus on text inputs produces the global amber outline (`outlineStyle: 'solid', outlineWidth: '2px', outlineColor: 'rgb(251, 191, 36)'`). The Search button correctly disabled itself with `title="Enter a Chess.com username to search"` on empty Chess.com username. No application console errors, no uncaught page errors.
+
+At 375×812 there was no horizontal overflow (scrollWidth 360 vs clientWidth 375), the layout collapsed to a single column, the import grid stacked vertically (width 336), and the TopBar coach/student Segmented was correctly hidden via `.hide-mobile`. All previously-flagged defects on this feature have shipped: the year-row disabled treatment (PR #295's wrapper `opacity: yearEnabled ? 1 : 0.5`), the Color-radio shared `name` (the 2026-06-10 run), and the Search-button missing-username disabled state (the 2026-06-03 run). Nothing actionable left on this page — marking OK and rotating.
