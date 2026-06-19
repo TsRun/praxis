@@ -343,6 +343,11 @@ function PasswordCard({
     }
   }
 
+  // Map the active error to the input(s) it accuses, so screen readers can
+  // identify the offending field via aria-invalid + aria-describedby.
+  const nextInvalid = !!err && /characters|match/i.test(err);
+  const confirmInvalid = !!err && /match/i.test(err);
+
   return (
     <Card style={{ padding: 22 }}>
       <h2 className="t-h2" style={{ margin: '0 0 4px' }}>Password</h2>
@@ -365,8 +370,13 @@ function PasswordCard({
             className="input"
             type="password"
             value={next}
-            onChange={(e) => setNext(e.target.value)}
+            onChange={(e) => {
+              setNext(e.target.value);
+              if (err) setErr(null);
+            }}
             autoComplete="new-password"
+            aria-invalid={nextInvalid || undefined}
+            aria-describedby={nextInvalid ? errId : undefined}
           />
         </Field>
         <Field label="Confirm new password">
@@ -374,8 +384,13 @@ function PasswordCard({
             className="input"
             type="password"
             value={confirm}
-            onChange={(e) => setConfirm(e.target.value)}
+            onChange={(e) => {
+              setConfirm(e.target.value);
+              if (err) setErr(null);
+            }}
             autoComplete="new-password"
+            aria-invalid={confirmInvalid || undefined}
+            aria-describedby={confirmInvalid ? errId : undefined}
           />
         </Field>
         <span
