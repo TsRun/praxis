@@ -1,8 +1,8 @@
 {
   "schemaVersion": 2,
   "site": "https://praxis.tsrun.dev/",
-  "lastDiscoveryAt": "2026-06-14T12:07:03Z",
-  "discoveryCount": 7,
+  "lastDiscoveryAt": "2026-06-19T03:05:12Z",
+  "discoveryCount": 8,
   "features": [
     {
       "id": "landing-page-render",
@@ -331,6 +331,28 @@
       "description": "On /trainer/studies the All / Opening / Game / Tactic filter chips above the studies list switch which study type is shown, with aria-pressed reflecting the active chip.",
       "lastTestedAt": "2026-06-14T15:05:04Z",
       "lastResult": "ok",
+      "lastPr": null,
+      "removed": false
+    },
+    {
+      "id": "settings-password-change",
+      "name": "Settings password change",
+      "route": "/settings",
+      "requiresAuth": true,
+      "description": "Password card on the Settings page requiring current password + new password + confirmation, with validation feedback.",
+      "lastTestedAt": null,
+      "lastResult": null,
+      "lastPr": null,
+      "removed": false
+    },
+    {
+      "id": "tournaments-view-toggle",
+      "name": "Tournaments list/map view toggle",
+      "route": "/tournaments",
+      "requiresAuth": true,
+      "description": "Segmented control on the Tournaments page that swaps between the list view and a lazy-loaded map view.",
+      "lastTestedAt": null,
+      "lastResult": null,
       "lastPr": null,
       "removed": false
     }
