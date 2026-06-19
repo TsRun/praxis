@@ -340,8 +340,8 @@
       "route": "/settings",
       "requiresAuth": true,
       "description": "Password card on the Settings page requiring current password + new password + confirmation, with validation feedback.",
-      "lastTestedAt": null,
-      "lastResult": null,
+      "lastTestedAt": "2026-06-19T06:06:03Z",
+      "lastResult": "improved",
       "lastPr": null,
       "removed": false
     },
