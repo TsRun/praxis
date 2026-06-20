@@ -117,6 +117,14 @@ test('trainer-game-study-editor: editor renders + UI/a11y checks', async ({
     await page.waitForTimeout(200);
   }
 
+  // Annotation panel heading should be visible once a ply is selected
+  const annHeading = await page
+    .getByRole('heading', { name: /Annotation/i })
+    .first()
+    .textContent();
+  console.log('ANNOTATION HEADING:', annHeading);
+  expect(annHeading, 'annotation heading visible after ply select').toBeTruthy();
+
   // 7) Inspect annotation textarea (a11y)
   const textarea = page.locator('textarea').first();
   const hasTextarea = (await textarea.count()) > 0;
