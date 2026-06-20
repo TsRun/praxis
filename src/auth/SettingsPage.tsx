@@ -640,6 +640,9 @@ function MintedKeyDialog({
       </p>
       <div
         className="mono"
+        // userSelect: 'all' lets a single click/tap on mobile select the
+        // whole token — the user can't see it again, so make grabbing it
+        // friction-free.
         style={{
           fontSize: 12,
           padding: 12,
@@ -648,6 +651,7 @@ function MintedKeyDialog({
           borderRadius: 8,
           wordBreak: 'break-all',
           color: 'var(--text)',
+          userSelect: 'all',
         }}
       >
         {token}
@@ -684,6 +688,9 @@ function MintedKeyDialog({
         </Btn>
         <Btn variant="primary" onClick={onClose}>Done</Btn>
       </div>
+      <span role="status" aria-live="polite" className="sr-only">
+        {copied ? 'API key copied to clipboard' : ''}
+      </span>
     </Dialog>
   );
 }
