@@ -86,15 +86,20 @@ test('trainer-student-detail: route resolves without errors and shows a stable s
     console.log('LOADING:', loadingInfo);
   }
 
-  // Inspect the error card if present.
+  // Inspect the error card if present. The page may include a sidebar
+  // anchor pointing at /trainer/students too, so scope to the in-card
+  // back action via its visible label.
   if (onError) {
-    const back = page.locator('a[href="/trainer/students"]').first();
+    const back = page
+      .getByRole('link', { name: /Back to students/i })
+      .first();
     await expect(back).toBeVisible();
     const backInfo = await back.evaluate((el) => ({
       href: (el as HTMLAnchorElement).href,
       text: el.textContent?.trim(),
     }));
     console.log('BACK LINK:', backInfo);
+    expect(backInfo.href).toMatch(/\/trainer\/students$/);
   }
 
   // ---- Mobile viewport check (375x812) ----
