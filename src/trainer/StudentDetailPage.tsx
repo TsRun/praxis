@@ -11,7 +11,7 @@ import {
   type TacticSetSummary,
 } from '../lib/api';
 import { Card, Btn, Chip, Avatar } from '../components/ui/atoms';
-import { IconCheck, IconClock } from '../components/ui/Icons';
+import { IconAlert, IconCheck, IconClock } from '../components/ui/Icons';
 
 export function StudentDetailPage() {
   const { id } = useParams();
@@ -56,9 +56,9 @@ export function StudentDetailPage() {
       <div
         className="page-wrap"
         style={{ paddingTop: 32, paddingBottom: 100 }}
-        role="alert"
       >
         <Card
+          role="alert"
           style={{
             padding: '24px 22px',
             display: 'flex',
@@ -67,7 +67,31 @@ export function StudentDetailPage() {
             alignItems: 'flex-start',
           }}
         >
-          <h1 className="t-h2" style={{ margin: 0 }}>Couldn’t load this student</h1>
+          <div
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 10,
+            }}
+          >
+            <span
+              aria-hidden="true"
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                width: 28,
+                height: 28,
+                borderRadius: 999,
+                background: 'var(--danger-bg)',
+                color: 'var(--danger)',
+                flexShrink: 0,
+              }}
+            >
+              <IconAlert size={16} strokeWidth={2.2} />
+            </span>
+            <h1 className="t-h2" style={{ margin: 0 }}>Couldn’t load this student</h1>
+          </div>
           <div className="meta">{loadError}</div>
           <Link
             to="/trainer/students"
