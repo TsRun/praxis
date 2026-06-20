@@ -44,6 +44,26 @@ export function GameStudyEditor() {
     return study.annotations.find((a) => a.ply === currentPly) ?? null;
   }, [study, currentPly]);
 
+  const history = useMemo(() => {
+    if (!study?.pgn) return [] as string[];
+    const c = new Chess();
+    try {
+      c.loadPgn(study.pgn);
+    } catch {
+      /* ignore */
+    }
+    return c.history();
+  }, [study?.pgn]);
+
+  const annotationHeading = useMemo(() => {
+    if (currentPly === 0) return 'Move annotations';
+    const san = history[currentPly - 1];
+    if (!san) return `Annotation at ply ${currentPly}`;
+    const num = Math.ceil(currentPly / 2);
+    const label = currentPly % 2 === 1 ? `${num}.` : `${num}…`;
+    return `Annotation · ${label} ${san}`;
+  }, [currentPly, history]);
+
   function upsertAnnotation(patch: Partial<GameAnnotation>) {
     setStudy((prev) => {
       if (!prev) return prev;
@@ -151,7 +171,7 @@ export function GameStudyEditor() {
         </Card>
         <Card style={{ padding: 16, display: 'flex', flexDirection: 'column', gap: 12, width: '100%', maxWidth: 360 }}>
           <h3 className="t-h3" style={{ margin: 0 }}>
-            Annotation at ply {currentPly || 0}
+            {annotationHeading}
           </h3>
           {currentPly === 0 ? (
             <p className="meta">
