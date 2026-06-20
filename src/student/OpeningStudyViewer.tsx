@@ -1112,6 +1112,20 @@ function ChaptersView({
     setCurrentNodeId(anchorId);
   }
 
+  if (chapters.length === 0) {
+    return (
+      <Card
+        style={{
+          padding: 32,
+          textAlign: 'center',
+          color: 'var(--text-dim)',
+        }}
+      >
+        No chapters in this study yet — your trainer hasn't added one.
+      </Card>
+    );
+  }
+
   return (
     <div className="chapters-grid">
       <Card className="chapters-grid-side" style={{ padding: 0 }}>
@@ -1127,15 +1141,7 @@ function ChaptersView({
           </div>
         </div>
         <div style={{ padding: 6, maxHeight: '70vh', overflowY: 'auto' }}>
-          {chapters.length === 0 ? (
-            <div
-              className="meta"
-              style={{ padding: 16, fontSize: 12.5, lineHeight: 1.5 }}
-            >
-              No chapters in this study yet.
-            </div>
-          ) : (
-            chapters.map(({ node, chapter }, i) => {
+          {chapters.map(({ node, chapter }, i) => {
               const active = node.id === selectedChapterAnchorId;
               return (
                 <button
@@ -1199,8 +1205,7 @@ function ChaptersView({
                   </div>
                 </button>
               );
-            })
-          )}
+            })}
         </div>
       </Card>
 
