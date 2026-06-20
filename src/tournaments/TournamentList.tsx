@@ -8,9 +8,13 @@ function fmtDate(iso: string | null): string {
   return new Date(iso + 'T00:00:00').toLocaleDateString('fr-FR', { day: '2-digit', month: 'short' });
 }
 
-export function TournamentList({ rows }: { rows: TournamentRow[] }) {
+export function TournamentList({ rows, emptyMessage }: { rows: TournamentRow[]; emptyMessage?: string }) {
   if (rows.length === 0) {
-    return <p style={{ color: 'var(--text-dim)', padding: '24px 0' }}>Aucun tournoi ne correspond à ces filtres.</p>;
+    return (
+      <p style={{ color: 'var(--text-dim)', padding: '24px 0' }}>
+        {emptyMessage ?? 'Aucun tournoi à venir pour le moment.'}
+      </p>
+    );
   }
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>

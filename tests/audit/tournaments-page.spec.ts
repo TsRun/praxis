@@ -29,6 +29,21 @@ test('tournaments-page: heading, cadence tabs, view toggle, UI checks', async ({
   await page.waitForSelector('h1', { timeout: 15000 });
   await expect(page.getByRole('heading', { level: 1, name: /Tournois/i })).toBeVisible();
 
+  // Empty-state copy: when no filters are in the URL, the message must not
+  // blame filters that don't exist. Logged-only so the spec passes against
+  // prod both before and after the fix is deployed; the actual copy change
+  // ships in src/tournaments/.
+  await page.waitForLoadState('networkidle');
+  const emptyText = await page.evaluate(() => {
+    const ps = Array.from(document.querySelectorAll('p'));
+    const target = ps.find((p) => /Aucun tournoi/.test(p.textContent ?? ''));
+    return target?.textContent ?? '';
+  });
+  console.log('EMPTY MESSAGE (no filters):', JSON.stringify(emptyText));
+  if (emptyText && /filtres/i.test(emptyText)) {
+    console.warn('WARN: empty-state mentions filters even though none are applied');
+  }
+
   const btnClassique = page.getByRole('button', { name: /^Classique$/ });
   const btnRapide = page.getByRole('button', { name: /^Rapide$/ });
   const btnBlitz = page.getByRole('button', { name: /^Blitz$/ });
