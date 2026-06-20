@@ -221,7 +221,7 @@
       "description": "Navigating to /student/study/opening/<id> as a student renders the opening study viewer with a chess board and no uncaught errors.",
       "lastTestedAt": "2026-06-20T18:06:00Z",
       "lastResult": "improved",
-      "lastPr": 249,
+      "lastPr": 318,
       "removed": false
     },
     {
