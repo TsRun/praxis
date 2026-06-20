@@ -98,7 +98,14 @@ export function TournamentsPage() {
         {loading && !error && <p role="status" aria-live="polite" style={{ color: 'var(--text-dim)' }}>Chargement…</p>}
         {!loading && !error && (
           view === 'list'
-            ? <TournamentList rows={rows} />
+            ? <TournamentList
+                rows={rows}
+                emptyMessage={
+                  region || cadence
+                    ? 'Aucun tournoi ne correspond à ces filtres.'
+                    : 'Aucun tournoi à venir pour le moment.'
+                }
+              />
             : (
               <Suspense fallback={<p style={{ color: 'var(--text-dim)' }}>Chargement de la carte…</p>}>
                 <TournamentMap rows={rows} onSelect={(t) => window.open(t.url, '_blank')} />
