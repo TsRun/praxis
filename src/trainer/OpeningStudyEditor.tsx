@@ -1094,8 +1094,10 @@ function LineSiblingsCard({
       <div
         style={{
           display: 'flex',
-          alignItems: 'center',
+          alignItems: 'baseline',
           justifyContent: 'space-between',
+          flexWrap: 'wrap',
+          gap: 8,
           marginBottom: 14,
         }}
       >
