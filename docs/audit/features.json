@@ -131,8 +131,8 @@
       "route": "/trainer/students",
       "requiresAuth": true,
       "description": "Clicking 'Invite student' on the students page opens an invitation dialog or flow with an input for the student's identifier.",
-      "lastTestedAt": "2026-06-17T00:08:00Z",
-      "lastResult": "improved",
+      "lastTestedAt": "2026-06-21T09:09:39Z",
+      "lastResult": "ok",
       "lastPr": null,
       "removed": false
     },
