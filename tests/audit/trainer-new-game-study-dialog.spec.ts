@@ -4,151 +4,260 @@ const PROD_URL = 'https://praxis.tsrun.dev';
 const EMAIL = process.env.PRAXIS_BOT_EMAIL || 'claude.bot@gmail.com';
 const PASSWORD = process.env.PRAXIS_BOT_PASSWORD || 'Claudebot';
 
-test('trainer-new-game-study-dialog: opens, exercises a11y + UI checks', async ({
-  page,
-}) => {
+test('trainer-new-game-study-dialog: UI/a11y audit', async ({ page }) => {
   const consoleErrors: string[] = [];
   const pageErrors: string[] = [];
 
   page.on('console', (msg) => {
-    if (msg.type() === 'error') consoleErrors.push(msg.text());
+    if (msg.type() === 'error') {
+      const text = msg.text();
+      if (text.startsWith('Failed to load resource:')) return;
+      consoleErrors.push(text);
+    }
   });
   page.on('pageerror', (err) => {
     pageErrors.push(err.message);
   });
 
-  // 1) Log in via the landing page
+  // ---- Sign in ----
   await page.goto(`${PROD_URL}/`, { waitUntil: 'domcontentloaded' });
   await page.locator('input[autocomplete="email"]').fill(EMAIL);
-  await page.locator('input[type="password"]').fill(PASSWORD);
-  await page.getByRole('button', { name: 'Sign in →' }).click();
-  await page.waitForURL(/\/trainer\/studies|\/student\/dashboard/, {
-    timeout: 15000,
-  });
+  await page.locator('input[type="password"]').first().fill(PASSWORD);
+  await page.getByRole('button', { name: /Sign in →/ }).click();
+  await page.waitForURL(/\/trainer\/studies/, { timeout: 15000 });
+  await page.waitForSelector('h1, h2', { timeout: 15000 });
 
-  // 2) Navigate to Studies (trainer)
-  if (!page.url().includes('/trainer/studies')) {
-    await page.goto(`${PROD_URL}/trainer/studies`, {
-      waitUntil: 'domcontentloaded',
-    });
-  }
-  await page.waitForSelector('h1, h2', { timeout: 10000 });
+  // ---- Open New study menu → Game study ----
+  await page.getByRole('button', { name: /^new study$/i }).first().click();
+  await page.getByRole('menuitem', { name: /game study/i }).first().click();
 
-  // 3) Open the New study menu, then click Game study
-  await page.getByRole('button', { name: /new study/i }).click();
-  await page.getByRole('button', { name: /game study/i }).click();
-
-  // 4) Dialog open — sanity assertions
   const dialog = page.getByRole('dialog', { name: /new game study/i });
   await expect(dialog).toBeVisible({ timeout: 5000 });
 
   // Desktop screenshot
   await page.setViewportSize({ width: 1280, height: 800 });
+  await page.waitForTimeout(300);
   await page.screenshot({
     path: 'tests/audit/screenshots/trainer-new-game-study-dialog.png',
     fullPage: false,
   });
 
-  // 5) A11y micro-check — inputs
-  const nameInput = dialog.locator('input').first();
-  const pgnTextarea = dialog.locator('textarea').first();
-
+  // ---- Name input a11y ----
+  const nameInput = dialog.locator('#game-study-name');
   const nameInfo = await nameInput.evaluate((el) => {
     const i = el as HTMLInputElement;
+    const associatedLabel = i.id
+      ? document.querySelector(`label[for="${i.id}"]`)
+      : null;
     return {
       id: i.id || null,
       ariaLabel: i.getAttribute('aria-label'),
-      ariaLabelledBy: i.getAttribute('aria-labelledby'),
-      wrappedInLabel: !!i.closest('label'),
+      ariaRequired: i.getAttribute('aria-required'),
+      required: i.required,
       placeholder: i.placeholder,
+      autocomplete: i.getAttribute('autocomplete'),
+      associatedLabelText: associatedLabel
+        ? (associatedLabel.textContent || '').trim()
+        : null,
     };
   });
-  const pgnInfo = await pgnTextarea.evaluate((el) => {
-    const t = el as HTMLTextAreaElement;
-    return {
-      id: t.id || null,
-      ariaLabel: t.getAttribute('aria-label'),
-      ariaLabelledBy: t.getAttribute('aria-labelledby'),
-      wrappedInLabel: !!t.closest('label'),
-      outlineStyle: getComputedStyle(t).outlineStyle,
-      // Focus-trigger then re-check outline
-    };
-  });
-
   console.log('NAME INPUT:', nameInfo);
+
+  await nameInput.focus();
+  const nameFocus = await nameInput.evaluate((el) => {
+    const s = getComputedStyle(el);
+    return {
+      outlineStyle: s.outlineStyle,
+      outlineWidth: s.outlineWidth,
+      outlineColor: s.outlineColor,
+      boxShadow: s.boxShadow,
+      borderColor: s.borderColor,
+    };
+  });
+  console.log('NAME INPUT :focus styles:', nameFocus);
+
+  // ---- PGN textarea a11y ----
+  const pgnArea = dialog.locator('#game-study-pgn');
+  const pgnInfo = await pgnArea.evaluate((el) => {
+    const t = el as HTMLTextAreaElement;
+    const associatedLabel = t.id
+      ? document.querySelector(`label[for="${t.id}"]`)
+      : null;
+    const describedBy = t.getAttribute('aria-describedby');
+    const describedByEls = describedBy
+      ? describedBy.split(/\s+/).map((id) => {
+          const node = document.getElementById(id);
+          return { id, found: !!node, text: node ? (node.textContent || '').trim() : null };
+        })
+      : [];
+    return {
+      id: t.id,
+      ariaRequired: t.getAttribute('aria-required'),
+      required: t.required,
+      rows: t.rows,
+      placeholderFirstLine: (t.placeholder || '').split('\n')[0],
+      associatedLabelText: associatedLabel
+        ? (associatedLabel.textContent || '').trim()
+        : null,
+      ariaDescribedBy: describedBy,
+      describedByEls,
+    };
+  });
   console.log('PGN TEXTAREA:', pgnInfo);
 
-  // Tab focus through dialog, capture focus indicator on textarea
-  await nameInput.focus();
-  const nameFocusStyle = await nameInput.evaluate((el) => {
+  await pgnArea.focus();
+  const pgnFocus = await pgnArea.evaluate((el) => {
     const s = getComputedStyle(el);
     return {
       outlineStyle: s.outlineStyle,
       outlineWidth: s.outlineWidth,
+      outlineColor: s.outlineColor,
       boxShadow: s.boxShadow,
       borderColor: s.borderColor,
+      matchesFocus: el.matches(':focus'),
+      matchesFocusVisible: el.matches(':focus-visible'),
+      activeIsThis: document.activeElement === el,
     };
   });
-  console.log('NAME INPUT :focus styles:', nameFocusStyle);
-
-  await pgnTextarea.focus();
-  const pgnFocusStyle = await pgnTextarea.evaluate((el) => {
-    const s = getComputedStyle(el);
-    return {
-      outlineStyle: s.outlineStyle,
-      outlineWidth: s.outlineWidth,
-      boxShadow: s.boxShadow,
-      borderColor: s.borderColor,
-    };
-  });
-  console.log('PGN TEXTAREA :focus styles:', pgnFocusStyle);
-
-  // Screenshot with PGN textarea focused — visible indicator?
+  console.log('PGN TEXTAREA :focus styles:', pgnFocus);
   await page.screenshot({
     path: 'tests/audit/screenshots/trainer-new-game-study-dialog-pgn-focus.png',
     fullPage: false,
   });
 
-  // 6) Close button a11y
-  const closeBtn = dialog
-    .locator('button')
-    .filter({ hasNot: page.locator(':scope:has-text("Cancel"),:scope:has-text("Import")') })
-    .first();
-  const closeInfo = await closeBtn.evaluate((el) => ({
-    ariaLabel: el.getAttribute('aria-label'),
-    textContent: (el.textContent || '').trim(),
-  }));
+  // ---- Submit button enablement matrix ----
+  const submitBtn = dialog.getByRole('button', { name: /^import game$/i });
+  await nameInput.fill('');
+  await pgnArea.fill('');
+  const disabledBoth = await submitBtn.evaluate(
+    (el) => (el as HTMLButtonElement).disabled,
+  );
+  await nameInput.fill('Audit probe');
+  const disabledOnlyName = await submitBtn.evaluate(
+    (el) => (el as HTMLButtonElement).disabled,
+  );
+  await nameInput.fill('');
+  await pgnArea.fill('1. e4 e5');
+  const disabledOnlyPgn = await submitBtn.evaluate(
+    (el) => (el as HTMLButtonElement).disabled,
+  );
+  await nameInput.fill('Audit probe');
+  await pgnArea.fill('1. e4 e5');
+  const disabledFilled = await submitBtn.evaluate(
+    (el) => (el as HTMLButtonElement).disabled,
+  );
+  console.log(
+    'SUBMIT disabled — both empty / only name / only pgn / both filled:',
+    disabledBoth,
+    disabledOnlyName,
+    disabledOnlyPgn,
+    disabledFilled,
+  );
+
+  // ---- Close (X) button in header ----
+  const closeBtn = dialog.getByRole('button', { name: /^close$/i });
+  const closeInfo = await closeBtn.evaluate((el) => {
+    const r = el.getBoundingClientRect();
+    return {
+      ariaLabel: el.getAttribute('aria-label'),
+      width: Math.round(r.width),
+      height: Math.round(r.height),
+    };
+  });
   console.log('CLOSE BUTTON:', closeInfo);
 
-  // 7) Form validation — try submitting empty (close dialog first to make sure clean state)
-  await nameInput.fill('');
-  await pgnTextarea.fill('');
-  const importBtn = dialog.getByRole('button', { name: /import game/i });
-  const importBtnDisabled = await importBtn.isDisabled();
-  console.log('IMPORT BTN DISABLED (empty form):', importBtnDisabled);
+  // ---- Title ----
+  const titleInfo = await dialog
+    .locator('h2.t-h2')
+    .first()
+    .evaluate((el) => {
+      const s = getComputedStyle(el);
+      return {
+        text: (el.textContent || '').trim(),
+        fontSize: s.fontSize,
+        fontWeight: s.fontWeight,
+      };
+    })
+    .catch(() => null);
+  console.log('TITLE:', titleInfo);
 
-  // 8) Mobile viewport snapshot
+  // ---- PGN help text ----
+  const helpInfo = await dialog
+    .locator('#game-study-pgn-help')
+    .evaluate((el) => {
+      const s = getComputedStyle(el);
+      return {
+        color: s.color,
+        fontSize: s.fontSize,
+        text: (el.textContent || '').trim().slice(0, 80),
+      };
+    });
+  console.log('PGN HELP:', helpInfo);
+
+  // ---- Esc closes ----
+  await page.keyboard.press('Escape');
+  await expect(dialog).toBeHidden({ timeout: 3000 });
+
+  // ---- Backdrop click closes ----
+  await page.getByRole('button', { name: /^new study$/i }).first().click();
+  await page.getByRole('menuitem', { name: /game study/i }).first().click();
+  await expect(dialog).toBeVisible({ timeout: 5000 });
+  const backdrop = page.locator('.modal-backdrop');
+  await backdrop.evaluate((el) => {
+    const r = el.getBoundingClientRect();
+    el.dispatchEvent(
+      new MouseEvent('click', {
+        bubbles: true,
+        clientX: r.left + 4,
+        clientY: r.top + 4,
+      }),
+    );
+  });
+  await expect(dialog).toBeHidden({ timeout: 3000 });
+
+  // ---- Mobile pass ----
   await page.setViewportSize({ width: 375, height: 812 });
   await page.waitForTimeout(200);
+  await page.getByRole('button', { name: /^new study$/i }).first().click();
+  await page.getByRole('menuitem', { name: /game study/i }).first().click();
+  await expect(dialog).toBeVisible({ timeout: 5000 });
+  await page.waitForTimeout(300);
   await page.screenshot({
     path: 'tests/audit/screenshots/trainer-new-game-study-dialog-mobile.png',
     fullPage: false,
   });
 
-  const dialogBox = await dialog.boundingBox();
-  const viewport = page.viewportSize();
-  console.log('MOBILE DIALOG BOX:', dialogBox, 'VIEWPORT:', viewport);
+  const dialogBoxMobile = await dialog.evaluate((el) => {
+    const r = el.getBoundingClientRect();
+    return {
+      width: Math.round(r.width),
+      height: Math.round(r.height),
+      left: Math.round(r.left),
+      right: Math.round(r.right),
+      top: Math.round(r.top),
+      bottom: Math.round(r.bottom),
+      scrollH: el.scrollHeight,
+      clientH: el.clientHeight,
+    };
+  });
+  console.log('MOBILE DIALOG BOX:', dialogBoxMobile, 'viewport 375x812');
 
-  // Cancel out
-  await dialog.getByRole('button', { name: /cancel/i }).click();
+  const importBoxMobile = await dialog
+    .getByRole('button', { name: /^import game$/i })
+    .boundingBox();
+  const cancelBoxMobile = await dialog
+    .getByRole('button', { name: /^cancel$/i })
+    .boundingBox();
+  console.log('MOBILE buttons — import:', importBoxMobile, 'cancel:', cancelBoxMobile);
+
+  const pgnBoxMobile = await pgnArea.boundingBox();
+  console.log('MOBILE PGN textarea box:', pgnBoxMobile);
+
+  await dialog.getByRole('button', { name: /^cancel$/i }).click();
   await expect(dialog).toBeHidden({ timeout: 3000 });
 
   console.log('PAGE ERRORS:', pageErrors);
-  console.log(
-    'APP CONSOLE ERRORS:',
-    consoleErrors.filter((e) => !/Failed to load resource/.test(e)),
-  );
+  console.log('APP CONSOLE ERRORS:', consoleErrors);
 
-  // Don't fail on observations — we LOG them. We only fail if the page crashes.
   expect(pageErrors, 'no uncaught page errors').toEqual([]);
 });
