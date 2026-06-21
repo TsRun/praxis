@@ -116,6 +116,7 @@ export function UserMenu() {
               </div>
               <Link
                 to="/settings"
+                role="menuitem"
                 onClick={() => setOpen(false)}
                 style={{
                   display: 'flex',
@@ -153,6 +154,7 @@ export function UserMenu() {
                 <Btn
                   variant="ghost"
                   size="sm"
+                  role="menuitem"
                   onClick={() => setEditing(true)}
                   style={{ color: 'var(--text-dim)' }}
                 >
@@ -161,6 +163,7 @@ export function UserMenu() {
                 <Btn
                   variant="ghost"
                   size="sm"
+                  role="menuitem"
                   onClick={async () => {
                     setOpen(false);
                     await signout();
