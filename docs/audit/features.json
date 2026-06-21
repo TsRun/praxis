@@ -177,7 +177,7 @@
       "description": "Clicking the avatar/name button in the top-right header opens a profile menu showing user name, email, role chips and a sign-out button — present across all authed pages.",
       "lastTestedAt": "2026-06-21T21:06:38Z",
       "lastResult": "improved",
-      "lastPr": null,
+      "lastPr": 328,
       "removed": false
     },
     {
