@@ -98,11 +98,11 @@ export function NewGameStudyDialog({ open, onClose, onCreate }: Props) {
               err ? 'game-study-pgn-help game-study-error' : 'game-study-pgn-help'
             }
           />
-          <p id="game-study-pgn-help" className="meta" style={{ margin: 0 }}>
-            Paste a PGN to import the moves of a single game — copy it from
-            chess.com, Lichess, or any other source.
-          </p>
         </label>
+        <p id="game-study-pgn-help" className="meta" style={{ marginTop: -8 }}>
+          Paste a PGN to import the moves of a single game — copy it from
+          chess.com, Lichess, or any other source.
+        </p>
 
         {err && (
           <span
